@@ -1,0 +1,12 @@
+ipykernel
+notebook
+numpy
+pandas
+tensorflow>=2.2.0
+keras
+matplotlib
+pydot
+sklearn
+plotly
+ipywidgets
+jupyterlab
