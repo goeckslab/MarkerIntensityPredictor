@@ -11,3 +11,4 @@ sklearn
 plotly
 ipywidgets
 jupyterlab
+opencv-contrib-python
