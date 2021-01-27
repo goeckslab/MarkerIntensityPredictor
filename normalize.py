@@ -13,6 +13,9 @@ def normalize(data):
     # values for downstream analysis. Therefore, zeros are replaced by
     # a small value; see the following thread for related discussion.
     # https://www.researchgate.net/post/Log_transformation_of_values_that_include_0_zero_for_statistical_analyses2
+    
+    
+    # TODO: shift the dataset instead of replacing 0 with epsilone 
     data[data == 0] = 1e-32
     data = np.log10(data)
 
