@@ -167,12 +167,12 @@ plt.show()
 # 20, 12, 5 has yielded ~the best results so far (~50% accuracy on validation set).
 # Increasing from 6->7 middle layers allows for 60% accuracy, up from ~48% accuracy.
 #######################################
-first_layer_size = 20
-second_layer_size = 10
+first_layer_size = 16
+second_layer_size = 8
 third_layer_size = 0
-encoding_dimension = 6
+encoding_dimension = 4
 batch_size = 10
-epochs = 25
+epochs = 75
 #######################################
 
 ##### Functions #####
@@ -211,7 +211,6 @@ def denoising_autoencoder(input, input_b, input_c, encoding_dimension, first_lay
         next_input = layer(next_input)
     decoder = Model(inputs=decoder_input, outputs=next_input)
 
-    '''
     # Plot loss over epoch history:
     plt.plot(training_history.history['loss'])
     plt.plot(training_history.history['val_loss'])
@@ -227,7 +226,6 @@ def denoising_autoencoder(input, input_b, input_c, encoding_dimension, first_lay
     plt.title('Accuracy')
     plt.xlabel('epoch')
     plt.show()
-    '''
 
     return autoencoder, encoder, decoder
 
@@ -320,6 +318,7 @@ for i in range(0, int(predicted_test.shape[1])):
 
     #plot(actual_asarray, predicted_asarray, (columns[i] + ' MSE = ' + str(mse_lr)))
 
+    '''
     # predict y from the data
     x_new = np.linspace(-3, 3, 100)
     y_new = lr_model.predict(x_new[:, np.newaxis])
@@ -337,3 +336,4 @@ for i in range(0, int(predicted_test.shape[1])):
     ax.axis('tight')
 
     plt.show()
+    '''
