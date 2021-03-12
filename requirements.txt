@@ -12,3 +12,4 @@ plotly
 ipywidgets
 jupyterlab
 opencv-contrib-python
+seaborn
