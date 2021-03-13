@@ -1,8 +1,8 @@
 ipykernel
 notebook
-numpy
+numpy~=1.19.2
 pandas
-tensorflow>=2.2.0
+tensorflow
 keras
 matplotlib
 pydot
@@ -13,3 +13,4 @@ ipywidgets
 jupyterlab
 opencv-contrib-python
 seaborn
+umap-learn
