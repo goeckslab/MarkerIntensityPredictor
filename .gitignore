@@ -129,4 +129,6 @@ dmypy.json
 .pyre/
 
 tumor_cycif.csv
+tumor_cycif_v2.csv
+*.csv
 .vscode/settings.json
