@@ -19,6 +19,8 @@ if __name__ == "__main__":
         marker = LinearMarkerIntensity(path, args.model)
         marker.load()
         marker.train_predict()
+        marker.write_csv()
+        marker.create_plots()
 
     else:
         marker = MarkerIntensity(path)

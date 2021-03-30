@@ -17,6 +17,8 @@ class LinearMarkerIntensity:
     __X_val = pd.DataFrame()
     __X_train = pd.DataFrame()
     __X_test = pd.DataFrame()
+
+    coefficients = pd.DataFrame()
     prediction_scores = pd.DataFrame(columns=["Marker", "Score", "Model"])
 
     def __init__(self, input_file, model='Ridge'):
@@ -41,8 +43,8 @@ class LinearMarkerIntensity:
         self.__X_val = pd.DataFrame(columns=self.__markers, data=Normalizer.normalize(self.__X_val))
 
     def train_predict(self):
-        coef = pd.DataFrame(columns=self.__X_train.columns)
-        coef["Model"] = ""
+        self.coefficients = pd.DataFrame(columns=self.__X_train.columns)
+        self.coefficients["Model"] = ""
         for marker in self.__X_train.columns:
             # Copy df to not change
             train_copy = self.__X_train.copy()
@@ -65,8 +67,8 @@ class LinearMarkerIntensity:
                 "Model": "Ridge"
             }, ignore_index=True)
 
-            coef = coef.append(self.__create_coefficent_df(X_train, model))
-            coef["Model"].fillna("Ridge", inplace=True)
+            self.coefficients = self.coefficients.append(self.__create_coefficent_df(X_train, model))
+            self.coefficients["Model"].fillna("Ridge", inplace=True)
 
             model = Lasso(alpha=1)
             model.fit(X_train, y_train)
@@ -76,8 +78,8 @@ class LinearMarkerIntensity:
                 "Model": "Lasso"
             }, ignore_index=True)
 
-            coef = coef.append(self.__create_coefficent_df(X_train, model))
-            coef["Model"].fillna("Lasso",  inplace=True)
+            self.coefficients = self.coefficients.append(self.__create_coefficent_df(X_train, model))
+            self.coefficients["Model"].fillna("Lasso", inplace=True)
 
             model = LinearRegression()
             model.fit(X_train, y_train)
@@ -87,13 +89,47 @@ class LinearMarkerIntensity:
                 "Model": "LR"
             }, ignore_index=True)
 
-            coef = coef.append(self.__create_coefficent_df(X_train, model))
-            coef["Model"].fillna("LR",  inplace=True)
-
+            self.coefficients = self.coefficients.append(self.__create_coefficent_df(X_train, model))
+            self.coefficients["Model"].fillna("LR", inplace=True)
 
         self.prediction_scores["Marker"] = [re.sub("_nucleiMasks", "", x) for x in self.prediction_scores["Marker"]]
-        coef.to_csv("coef.csv")
+
+    def write_csv(self):
+        """
+        Creates csv files for each important csv
+        :return:
+        """
+        self.coefficients.to_csv("coefficients.csv")
         self.prediction_scores.to_csv("prediction_scores.csv")
+
+    def create_plots(self):
+        """
+        Creates all plots associated to the model
+        :return:
+        """
+        self.__create_r2_accuracy_plot()
+
+    def __create_coefficent_df(self, train, model):
+        """
+        Creates a dataset which contains the coefficents for each marker
+        :param train:
+        :param model:
+        :return:
+        """
+        temp = pd.DataFrame(zip(train.columns, model.coef_))
+        temp.rename(columns={0: 'Marker', 1: "Coef"}, inplace=True)
+
+        temp = temp.T
+        new_header = temp.iloc[0]
+        temp = temp[1:]
+        temp.columns = new_header
+        return temp
+
+    def __create_r2_accuracy_plot(self):
+        """
+        Creates a bar plot showing the accuracy of the model for each marker
+        :return:
+        """
         g = sns.catplot(
             data=self.prediction_scores, kind="bar",
             x="Score", y="Marker", hue="Model",
@@ -104,13 +140,3 @@ class LinearMarkerIntensity:
         g.legend.set_title("")
         # g.set_xticklabels(rotation=90)
         g.savefig("score_predictions.png")
-
-    def __create_coefficent_df(self, train, model):
-        temp = pd.DataFrame(zip(train.columns, model.coef_))
-        temp.rename(columns={0: 'Marker', 1: "Coef"}, inplace=True)
-
-        temp = temp.T
-        new_header = temp.iloc[0]
-        temp = temp[1:]
-        temp.columns = new_header
-        return temp
