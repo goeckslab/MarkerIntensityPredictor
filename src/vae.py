@@ -1,7 +1,10 @@
+from abc import ABC
+
 import keras
 import tensorflow as tf
 
-class VAE(keras.Model):
+
+class VAE(keras.Model, ABC):
     def __init__(self, encoder, decoder, **kwargs):
         super(VAE, self).__init__(**kwargs)
         self.encoder = encoder
@@ -42,5 +45,5 @@ class VAE(keras.Model):
 
     def call(self, inputs):
         z_mean, z_log_var, z = self.encoder(inputs)
-        print (self.decoder(z))
+        print(self.decoder(z))
         return self.decoder(z)
