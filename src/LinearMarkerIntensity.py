@@ -2,7 +2,7 @@ import pandas as pd
 from services.data_loader import DataLoader
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import Ridge, Lasso, LinearRegression
+from sklearn.linear_model import Ridge, Lasso, LinearRegression, ElasticNet
 import seaborn as sns
 import re
 from services.normalization import Normalizer
@@ -48,49 +48,29 @@ class LinearMarkerIntensity:
         for marker in self.__X_train.columns:
             # Copy df to not change
             train_copy = self.__X_train.copy()
+            test_copy = self.__X_test.copy()
+
+            if marker == "ERK1_1":
+                del train_copy["ERK1_2"]
+                del test_copy["ERK1_2"]
+
+            if marker == "ERK1_2":
+                del train_copy["ERK1_1"]
+                del test_copy["ERK1_1"]
 
             # Create y and X
             y_train = train_copy[f"{marker}"]
             del train_copy[f"{marker}"]
             X_train = train_copy
 
-            test_copy = self.__X_test.copy()
             y_test = test_copy[f"{marker}"]
             del test_copy[f"{marker}"]
             X_test = test_copy
 
-            model = Ridge(alpha=1)
-            model.fit(X_train, y_train)
-            self.prediction_scores = self.prediction_scores.append({
-                "Marker": marker,
-                "Score": model.score(X_test, y_test),
-                "Model": "Ridge"
-            }, ignore_index=True)
-
-            self.coefficients = self.coefficients.append(self.__create_coefficent_df(X_train, model))
-            self.coefficients["Model"].fillna("Ridge", inplace=True)
-
-            model = Lasso(alpha=1)
-            model.fit(X_train, y_train)
-            self.prediction_scores = self.prediction_scores.append({
-                "Marker": marker,
-                "Score": model.score(X_test, y_test),
-                "Model": "Lasso"
-            }, ignore_index=True)
-
-            self.coefficients = self.coefficients.append(self.__create_coefficent_df(X_train, model))
-            self.coefficients["Model"].fillna("Lasso", inplace=True)
-
-            model = LinearRegression()
-            model.fit(X_train, y_train)
-            self.prediction_scores = self.prediction_scores.append({
-                "Marker": marker,
-                "Score": model.score(X_test, y_test),
-                "Model": "LR"
-            }, ignore_index=True)
-
-            self.coefficients = self.coefficients.append(self.__create_coefficent_df(X_train, model))
-            self.coefficients["Model"].fillna("LR", inplace=True)
+            self.__predict("Ridge", Ridge(alpha=1), X_train, y_train, X_test, y_test, marker)
+            self.__predict("LR", LinearRegression(), X_train, y_train, X_test, y_test, marker)
+            self.__predict("Lasso", Lasso(alpha=0.1), X_train, y_train, X_test, y_test, marker)
+            self.__predict("EN", ElasticNet(alpha=0.1), X_train, y_train, X_test, y_test, marker)
 
         self.prediction_scores["Marker"] = [re.sub("_nucleiMasks", "", x) for x in self.prediction_scores["Marker"]]
 
@@ -109,7 +89,7 @@ class LinearMarkerIntensity:
         """
         self.__create_r2_accuracy_plot()
 
-    def __create_coefficent_df(self, train, model):
+    def __create_coefficent_df(self, train, model, marker):
         """
         Creates a dataset which contains the coefficents for each marker
         :param train:
@@ -117,7 +97,7 @@ class LinearMarkerIntensity:
         :return:
         """
         temp = pd.DataFrame(zip(train.columns, model.coef_))
-        temp.rename(columns={0: 'Marker', 1: "Coef"}, inplace=True)
+        temp.rename(columns={0: 'Marker', 1: marker}, inplace=True)
 
         temp = temp.T
         new_header = temp.iloc[0]
@@ -140,3 +120,15 @@ class LinearMarkerIntensity:
         g.legend.set_title("")
         # g.set_xticklabels(rotation=90)
         g.savefig("score_predictions.png")
+
+    def __predict(self, name: str, model, X_train, y_train, X_test, y_test, marker):
+
+        model.fit(X_train, y_train)
+        self.prediction_scores = self.prediction_scores.append({
+            "Marker": marker,
+            "Score": model.score(X_test, y_test),
+            "Model": name
+        }, ignore_index=True)
+
+        self.coefficients = self.coefficients.append(self.__create_coefficent_df(X_train, model, marker))
+        self.coefficients["Model"].fillna(name, inplace=True)

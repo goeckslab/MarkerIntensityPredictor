@@ -17,6 +17,7 @@ class Normalizer:
         data = standard_scaler.fit_transform(data)
         data = data.clip(min=-5, max=5)
 
-        min_max_scaler = MinMaxScaler(feature_range=(-1, 1))
-        data = min_max_scaler.fit_transform(data)
+
+        #min_max_scaler = MinMaxScaler()
+        #data = min_max_scaler.fit_transform(data)
         return data
