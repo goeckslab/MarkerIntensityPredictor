@@ -1,54 +1,72 @@
 import pandas as pd
 from services.data_loader import DataLoader
-import numpy as np
-from sklearn.model_selection import train_test_split
 from sklearn.linear_model import Ridge, Lasso, LinearRegression, ElasticNet
 import seaborn as sns
 import re
-from services.normalization import Normalizer
+from data_storage import DataStorage
+import os
+from pathlib import Path
 
 
 class LinearMarkerIntensity:
-    __input_file: str
-    __inputs = pd.DataFrame()
-    __model: str
-    __markers: list
-    __X_dev = pd.DataFrame()
-    __X_val = pd.DataFrame()
-    __X_train = pd.DataFrame()
-    __X_test = pd.DataFrame()
+    train_file: str
+    test_file: str
+    train_file_name: str
+    test_file_name: str
+    train_data: DataStorage
+    test_data: DataStorage
 
     coefficients = pd.DataFrame()
     prediction_scores = pd.DataFrame(columns=["Marker", "Score", "Model"])
 
-    def __init__(self, input_file, model='Ridge'):
-        self.__input_file = input_file
-        self.__model = model
-        self.__inputs = pd.DataFrame()
+    __args = list
+
+    def __init__(self, train_file, args, validation_file):
+        self.__args = args
+
+        if self.__args.multi:
+            self.test_file = train_file
+            self.test_file_name = os.path.splitext(self.test_file)[0].split('/')[1]
+            self.train_file = None
+            self.train_file_name = None
+
+        else:
+            self.train_file = train_file
+            self.test_file = validation_file
+            self.train_file_name = os.path.splitext(self.train_file)[0]
+
+            if self.test_file is not None:
+                self.test_file_name = os.path.splitext(self.test_file)[0]
 
     def load(self):
-        self.__inputs, self.__markers = DataLoader.get_data(self.__input_file)
-        self.__inputs = np.array(self.__inputs)
-        self.__X_dev, self.__X_val = train_test_split(self.__inputs, test_size=0.05, random_state=1, shuffle=True)
-        self.__X_train, self.__X_test = train_test_split(self.__X_dev, test_size=0.25, random_state=1)
 
-        init_inputs = self.__inputs
-        init_X_train = self.__X_train
-        init_X_test = self.__X_test
-        init_X_val = self.__X_val
+        if self.__args.multi:
+            inputs, markers = DataLoader.get_data(self.test_file)
+            self.test_data = DataStorage(inputs, markers)
 
-        self.__inputs = pd.DataFrame(columns=self.__markers, data=Normalizer.normalize(self.__inputs))
-        self.__X_train = pd.DataFrame(columns=self.__markers, data=Normalizer.normalize(self.__X_train))
-        self.__X_test = pd.DataFrame(columns=self.__markers, data=Normalizer.normalize(self.__X_test))
-        self.__X_val = pd.DataFrame(columns=self.__markers, data=Normalizer.normalize(self.__X_val))
+            inputs, markers = DataLoader.merge_files(self.test_file)
+            self.train_data = DataStorage(inputs, markers)
+
+        else:
+            inputs, markers = DataLoader.get_data(self.train_file)
+            self.train_data = DataStorage(inputs, markers)
+
+            if self.test_file is not None:
+                inputs, markers = DataLoader.get_data(self.test_file)
+                self.test_data = DataStorage(inputs, markers)
 
     def train_predict(self):
-        self.coefficients = pd.DataFrame(columns=self.__X_train.columns)
+        self.coefficients = pd.DataFrame(columns=self.train_data.X_train.columns)
         self.coefficients["Model"] = ""
-        for marker in self.__X_train.columns:
+
+        for marker in self.train_data.X_train.columns:
             # Copy df to not change
-            train_copy = self.__X_train.copy()
-            test_copy = self.__X_test.copy()
+            train_copy = self.train_data.X_train.copy()
+
+            if self.test_file is not None:
+                test_copy = self.test_data.X_test.copy()
+            else:
+                test_copy = self.train_data.X_test.copy()
 
             if marker == "ERK1_1":
                 del train_copy["ERK1_2"]
@@ -69,8 +87,8 @@ class LinearMarkerIntensity:
 
             self.__predict("Ridge", Ridge(alpha=1), X_train, y_train, X_test, y_test, marker)
             self.__predict("LR", LinearRegression(), X_train, y_train, X_test, y_test, marker)
-            self.__predict("Lasso", Lasso(alpha=0.1), X_train, y_train, X_test, y_test, marker)
-            self.__predict("EN", ElasticNet(alpha=0.1), X_train, y_train, X_test, y_test, marker)
+            self.__predict("Lasso", Lasso(alpha=0.5), X_train, y_train, X_test, y_test, marker)
+            self.__predict("EN", ElasticNet(alpha=0.5), X_train, y_train, X_test, y_test, marker)
 
         self.prediction_scores["Marker"] = [re.sub("_nucleiMasks", "", x) for x in self.prediction_scores["Marker"]]
 
@@ -79,8 +97,16 @@ class LinearMarkerIntensity:
         Creates csv files for each important csv
         :return:
         """
-        self.coefficients.to_csv("coefficients.csv")
-        self.prediction_scores.to_csv("prediction_scores.csv")
+        if self.test_file is None:
+            self.coefficients.to_csv(Path(f"results/{self.train_file_name}_coefficients.csv"))
+            self.prediction_scores.to_csv(Path(f"results/{self.train_file_name}_prediction_scores.csv"))
+
+        elif self.train_file is None:
+            self.coefficients.to_csv(Path(f"results/{self.test_file_name}_multi_coefficients.csv"))
+            self.prediction_scores.to_csv(Path(f"results/{self.test_file_name}_multi_prediction_scores.csv"))
+        else:
+            self.coefficients.to_csv(Path(f"results/{self.train_file_name}_{self.test_file_name}_coefficients.csv"))
+            self.prediction_scores.to_csv(Path(f"results/{self.train_file_name}_{self.test_file_name}_prediction_scores.csv"))
 
     def create_plots(self):
         """
@@ -89,7 +115,7 @@ class LinearMarkerIntensity:
         """
         self.__create_r2_accuracy_plot()
 
-    def __create_coefficent_df(self, train, model, marker):
+    def __create_coefficient_df(self, train, model, marker):
         """
         Creates a dataset which contains the coefficents for each marker
         :param train:
@@ -119,10 +145,15 @@ class LinearMarkerIntensity:
         g.set_axis_labels("R2 Score", "Marker")
         g.legend.set_title("")
         # g.set_xticklabels(rotation=90)
-        g.savefig("score_predictions.png")
+
+        if self.test_file is None:
+            g.savefig(Path(f"results/{self.train_file_name}_score_predictions.png"))
+        elif self.train_file is None:
+            g.savefig(Path(f"results/{self.test_file_name}_multi_score_predictions.png"))
+        else:
+            g.savefig(Path(f"results/{self.train_file_name}_{self.test_file_name}_score_predictions.png"))
 
     def __predict(self, name: str, model, X_train, y_train, X_test, y_test, marker):
-
         model.fit(X_train, y_train)
         self.prediction_scores = self.prediction_scores.append({
             "Marker": marker,
@@ -130,5 +161,5 @@ class LinearMarkerIntensity:
             "Model": name
         }, ignore_index=True)
 
-        self.coefficients = self.coefficients.append(self.__create_coefficent_df(X_train, model, marker))
+        self.coefficients = self.coefficients.append(self.__create_coefficient_df(X_train, model, marker))
         self.coefficients["Model"].fillna(name, inplace=True)
