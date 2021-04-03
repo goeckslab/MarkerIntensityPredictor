@@ -33,10 +33,10 @@ class LinearMarkerIntensity:
         else:
             self.train_file = train_file
             self.test_file = validation_file
-            self.train_file_name = os.path.splitext(self.train_file)[0]
+            self.train_file_name = os.path.splitext(self.test_file)[0].split('/')[1]
 
             if self.test_file is not None:
-                self.test_file_name = os.path.splitext(self.test_file)[0]
+                self.test_file_name = os.path.splitext(self.test_file)[0].split('/')[1]
 
     def load(self):
 
