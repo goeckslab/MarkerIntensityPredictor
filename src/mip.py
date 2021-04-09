@@ -1,6 +1,6 @@
-from MarkerIntensity import MarkerIntensity
-from LinearMarkerIntensity import LinearMarkerIntensity
-from services.args_parser import ArgumentParser
+from VAE.MarkerIntensity import MarkerIntensity
+from LinearRegression.LinearMarkerIntensity import LinearMarkerIntensity
+from shared.services.args_parser import ArgumentParser
 from pathlib import Path
 import logging
 import sys
@@ -9,7 +9,7 @@ if __name__ == "__main__":
 
     args = ArgumentParser.load_args()
     train_file: Path
-    test_file: None
+    test_file = None
     try:
         train_file = Path(args.file)
         if args.validation is not None:

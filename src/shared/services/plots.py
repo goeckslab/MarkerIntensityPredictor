@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import umap
-from vae import VAE
+from VAE.entities.vae import VAE
 import seaborn as sns
 from scipy import stats
 from matplotlib.pyplot import figure

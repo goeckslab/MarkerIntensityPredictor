@@ -1,7 +1,7 @@
 from keras import layers, regularizers
 import keras
 import numpy as np
-from sampling import Sampling
+from VAE.entities.sampling import Sampling
 
 
 class Encoder:

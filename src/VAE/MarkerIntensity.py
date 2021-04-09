@@ -1,5 +1,5 @@
 import pandas as pd
-from services.data_loader import DataLoader
+from shared.services.data_loader import DataLoader
 import numpy as np
 from sklearn.model_selection import train_test_split
 

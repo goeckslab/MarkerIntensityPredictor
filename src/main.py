@@ -7,10 +7,10 @@ from random import randrange
 from keras import layers, regularizers
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.model_selection import train_test_split
-from plots import Plots
-from statistics import Stats
-from sampling import Sampling
-from vae import VAE
+from shared.services.plots import Plots
+from VAE.statistics import Stats
+from VAE.entities.sampling import Sampling
+from VAE.entities.vae import VAE
 
 
 def check_data(inputs):
