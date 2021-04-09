@@ -2,10 +2,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+.idea
 # C extensions
 *.so
-
+*.png
 # Distribution / packaging
 .Python
 build/
@@ -129,6 +129,6 @@ dmypy.json
 .pyre/
 
 tumor_cycif.csv
-tumor_cycif_v2.csv
+data/tumor_cycif_v2.csv
 *.csv
 .vscode/settings.json

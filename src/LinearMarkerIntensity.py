@@ -1,0 +1,165 @@
+import pandas as pd
+from services.data_loader import DataLoader
+from sklearn.linear_model import Ridge, Lasso, LinearRegression, ElasticNet
+import seaborn as sns
+import re
+from data_storage import DataStorage
+import os
+from pathlib import Path
+
+
+class LinearMarkerIntensity:
+    train_file: str
+    test_file: str
+    train_file_name: str
+    test_file_name: str
+    train_data: DataStorage
+    test_data: DataStorage
+
+    coefficients = pd.DataFrame()
+    prediction_scores = pd.DataFrame(columns=["Marker", "Score", "Model"])
+
+    __args = list
+
+    def __init__(self, train_file, args, validation_file):
+        self.__args = args
+
+        if self.__args.multi:
+            self.test_file = train_file
+            self.test_file_name = os.path.splitext(self.test_file)[0].split('/')[1]
+            self.train_file = None
+            self.train_file_name = None
+
+        else:
+            self.train_file = train_file
+            self.test_file = validation_file
+            self.train_file_name = os.path.splitext(self.test_file)[0].split('/')[1]
+
+            if self.test_file is not None:
+                self.test_file_name = os.path.splitext(self.test_file)[0].split('/')[1]
+
+    def load(self):
+
+        if self.__args.multi:
+            inputs, markers = DataLoader.get_data(self.test_file)
+            self.test_data = DataStorage(inputs, markers)
+
+            inputs, markers = DataLoader.merge_files(self.test_file)
+            self.train_data = DataStorage(inputs, markers)
+
+        else:
+            inputs, markers = DataLoader.get_data(self.train_file)
+            self.train_data = DataStorage(inputs, markers)
+
+            if self.test_file is not None:
+                inputs, markers = DataLoader.get_data(self.test_file)
+                self.test_data = DataStorage(inputs, markers)
+
+    def train_predict(self):
+        self.coefficients = pd.DataFrame(columns=self.train_data.X_train.columns)
+        self.coefficients["Model"] = ""
+
+        for marker in self.train_data.X_train.columns:
+            # Copy df to not change
+            train_copy = self.train_data.X_train.copy()
+
+            if self.test_file is not None:
+                test_copy = self.test_data.X_test.copy()
+            else:
+                test_copy = self.train_data.X_test.copy()
+
+            if marker == "ERK1_1":
+                del train_copy["ERK1_2"]
+                del test_copy["ERK1_2"]
+
+            if marker == "ERK1_2":
+                del train_copy["ERK1_1"]
+                del test_copy["ERK1_1"]
+
+            # Create y and X
+            y_train = train_copy[f"{marker}"]
+            del train_copy[f"{marker}"]
+            X_train = train_copy
+
+            y_test = test_copy[f"{marker}"]
+            del test_copy[f"{marker}"]
+            X_test = test_copy
+
+            self.__predict("Ridge", Ridge(alpha=1), X_train, y_train, X_test, y_test, marker)
+            self.__predict("LR", LinearRegression(), X_train, y_train, X_test, y_test, marker)
+            self.__predict("Lasso", Lasso(alpha=0.5), X_train, y_train, X_test, y_test, marker)
+            self.__predict("EN", ElasticNet(alpha=0.5), X_train, y_train, X_test, y_test, marker)
+
+        self.prediction_scores["Marker"] = [re.sub("_nucleiMasks", "", x) for x in self.prediction_scores["Marker"]]
+
+    def write_csv(self):
+        """
+        Creates csv files for each important csv
+        :return:
+        """
+        if self.test_file is None:
+            self.coefficients.to_csv(Path(f"results/{self.train_file_name}_coefficients.csv"))
+            self.prediction_scores.to_csv(Path(f"results/{self.train_file_name}_prediction_scores.csv"))
+
+        elif self.train_file is None:
+            self.coefficients.to_csv(Path(f"results/{self.test_file_name}_multi_coefficients.csv"))
+            self.prediction_scores.to_csv(Path(f"results/{self.test_file_name}_multi_prediction_scores.csv"))
+        else:
+            self.coefficients.to_csv(Path(f"results/{self.train_file_name}_{self.test_file_name}_coefficients.csv"))
+            self.prediction_scores.to_csv(Path(f"results/{self.train_file_name}_{self.test_file_name}_prediction_scores.csv"))
+
+    def create_plots(self):
+        """
+        Creates all plots associated to the model
+        :return:
+        """
+        self.__create_r2_accuracy_plot()
+
+    def __create_coefficient_df(self, train, model, marker):
+        """
+        Creates a dataset which contains the coefficents for each marker
+        :param train:
+        :param model:
+        :return:
+        """
+        temp = pd.DataFrame(zip(train.columns, model.coef_))
+        temp.rename(columns={0: 'Marker', 1: marker}, inplace=True)
+
+        temp = temp.T
+        new_header = temp.iloc[0]
+        temp = temp[1:]
+        temp.columns = new_header
+        return temp
+
+    def __create_r2_accuracy_plot(self):
+        """
+        Creates a bar plot showing the accuracy of the model for each marker
+        :return:
+        """
+        g = sns.catplot(
+            data=self.prediction_scores, kind="bar",
+            x="Score", y="Marker", hue="Model",
+            ci="sd", palette="dark", alpha=.6, height=6
+        )
+        g.despine(left=True)
+        g.set_axis_labels("R2 Score", "Marker")
+        g.legend.set_title("")
+        # g.set_xticklabels(rotation=90)
+
+        if self.test_file is None:
+            g.savefig(Path(f"results/{self.train_file_name}_score_predictions.png"))
+        elif self.train_file is None:
+            g.savefig(Path(f"results/{self.test_file_name}_multi_score_predictions.png"))
+        else:
+            g.savefig(Path(f"results/{self.train_file_name}_{self.test_file_name}_score_predictions.png"))
+
+    def __predict(self, name: str, model, X_train, y_train, X_test, y_test, marker):
+        model.fit(X_train, y_train)
+        self.prediction_scores = self.prediction_scores.append({
+            "Marker": marker,
+            "Score": model.score(X_test, y_test),
+            "Model": name
+        }, ignore_index=True)
+
+        self.coefficients = self.coefficients.append(self.__create_coefficient_df(X_train, model, marker))
+        self.coefficients["Model"].fillna(name, inplace=True)
