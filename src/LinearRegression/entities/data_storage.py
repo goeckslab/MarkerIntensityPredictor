@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from services.normalization import Normalizer
+from LinearRegression.services.normalization import Normalizer
 
 
 class DataStorage:

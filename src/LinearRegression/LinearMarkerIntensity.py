@@ -1,9 +1,9 @@
 import pandas as pd
-from services.data_loader import DataLoader
+from shared.services.data_loader import DataLoader
 from sklearn.linear_model import Ridge, Lasso, LinearRegression, ElasticNet
 import seaborn as sns
 import re
-from data_storage import DataStorage
+from LinearRegression.entities.data_storage import DataStorage
 import os
 from pathlib import Path
 
@@ -24,36 +24,53 @@ class LinearMarkerIntensity:
     def __init__(self, train_file, args, validation_file):
         self.__args = args
 
+        # Multi file
         if self.__args.multi:
+            print("Multi")
             self.test_file = train_file
             self.test_file_name = os.path.splitext(self.test_file)[0].split('/')[1]
             self.train_file = None
             self.train_file_name = None
 
-        else:
+        # Validation file
+        elif self.__args.validation is not None:
+            print("Validation")
             self.train_file = train_file
             self.test_file = validation_file
-            self.train_file_name = os.path.splitext(self.test_file)[0].split('/')[1]
+            self.train_file_name = os.path.splitext(self.train_file)[0].split('/')[1]
+            self.test_file_name = os.path.splitext(self.test_file)[0].split('/')[1]
 
-            if self.test_file is not None:
-                self.test_file_name = os.path.splitext(self.test_file)[0].split('/')[1]
+        # Single File
+        else:
+            print("Single")
+            self.train_file = train_file
+            self.train_file_name = os.path.splitext(self.train_file)[0].split('/')[1]
+            self.test_file = None
+            self.test_file_name = None
 
     def load(self):
-
+        # Multi file
         if self.__args.multi:
+            print("Multi")
             inputs, markers = DataLoader.get_data(self.test_file)
             self.test_data = DataStorage(inputs, markers)
 
             inputs, markers = DataLoader.merge_files(self.test_file)
             self.train_data = DataStorage(inputs, markers)
 
-        else:
+        # Validation file
+        elif self.__args.validation is not None:
+            print("Valdation")
             inputs, markers = DataLoader.get_data(self.train_file)
             self.train_data = DataStorage(inputs, markers)
+            inputs, markers = DataLoader.get_data(self.test_file)
+            self.test_data = DataStorage(inputs, markers)
 
-            if self.test_file is not None:
-                inputs, markers = DataLoader.get_data(self.test_file)
-                self.test_data = DataStorage(inputs, markers)
+        # Single File
+        else:
+            print("Single")
+            inputs, markers = DataLoader.get_data(self.train_file)
+            self.train_data = DataStorage(inputs, markers)
 
     def train_predict(self):
         self.coefficients = pd.DataFrame(columns=self.train_data.X_train.columns)
@@ -64,8 +81,10 @@ class LinearMarkerIntensity:
             train_copy = self.train_data.X_train.copy()
 
             if self.test_file is not None:
+                print("not none")
                 test_copy = self.test_data.X_test.copy()
             else:
+                print("none")
                 test_copy = self.train_data.X_test.copy()
 
             if marker == "ERK1_1":
@@ -106,7 +125,8 @@ class LinearMarkerIntensity:
             self.prediction_scores.to_csv(Path(f"results/{self.test_file_name}_multi_prediction_scores.csv"))
         else:
             self.coefficients.to_csv(Path(f"results/{self.train_file_name}_{self.test_file_name}_coefficients.csv"))
-            self.prediction_scores.to_csv(Path(f"results/{self.train_file_name}_{self.test_file_name}_prediction_scores.csv"))
+            self.prediction_scores.to_csv(
+                Path(f"results/{self.train_file_name}_{self.test_file_name}_prediction_scores.csv"))
 
     def create_plots(self):
         """
