@@ -6,6 +6,9 @@ import re
 from LinearRegression.entities.data_storage import DataStorage
 import os
 from pathlib import Path
+import matplotlib.pyplot as plt
+
+sns.set_theme(style="darkgrid")
 
 
 class LinearMarkerIntensity:
@@ -26,7 +29,6 @@ class LinearMarkerIntensity:
 
         # Multi file
         if self.__args.multi:
-            print("Multi")
             self.test_file = train_file
             self.test_file_name = os.path.splitext(self.test_file)[0].split('/')[1]
             self.train_file = None
@@ -34,7 +36,6 @@ class LinearMarkerIntensity:
 
         # Validation file
         elif self.__args.validation is not None:
-            print("Validation")
             self.train_file = train_file
             self.test_file = validation_file
             self.train_file_name = os.path.splitext(self.train_file)[0].split('/')[1]
@@ -42,7 +43,6 @@ class LinearMarkerIntensity:
 
         # Single File
         else:
-            print("Single")
             self.train_file = train_file
             self.train_file_name = os.path.splitext(self.train_file)[0].split('/')[1]
             self.test_file = None
@@ -51,7 +51,6 @@ class LinearMarkerIntensity:
     def load(self):
         # Multi file
         if self.__args.multi:
-            print("Multi")
             inputs, markers = DataLoader.get_data(self.test_file)
             self.test_data = DataStorage(inputs, markers)
 
@@ -60,7 +59,6 @@ class LinearMarkerIntensity:
 
         # Validation file
         elif self.__args.validation is not None:
-            print("Valdation")
             inputs, markers = DataLoader.get_data(self.train_file)
             self.train_data = DataStorage(inputs, markers)
             inputs, markers = DataLoader.get_data(self.test_file)
@@ -68,7 +66,6 @@ class LinearMarkerIntensity:
 
         # Single File
         else:
-            print("Single")
             inputs, markers = DataLoader.get_data(self.train_file)
             self.train_data = DataStorage(inputs, markers)
 
@@ -81,10 +78,8 @@ class LinearMarkerIntensity:
             train_copy = self.train_data.X_train.copy()
 
             if self.test_file is not None:
-                print("not none")
                 test_copy = self.test_data.X_test.copy()
             else:
-                print("none")
                 test_copy = self.train_data.X_test.copy()
 
             if marker == "ERK1_1":
@@ -134,6 +129,7 @@ class LinearMarkerIntensity:
         :return:
         """
         self.__create_r2_accuracy_plot()
+        self.__create_coef_heatmap_plot()
 
     def __create_coefficient_df(self, train, model, marker):
         """
@@ -151,27 +147,42 @@ class LinearMarkerIntensity:
         temp.columns = new_header
         return temp
 
+    def __create_coef_heatmap_plot(self):
+        for data in self.coefficients["Model"].unique():
+            df = self.coefficients[self.coefficients["Model"] == data].copy()
+
+            del df["Model"]
+            df.fillna(-1, inplace=True)
+            ax = sns.heatmap(df, linewidths=.5, vmin=0, vmax=1, cmap="YlGnBu")
+            ax.set_title(data)
+            fig = ax.get_figure()
+            fig.savefig(Path(f"results/{data}_coef_heatmap.png"), bbox_inches='tight')
+            plt.close()
+
     def __create_r2_accuracy_plot(self):
         """
         Creates a bar plot showing the accuracy of the model for each marker
         :return:
         """
-        g = sns.catplot(
+        ax = sns.catplot(
             data=self.prediction_scores, kind="bar",
             x="Score", y="Marker", hue="Model",
             ci="sd", palette="dark", alpha=.6, height=6
         )
-        g.despine(left=True)
-        g.set_axis_labels("R2 Score", "Marker")
-        g.legend.set_title("")
+        ax.despine(left=True)
+        ax.set_axis_labels("R2 Score", "Marker")
+        ax.legend.set_title("")
         # g.set_xticklabels(rotation=90)
+        #fig = ax.get_figure()
 
         if self.test_file is None:
-            g.savefig(Path(f"results/{self.train_file_name}_score_predictions.png"))
+            ax.savefig(Path(f"results/{self.train_file_name}_score_predictions.png"))
         elif self.train_file is None:
-            g.savefig(Path(f"results/{self.test_file_name}_multi_score_predictions.png"))
+            ax.savefig(Path(f"results/{self.test_file_name}_multi_score_predictions.png"))
         else:
-            g.savefig(Path(f"results/{self.train_file_name}_{self.test_file_name}_score_predictions.png"))
+            ax.savefig(Path(f"results/{self.train_file_name}_{self.test_file_name}_score_predictions.png"))
+
+        plt.close()
 
     def __predict(self, name: str, model, X_train, y_train, X_test, y_test, marker):
         model.fit(X_train, y_train)
