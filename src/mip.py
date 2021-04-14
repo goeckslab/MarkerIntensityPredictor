@@ -1,6 +1,7 @@
 from VAE.MarkerIntensity import MarkerIntensity
 from LinearRegression.LinearMarkerIntensity import LinearMarkerIntensity
 from shared.services.args_parser import ArgumentParser
+from LudwigAi.ludwig import LudwigAi
 from pathlib import Path
 import logging
 import sys
@@ -20,15 +21,17 @@ if __name__ == "__main__":
         logging.error(f"Could not locate file {args.file} or {args.validation}")
         sys.exit()
 
-    if not args.dl:
+    if args.mode == "Linear":
         marker = LinearMarkerIntensity(train_file, args, test_file)
         marker.load()
         marker.train_predict()
         marker.write_csv()
         marker.create_plots()
 
-    else:
+    elif args.mode == "DL":
         marker = MarkerIntensity(train_file)
         marker.load()
         marker.train()
         marker.prediction()
+    else:
+        ludwig = LudwigAi(train_file)
