@@ -1,3 +1,12 @@
+# Marker Intensity Predictor
+
+This repo contains different part of Marker Intensity Research, based on HTAN data files.
+
+It includes:
+1. Jupyter notebooks
+2. A linear regression model to calculate LR baseline data
+3. A Ludwig AI tool to create yaml files for Ludwig
+
 Run the following to start the jupyter notebook:
 
 ```shell script

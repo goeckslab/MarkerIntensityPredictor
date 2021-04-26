@@ -14,3 +14,4 @@ jupyterlab
 opencv-contrib-python
 seaborn
 umap-learn
+PyYAML
