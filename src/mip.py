@@ -1,7 +1,7 @@
 from VAE.MarkerIntensity import MarkerIntensity
 from LinearRegression.LinearMarkerIntensity import LinearMarkerIntensity
 from shared.services.args_parser import ArgumentParser
-from LudwigAi.ludwig import LudwigAi
+from LudwigAi.ludwig_data_creator import LudwigAi
 from pathlib import Path
 import logging
 import sys
@@ -28,10 +28,8 @@ if __name__ == "__main__":
         marker.write_csv()
         marker.create_plots()
 
-    elif args.mode == "DL":
+    else:
         marker = MarkerIntensity(train_file)
         marker.load()
         marker.train()
         marker.prediction()
-    else:
-        ludwig = LudwigAi(train_file)
