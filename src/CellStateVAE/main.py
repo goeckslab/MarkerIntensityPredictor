@@ -4,29 +4,19 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, regularizers
 import matplotlib.pyplot as plt
-from file_service import FileService
+from data_loader import DataLoader
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from vae import VAE, Sampling
+from plots import Plots
+from args_parser import ArgumentParser
 
 class Data:
     inputs: pd.DataFrame()
+    markers: pd.DataFrame()
     X_train: pd.DataFrame()
     X_test: pd.DataFrame()
     X_val: pd.DataFrame()
-    y_train: pd.DataFrame()
-    y_test: pd.DataFrame()
-    y_val: pd.DataFrame()
-
-    def __init__(self, inputs, X_train, X_test, X_val, y_train, y_test, y_val):
-        self.inputs = inputs
-        self.X_train = X_train
-        self.X_test = X_test
-        self.X_val = X_val
-        self.y_train = y_train
-        self.y_test = y_test
-        self.y_val = y_val
-
 
 
 class CellStateVAE:
@@ -40,11 +30,13 @@ class CellStateVAE:
     # The vae
     vae = None
 
-    unnormalized_data: Data
+    un_normalized_data: Data
+    normalized_data: Data
 
     markers = None
-    inputs = pd.DataFrame()
+    # inputs = pd.DataFrame()
     inputs_dim: int
+    history = None
 
     # The neuron count before the latent space
     neurons_before_latent: np.ndarray
@@ -54,16 +46,9 @@ class CellStateVAE:
 
     def load_data(self):
         print("Loading data...")
-        self.inputs, self.markers = FileService.get_data("./data/HTA9-2_Bx1_HMS_Tumor_quant.csv")
-
-    def prepare_data(self):
-        print("preparing helper variables...")
-        X_dev, X_val = train_test_split(self.inputs, test_size=0.05, random_state=1, shuffle=True)
-        X_train, X_test = train_test_split(X_dev, test_size=0.25, random_state=1)
-
-
-
-        self.inputs_dim = self.inputs.shape[1]
+        self.un_normalized_data = Data()
+        self.un_normalized_data.inputs, self.un_normalized_data.markers = DataLoader.get_data(
+            ArgumentParser.get_args().file)
 
     def normalize(self, data):
         # Input data contains some zeros which results in NaN (or Inf)
@@ -83,24 +68,27 @@ class CellStateVAE:
         return data
 
     def split_data(self):
-        print("splitting data")
-        X_dev, X_val = train_test_split(self.inputs, test_size=0.05, random_state=1, shuffle=True)
+        print("Splitting data")
+        X_dev, X_val = train_test_split(self.un_normalized_data.inputs, test_size=0.05, random_state=1, shuffle=True)
         X_train, X_test = train_test_split(X_dev, test_size=0.25, random_state=1)
+
+        self.inputs_dim = self.un_normalized_data.inputs.shape[1]
 
         # This is primarily for the purpose of
         # being able to see how much data is removed
         # (as part of outlier removal) and plot
         # the changes in data distribution.
 
-        init_inputs = self.inputs
-        init_X_train = X_train
-        init_X_test = X_test
-        init_X_val = X_val
+        self.un_normalized_data.X_train = X_train
+        self.un_normalized_data.X_test = X_test
+        self.un_normalized_data.X_val = X_val
 
-        self.inputs = self.normalize(self.inputs)
-        self.X_train = self.normalize(X_train)
-        self.X_test = self.normalize(X_test)
-        self.X_val = self.normalize(X_val)
+        self.normalized_data = Data()
+        self.normalized_data.markers = self.un_normalized_data.markers
+        self.normalized_data.inputs = self.normalize(self.un_normalized_data.inputs)
+        self.normalized_data.X_train = self.normalize(X_train)
+        self.normalized_data.X_test = self.normalize(X_test)
+        self.normalized_data.X_val = self.normalize(X_val)
 
     def build_encoder(self):
         print("Building encoder...")
@@ -122,7 +110,7 @@ class CellStateVAE:
         self.encoder.summary()
 
     def build_decoder(self):
-        print("building decoder...")
+        print("Building decoder...")
         decoder_inputs = keras.Input(shape=(self.latent_dim,))
         h1 = layers.Dense(self.neurons_before_latent, activation=tf.nn.relu)(decoder_inputs)
         h2 = layers.Dense(self.inputs_dim / 2, activation=tf.nn.relu)(h1)
@@ -132,9 +120,35 @@ class CellStateVAE:
         self.decoder.summary()
 
     def train(self):
-        vae = VAE(self.encoder, self.decoder)
-        vae.compile(optimizer=keras.optimizers.Adam(lr=0.0005))
-        history = vae.fit(X_train, validation_data=(X_test, X_test), epochs=100, batch_size=32, shuffle=True, verbose=0)
+        self.vae = VAE(self.encoder, self.decoder)
+        self.vae.compile(optimizer=keras.optimizers.Adam(lr=0.0005))
+        self.history = self.vae.fit(self.normalized_data.X_train,
+                                    validation_data=(self.normalized_data.X_test, self.normalized_data.X_test),
+                                    epochs=100,
+                                    batch_size=32, shuffle=True, verbose=0)
+
+    def predict(self):
+        # Make some predictions
+        cell = self.normalized_data.X_val[0]
+        cell = cell.reshape(1, cell.shape[0])
+        mean, log_var, z = self.encoder.predict(cell)
+        encoded_cell = z
+        decoded_cell = self.decoder.predict(encoded_cell)
+        var_cell = self.vae.predict(cell)
+        print(f"Input shape:\t{cell.shape}")
+        print(f"Encoded shape:\t{encoded_cell.shape}")
+        print(f"Decoded shape:\t{decoded_cell.shape}")
+        print(f"\nInput:\n{cell[0]}")
+        print(f"\nEncoded:\n{encoded_cell[0]}")
+        print(f"\nDecoded:\n{decoded_cell[0]}")
+
+    def create_plots(self):
+        Plots.plot_distribution_of_latent_variables(self.encoder, self.normalized_data.X_train, self.latent_dim, step_size, z)
+        Plots.plot_model_performance(self.history)
+        Plots.plot_markers(X_train, X_test, X_val, markers)
+        Plots.plot_reconstructed_markers(z_grid, x_pred_grid, markers)
+        Plots.latent_space_cluster(X_train, vae)
+        Plots.plot_reconstructed_intensities(vae, X_val, markers)
 
     def plot_label_clusters(self, vae, data, labels):
         # display a 2D plot of the digit classes in the latent space
@@ -157,6 +171,5 @@ if __name__ == "__main__":
 
     vae.load_data()
     vae.split_data()
-    vae.prepare_helper_vars()
     vae.build_encoder()
     vae.build_decoder()

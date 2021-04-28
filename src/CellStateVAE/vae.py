@@ -1,7 +1,7 @@
-
 import keras
 import tensorflow as tf
 from tensorflow.keras import layers
+
 
 class VAE(keras.Model):
     def __init__(self, encoder, decoder, **kwargs):
@@ -44,7 +44,6 @@ class VAE(keras.Model):
             "reconstruction_loss": self.reconstruction_loss_tracker.result(),
             "kl_loss": self.kl_loss_tracker.result(),
         }
-
 
 
 class Sampling(layers.Layer):

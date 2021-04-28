@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 
 
-class FileService:
+class DataLoader:
     @staticmethod
     def get_data(input_file: str):
         """
