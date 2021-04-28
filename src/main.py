@@ -47,7 +47,7 @@ def normalize(data):
 def get_data():
     # Load Data
     # We load data into RAM since data is small and will fit in memory.
-    cells = pd.read_csv("tumor_cycif_v2.csv", header=0)
+    cells = pd.read_csv("./data/HTA9-3_Bx1_HMS_Tumor_quant.csv", header=0)
 
     # Keeps only the 'interesting' columns.
     cells = cells.filter(regex="nucleiMasks$", axis=1).filter(regex="^(?!(DAPI|AF))", axis=1)

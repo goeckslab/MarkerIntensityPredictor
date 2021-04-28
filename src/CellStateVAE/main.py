@@ -7,12 +7,14 @@ import matplotlib.pyplot as plt
 from data_loader import DataLoader
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from vae import VAE, Sampling
+from vae import VAE
+from sampling import Sampling
 from plots import Plots
 from args_parser import ArgumentParser
 
+
 class Data:
-    inputs: pd.DataFrame()
+    inputs: np.array
     markers: pd.DataFrame()
     X_train: pd.DataFrame()
     X_test: pd.DataFrame()
@@ -23,12 +25,12 @@ class CellStateVAE:
     # The latent space dimensionality
     latent_dim: int
     # The defined encoder
-    encoder = None
+    encoder: any
 
     # The defined decoder
-    decoder = None
+    decoder: any
     # The vae
-    vae = None
+    vae: any
 
     un_normalized_data: Data
     normalized_data: Data
@@ -37,6 +39,7 @@ class CellStateVAE:
     # inputs = pd.DataFrame()
     inputs_dim: int
     history = None
+
 
     # The neuron count before the latent space
     neurons_before_latent: np.ndarray
@@ -47,8 +50,10 @@ class CellStateVAE:
     def load_data(self):
         print("Loading data...")
         self.un_normalized_data = Data()
-        self.un_normalized_data.inputs, self.un_normalized_data.markers = DataLoader.get_data(
+        inputs, self.un_normalized_data.markers = DataLoader.get_data(
             ArgumentParser.get_args().file)
+
+        self.un_normalized_data.inputs = np.array(inputs)
 
     def normalize(self, data):
         # Input data contains some zeros which results in NaN (or Inf)
@@ -72,48 +77,50 @@ class CellStateVAE:
         X_dev, X_val = train_test_split(self.un_normalized_data.inputs, test_size=0.05, random_state=1, shuffle=True)
         X_train, X_test = train_test_split(X_dev, test_size=0.25, random_state=1)
 
-        self.inputs_dim = self.un_normalized_data.inputs.shape[1]
-
-        # This is primarily for the purpose of
-        # being able to see how much data is removed
-        # (as part of outlier removal) and plot
-        # the changes in data distribution.
-
         self.un_normalized_data.X_train = X_train
         self.un_normalized_data.X_test = X_test
         self.un_normalized_data.X_val = X_val
 
+        # Store the normalized data
         self.normalized_data = Data()
         self.normalized_data.markers = self.un_normalized_data.markers
-        self.normalized_data.inputs = self.normalize(self.un_normalized_data.inputs)
+        self.normalized_data.inputs = np.array(self.normalize(self.un_normalized_data.inputs))
         self.normalized_data.X_train = self.normalize(X_train)
         self.normalized_data.X_test = self.normalize(X_test)
         self.normalized_data.X_val = self.normalize(X_val)
+
+        self.inputs_dim = self.normalized_data.inputs.shape[1]
 
     def build_encoder(self):
         print("Building encoder...")
         r = regularizers.l1(10e-5)
         activation = tf.nn.relu
 
-        encoder_inputs = keras.Input(shape=self.inputs_dim)
+        encoder_inputs = keras.Input(shape=(self.inputs_dim,))
         h1 = layers.Dense(self.inputs_dim, activation=activation, activity_regularizer=r)(encoder_inputs)
         h2 = layers.Dense(self.inputs_dim / 2, activation=activation, activity_regularizer=r)(h1)
         h3 = layers.Dense(self.inputs_dim / 3, activation=activation, activity_regularizer=r)(h2)
 
+        # The following variables are for the convenience of building the decoder.
+        # last layer before flatten
+        lbf = h3
+        # shape before flatten.
+        sbf = keras.backend.int_shape(lbf)[1:]
         # neurons count before latent dim
-        self.neurons_before_latent = np.prod(keras.backend.int_shape(h3)[1:])
+        self.neurons_before_latent = np.prod(sbf)
 
-        z_mean = layers.Dense(self.latent_dim, name="z_mean")(h3)
-        z_log_var = layers.Dense(self.latent_dim, name="z_log_var")(h3)
+        z_mean = layers.Dense(self.latent_dim, name="z_mean")(lbf)
+        z_log_var = layers.Dense(self.latent_dim, name="z_log_var")(lbf)
         z = Sampling()([z_mean, z_log_var])
         self.encoder = keras.Model(encoder_inputs, [z_mean, z_log_var, z], name="encoder")
         self.encoder.summary()
 
     def build_decoder(self):
         print("Building decoder...")
+        activation = tf.nn.relu
         decoder_inputs = keras.Input(shape=(self.latent_dim,))
-        h1 = layers.Dense(self.neurons_before_latent, activation=tf.nn.relu)(decoder_inputs)
-        h2 = layers.Dense(self.inputs_dim / 2, activation=tf.nn.relu)(h1)
+        h1 = layers.Dense(self.neurons_before_latent, activation=activation)(decoder_inputs)
+        h2 = layers.Dense(self.inputs_dim / 2, activation=activation)(h1)
 
         decoder_outputs = layers.Dense(self.inputs_dim)(h2)
         self.decoder = keras.Model(decoder_inputs, decoder_outputs, name="decoder")
@@ -143,18 +150,20 @@ class CellStateVAE:
         print(f"\nDecoded:\n{decoded_cell[0]}")
 
     def create_plots(self):
-        Plots.plot_distribution_of_latent_variables(self.encoder, self.normalized_data.X_train, self.latent_dim, step_size, z)
+        Plots.plot_distribution_of_latent_variables(self.encoder, self.normalized_data.X_train, self.latent_dim,
+                                                    step_size, z)
         Plots.plot_model_performance(self.history)
-        Plots.plot_markers(X_train, X_test, X_val, markers)
-        Plots.plot_reconstructed_markers(z_grid, x_pred_grid, markers)
-        Plots.latent_space_cluster(X_train, vae)
-        Plots.plot_reconstructed_intensities(vae, X_val, markers)
+        Plots.plot_markers(self.normalized_data.X_train, self.normalized_data.X_test, self.normalized_data.X_val,
+                           self.normalized_data.markers)
+        Plots.plot_reconstructed_markers(z_grid, x_pred_grid, self.normalized_data.markers)
+        Plots.latent_space_cluster(self.normalized_data.X_train, self.vae)
+        Plots.plot_reconstructed_intensities(self.vae, self.normalized_data.X_val, self.normalized_data.markers)
 
-    def plot_label_clusters(self, vae, data, labels):
+    def plot_label_clusters(self):
         # display a 2D plot of the digit classes in the latent space
-        z_mean, _, _ = vae.encoder.predict(data)
+        z_mean, _, _ = self.vae.encoder.predict(self.X_train)
         plt.figure(figsize=(12, 10))
-        plt.scatter(z_mean[:, 0], z_mean[:, 1], c=labels)
+        plt.scatter(z_mean[:, 0], z_mean[:, 1], c=self.normalized_data.markers)
         plt.colorbar()
         plt.xlabel("z[0]")
         plt.ylabel("z[1]")
@@ -173,3 +182,6 @@ if __name__ == "__main__":
     vae.split_data()
     vae.build_encoder()
     vae.build_decoder()
+    vae.train()
+    vae.predict()
+    #vae.plot_label_clusters()
