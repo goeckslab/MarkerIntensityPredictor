@@ -40,7 +40,6 @@ class CellStateVAE:
     inputs_dim: int
     history = None
 
-
     # The neuron count before the latent space
     neurons_before_latent: np.ndarray
 
@@ -96,21 +95,25 @@ class CellStateVAE:
         r = regularizers.l1(10e-5)
         activation = tf.nn.relu
 
+        # Functional model
         encoder_inputs = keras.Input(shape=(self.inputs_dim,))
         h1 = layers.Dense(self.inputs_dim, activation=activation, activity_regularizer=r)(encoder_inputs)
-        h2 = layers.Dense(self.inputs_dim / 2, activation=activation, activity_regularizer=r)(h1)
-        h3 = layers.Dense(self.inputs_dim / 3, activation=activation, activity_regularizer=r)(h2)
+        h2 = layers.Dropout(.2, input_shape=(self.inputs_dim,))(h1)
+        h3 = layers.Dense(self.inputs_dim / 2, activation=activation, activity_regularizer=r)(h2)
+        h4 = layers.Dropout(.2, input_shape=(self.inputs_dim / 2,))(h3)
+        h5 = layers.Dense(self.inputs_dim / 3, activation=activation, activity_regularizer=r)(h4)
 
         # The following variables are for the convenience of building the decoder.
         # last layer before flatten
-        lbf = h3
+        lbf = h5
         # shape before flatten.
         sbf = keras.backend.int_shape(lbf)[1:]
-        # neurons count before latent dim
+        # neurons count before latent dim, important for decoder
         self.neurons_before_latent = np.prod(sbf)
 
         z_mean = layers.Dense(self.latent_dim, name="z_mean")(lbf)
         z_log_var = layers.Dense(self.latent_dim, name="z_log_var")(lbf)
+        # Connect Sampling layer with z_mean and z_log_var layers
         z = Sampling()([z_mean, z_log_var])
         self.encoder = keras.Model(encoder_inputs, [z_mean, z_log_var, z], name="encoder")
         self.encoder.summary()
@@ -127,12 +130,14 @@ class CellStateVAE:
         self.decoder.summary()
 
     def train(self):
+        print("Started training...")
+        callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=3)
         self.vae = VAE(self.encoder, self.decoder)
         self.vae.compile(optimizer=keras.optimizers.Adam(lr=0.0005))
         self.history = self.vae.fit(self.normalized_data.X_train,
                                     validation_data=(self.normalized_data.X_test, self.normalized_data.X_test),
                                     epochs=100,
-                                    batch_size=32, shuffle=True, verbose=0)
+                                    batch_size=32, shuffle=True, verbose=1, callbacks=[callback])
 
     def predict(self):
         # Make some predictions
@@ -142,6 +147,7 @@ class CellStateVAE:
         encoded_cell = z
         decoded_cell = self.decoder.predict(encoded_cell)
         var_cell = self.vae.predict(cell)
+        print(f"Epochs: {len(self.history.history['loss'])}")
         print(f"Input shape:\t{cell.shape}")
         print(f"Encoded shape:\t{encoded_cell.shape}")
         print(f"Decoded shape:\t{decoded_cell.shape}")
@@ -150,6 +156,17 @@ class CellStateVAE:
         print(f"\nDecoded:\n{decoded_cell[0]}")
 
     def create_plots(self):
+        print("Creating plots...")
+        step_size = 4
+        z = np.array([np.linspace(-4, 4, step_size)] * self.latent_dim)
+        # z = norm.ppf(z)
+
+        z_grid = np.dstack(np.meshgrid(*z))
+        z_grid = z_grid.reshape(step_size ** self.latent_dim, self.latent_dim)
+
+        x_pred_grid = self.decoder.predict(z_grid)
+        x_pred_grid = np.block(list(map(list, x_pred_grid)))
+
         Plots.plot_distribution_of_latent_variables(self.encoder, self.normalized_data.X_train, self.latent_dim,
                                                     step_size, z)
         Plots.plot_model_performance(self.history)
@@ -161,9 +178,9 @@ class CellStateVAE:
 
     def plot_label_clusters(self):
         # display a 2D plot of the digit classes in the latent space
-        z_mean, _, _ = self.vae.encoder.predict(self.X_train)
+        z_mean, _, _ = self.vae.encoder.predict(self.normalized_data.X_train)
         plt.figure(figsize=(12, 10))
-        plt.scatter(z_mean[:, 0], z_mean[:, 1], c=self.normalized_data.markers)
+        plt.scatter(z_mean[:, 0], z_mean[:, 1])
         plt.colorbar()
         plt.xlabel("z[0]")
         plt.ylabel("z[1]")
@@ -185,3 +202,4 @@ if __name__ == "__main__":
     vae.train()
     vae.predict()
     #vae.plot_label_clusters()
+    vae.create_plots()
