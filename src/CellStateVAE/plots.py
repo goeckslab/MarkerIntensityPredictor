@@ -4,6 +4,7 @@ from vae import VAE
 import seaborn as sns
 from scipy import stats
 from matplotlib.pyplot import figure
+from pathlib import Path
 
 
 class Plots:
@@ -34,7 +35,7 @@ class Plots:
         plt.xlabel("Epoch")
         plt.ylabel("Value")
         plt.legend()
-        plt.show()
+        plt.savefig(Path("results", "vae", "model_performance.png"))
 
     @staticmethod
     def latent_space_cluster(X_train, vae: VAE):
@@ -58,7 +59,7 @@ class Plots:
         ax2.set_xlabel("umap1")
         ax2.set_ylabel("umap2")
 
-        plt.show()
+        plt.savefig(Path("results", "vae", "latent_space_clusters.png"))
 
     @staticmethod
     def plot_reconstructed_markers(z_grid, x_pred_grid, markers):
@@ -75,6 +76,7 @@ class Plots:
 
         ax2.set_title("Reconstructed Marker Intensities")
         ax2.set_xlabel("Marker")
+        plt.savefig(Path("results", "vae", "reconstructed_markers.png"))
 
     @staticmethod
     def plot_markers(X_train, X_test, X_val, markers):
@@ -87,6 +89,7 @@ class Plots:
         ax2.set_title("X Test")
         ax3.set_title("X Validation")
         fig.tight_layout()
+        plt.savefig(Path("results", "vae", "plot_markers.png"))
 
     @staticmethod
     def plot_reconstructed_intensities(vae: VAE, X_val, markers):
@@ -99,6 +102,7 @@ class Plots:
         ax1.set_title("X Validation")
         ax2.set_title("Reconstructed X Validation")
         fig.tight_layout()
+        plt.savefig(Path("results", "vae", "reconstructed_intensities.png"))
 
     @staticmethod
     def plot_distribution_of_latent_variables(encoder, X_train, latent_dim, step_size, z):
@@ -127,3 +131,5 @@ class Plots:
         ax2.set_title("Latent variables to explor")
         ax2.set_xlabel("Latent Variables")
         ax2.set_ylabel("Values")
+
+        plt.savefig(Path("results", "vae", "latent_variable_distribution.png"))
