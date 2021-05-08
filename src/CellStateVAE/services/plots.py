@@ -30,7 +30,7 @@ class Plots:
         # ax.set_yscale('log')
 
     @staticmethod
-    def plot_model_performance(history):
+    def plot_model_performance(history, file_name: str):
         logging.info("Plotting model performance")
         figure(num=None, figsize=(6, 4), dpi=90)
         for key in history.history:
@@ -38,10 +38,10 @@ class Plots:
         plt.xlabel("Epoch")
         plt.ylabel("Value")
         plt.legend()
-        plt.savefig(Path("results", "vae", "model_performance.png"))
+        plt.savefig(Path("results", "vae", f"{file_name}.png"))
 
     @staticmethod
-    def latent_space_cluster(X_train, vae: VAE):
+    def latent_space_cluster_vae(X_train, vae: VAE, file_name: str):
         logging.info("Plotting latent space clusters")
         fit = umap.UMAP()
         input_umap = fit.fit_transform(X_train)
@@ -63,10 +63,35 @@ class Plots:
         ax2.set_xlabel("umap1")
         ax2.set_ylabel("umap2")
 
-        plt.savefig(Path("results", "vae", "latent_space_clusters.png"))
+        plt.savefig(Path("results", "vae", f"{file_name}.png"))
 
     @staticmethod
-    def plot_reconstructed_markers(z_grid, x_pred_grid, markers):
+    def latent_space_cluster_ae(X_train, encoder: any, file_name: str):
+        logging.info("Plotting latent space clusters")
+        fit = umap.UMAP()
+        input_umap = fit.fit_transform(X_train)
+
+        fit = umap.UMAP()
+        z_mean = encoder.predict(X_train)
+        latent_umap = fit.fit_transform(z_mean)
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), dpi=150)
+        plt.subplots_adjust(wspace=0.2)
+
+        ax1.scatter(x=input_umap[:, 0], y=input_umap[:, 1])
+        ax1.set_title("UMAP Embedding/Projection of Input")
+        ax1.set_xlabel("umap1")
+        ax1.set_ylabel("umap2")
+
+        ax2.scatter(x=latent_umap[:, 0], y=latent_umap[:, 1])
+        ax2.set_title("UMAP Embedding/Projection of Latent Space")
+        ax2.set_xlabel("umap1")
+        ax2.set_ylabel("umap2")
+
+        plt.savefig(Path("results", "vae", f"{file_name}.png"))
+
+    @staticmethod
+    def plot_reconstructed_markers(z_grid, x_pred_grid, markers, file_name: str):
         logging.info("Plotting reconstructed markers")
         sns.set_theme()
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 9), dpi=300, gridspec_kw={'width_ratios': [1, 5]})
@@ -81,10 +106,10 @@ class Plots:
 
         ax2.set_title("Reconstructed Marker Intensities")
         ax2.set_xlabel("Marker")
-        plt.savefig(Path("results", "vae", "reconstructed_markers.png"))
+        plt.savefig(Path("results", "vae", f"{file_name}.png"))
 
     @staticmethod
-    def plot_markers(X_train, X_test, X_val, markers):
+    def plot_markers(X_train, X_test, X_val, markers, file_name: str):
         logging.info("Plotting markers")
         fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(9, 10), dpi=300, sharex=True)
         sns.heatmap(X_train, ax=ax1, xticklabels=markers)
@@ -95,10 +120,10 @@ class Plots:
         ax2.set_title("X Test")
         ax3.set_title("X Validation")
         fig.tight_layout()
-        plt.savefig(Path("results", "vae", "plot_markers.png"))
+        plt.savefig(Path("results", "vae", f"{file_name}.png"))
 
     @staticmethod
-    def plot_reconstructed_intensities(vae: any, X_val, markers):
+    def plot_reconstructed_intensities(vae: any, X_val, markers, file_name: str):
         logging.info("Plotting reconstructed intensities")
         recon_val = vae.predict(X_val)
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 10), dpi=300, sharex=True)
@@ -109,10 +134,10 @@ class Plots:
         ax1.set_title("X Validation")
         ax2.set_title("Reconstructed X Validation")
         fig.tight_layout()
-        plt.savefig(Path("results", "vae", "reconstructed_intensities.png"))
+        plt.savefig(Path("results", "vae", f"{file_name}.png"))
 
     @staticmethod
-    def plot_distribution_of_latent_variables(encoder, X_train, latent_dim, step_size, z):
+    def plot_distribution_of_latent_variables(encoder, X_train, latent_dim, step_size, z, file_name: str):
         logging.info("Plotting distribution of latent variables")
         # Distribution of latent variables
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4), dpi=300)
@@ -140,4 +165,4 @@ class Plots:
         ax2.set_xlabel("Latent Variables")
         ax2.set_ylabel("Values")
 
-        plt.savefig(Path("results", "vae", "latent_variable_distribution.png"))
+        plt.savefig(Path("results", "vae", f"{file_name}.png"))

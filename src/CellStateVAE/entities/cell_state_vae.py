@@ -157,13 +157,14 @@ class CellStateVAE:
         # x_pred_grid = np.block(list(map(list, x_pred_grid)))
 
         # Plots.plot_distribution_of_latent_variables(self.encoder, self.normalized_data.X_train, self.latent_dim,
-        #                                            step_size, z)
-        Plots.plot_model_performance(self.history)
+        #                                            step_size, z, "latent_variable_distribution")
+        Plots.plot_model_performance(self.history, "model_performance")
         Plots.plot_markers(self.normalized_data.X_train, self.normalized_data.X_test, self.normalized_data.X_val,
-                           self.normalized_data.markers)
-        # Plots.plot_reconstructed_markers(z_grid, x_pred_grid, self.normalized_data.markers)
-        Plots.latent_space_cluster(self.normalized_data.X_train, self.vae)
-        Plots.plot_reconstructed_intensities(self.vae, self.normalized_data.X_val, self.normalized_data.markers)
+                           self.normalized_data.markers, "plot_markers")
+        # Plots.plot_reconstructed_markers(z_grid, x_pred_grid, self.normalized_data.markers,"reconstructed_markers")
+        Plots.latent_space_cluster_vae(self.normalized_data.X_train, self.vae, "latent_space_clusters")
+        Plots.plot_reconstructed_intensities(self.vae, self.normalized_data.X_val, self.normalized_data.markers,
+                                             "reconstructed_intensities")
 
     def plot_label_clusters(self):
         # display a 2D plot of the digit classes in the latent space

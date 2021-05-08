@@ -1,9 +1,9 @@
 import pandas as pd
-from shared.services.data_loader import DataLoader
+from services.data_loader import DataLoader
 from sklearn.linear_model import Ridge, Lasso, LinearRegression, ElasticNet
 import seaborn as sns
 import re
-from LinearRegression.entities.data_storage import DataStorage
+from entities.data_storage import DataStorage
 import os
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -171,15 +171,19 @@ class LinearMarkerIntensity:
         )
         ax.despine(left=True)
         ax.set_axis_labels("R2 Score", "Marker")
-        ax.legend.set_title("")
+
         # g.set_xticklabels(rotation=90)
         #fig = ax.get_figure()
 
         if self.test_file is None:
+            ax.fig.suptitle("Single file")
+            ax.legend.set_title("Single file")
             ax.savefig(Path(f"results/{self.train_file_name}_score_predictions.png"))
         elif self.train_file is None:
+            ax.legend.set_title("Multi files")
             ax.savefig(Path(f"results/{self.test_file_name}_multi_score_predictions.png"))
         else:
+            ax.legend.set_title("Train/Test files")
             ax.savefig(Path(f"results/{self.train_file_name}_{self.test_file_name}_score_predictions.png"))
 
         plt.close()

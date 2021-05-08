@@ -7,6 +7,10 @@ from keras import layers
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from services.plots import Plots
+import anndata as ad
+import pandas as pd
+from pathlib import Path
+import umap
 
 
 class AutoEncoder:
@@ -23,9 +27,10 @@ class AutoEncoder:
     history: any
 
     input_dim: int
+    encoding_dim: int
 
     def __init__(self):
-        pass
+        self.inputs_dim = 0
 
     def load_data(self):
         print("Loading data...")
@@ -46,7 +51,7 @@ class AutoEncoder:
 
         standard_scaler = StandardScaler()
         data = standard_scaler.fit_transform(data)
-        data = data.clip(min=-10, max=10)
+        data = data.clip(min=-5, max=5)
 
         min_max_scaler = MinMaxScaler(feature_range=(0, 1))
         data = min_max_scaler.fit_transform(data)
@@ -72,14 +77,14 @@ class AutoEncoder:
         self.inputs_dim = self.normalized_data.inputs.shape[1]
 
     def build_auto_encoder(self):
-        encoding_dim = 15
-
+        self.encoding_dim = 6
+        activation = 'linear'
         # This is our input image
         encoder_input = keras.Input(shape=(self.inputs_dim,))
         # "encoded" is the encoded representation of the input
-        encoded = layers.Dense(encoding_dim, activation='relu')(encoder_input)
+        encoded = layers.Dense(self.encoding_dim, activation=activation)(encoder_input)
         # "decoded" is the lossy reconstruction of the input
-        decoded = layers.Dense(self.inputs_dim, activation='sigmoid')(encoded)
+        decoded = layers.Dense(self.inputs_dim, activation=activation)(encoded)
 
         # This model maps an input to its reconstruction
         self.ae = keras.Model(encoder_input, decoded)
@@ -87,7 +92,7 @@ class AutoEncoder:
         self.encoder = keras.Model(encoder_input, encoded)
 
         # This is our encoded (32-dimensional) input
-        encoded_input = keras.Input(shape=(encoding_dim,))
+        encoded_input = keras.Input(shape=(self.encoding_dim,))
         # Retrieve the last layer of the autoencoder model
         decoder_layer = self.ae.layers[-1]
         # Create the decoder model
@@ -97,7 +102,7 @@ class AutoEncoder:
 
         self.history = self.ae.fit(self.normalized_data.X_train, self.normalized_data.X_train,
                                    epochs=200,
-                                   batch_size=250,
+                                   batch_size=92,
                                    shuffle=True,
                                    validation_data=(self.normalized_data.X_test, self.normalized_data.X_test))
 
@@ -105,8 +110,7 @@ class AutoEncoder:
         # Make some predictions
         cell = self.normalized_data.X_val[0]
         cell = cell.reshape(1, cell.shape[0])
-        z = self.encoder.predict(cell)
-        encoded_cell = z
+        encoded_cell = self.encoder.predict(cell)
         decoded_cell = self.decoder.predict(encoded_cell)
         var_cell = self.ae.predict(cell)
         print(f"Epochs: {len(self.history.history['loss'])}")
@@ -117,6 +121,56 @@ class AutoEncoder:
         print(f"\nEncoded:\n{encoded_cell[0]}")
         print(f"\nDecoded:\n{decoded_cell[0]}")
 
+    def create_h5ad_object(self):
+        markers = pd.DataFrame(self.normalized_data.X_train, columns=self.normalized_data.markers)
+
+        fit = umap.UMAP()
+        input_umap = fit.fit_transform(self.normalized_data.X_train)
+
+        fit = umap.UMAP()
+        z_mean = self.encoder.predict(self.normalized_data.X_train)
+        latent_umap = fit.fit_transform(z_mean)
+
+        input_df = pd.DataFrame()
+        input_df['X_centroid'] = input_umap[:, 0]
+        input_df['Y_centroid'] = input_umap[:, 1]
+        input_df['latent'] = 'N'
+
+        input_df.reset_index(inplace=True)
+        input_df.rename(columns={'index': 'id'}, inplace=True)
+
+        # Latent space
+        latent_df = pd.DataFrame()
+        latent_df['X_centroid'] = latent_umap[:, 0]
+        latent_df['Y_centroid'] = latent_umap[:, 1]
+        latent_df['latent'] = 'Y'
+        latent_df.reset_index(inplace=True)
+        latent_df.rename(columns={'index': 'id'}, inplace=True)
+
+        frames = [input_df, latent_df]
+
+        merged = pd.concat(frames)
+        merged.reset_index(inplace=True)
+        del merged['index']
+
+        merged['latent'] = pd.Categorical(merged['latent'].astype('category'))
+
+        obs = pd.DataFrame(index=markers.index)
+        var = pd.DataFrame(index=self.normalized_data.markers)
+        obsm = {"X_latent_umap": latent_umap}
+        obs['X_centroid_input'] = latent_df['X_centroid']
+        obs['Y_centroid_input'] = latent_df['Y_centroid']
+        obs['latent'] = pd.Categorical(merged.iloc[markers.index]['latent'])
+        uns = dict()
+
+        adata = ad.AnnData(markers.to_numpy(), var=var, obs=obs, uns=uns, obsm=obsm)
+
+        print(adata.obs['latent'])
+        adata.write(Path('results/vae/ae_markers.h5ad'))
+
     def plots(self):
-        Plots.plot_model_performance(self.history)
-        Plots.plot_reconstructed_intensities(self.ae, self.normalized_data.X_val, self.normalized_data.markers)
+        Plots.plot_model_performance(self.history, f"model_performance_{self.encoding_dim}")
+        Plots.plot_reconstructed_intensities(self.ae, self.normalized_data.X_val, self.normalized_data.markers,
+                                             f"reconstructed_intensities_{self.encoding_dim}")
+        Plots.latent_space_cluster_ae(self.normalized_data.X_train, self.encoder,
+                                      f"latent_space_clusters_{self.encoding_dim}")
