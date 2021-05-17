@@ -5,7 +5,7 @@ import pandas as pd
 import anndata as ad
 
 if __name__ == "__main__":
-    df = pd.DataFrame(np.random.randint(100, size=(100, 3)), columns=['A', 'B', 'C'])
+    df = pd.DataFrame(np.random.randint(100000, size=(100000, 3)), columns=['A', 'B', 'C'])
     fit = umap.UMAP()
     u = fit.fit_transform(df)
     plt.scatter(u[:, 0], u[:, 1])
@@ -14,13 +14,13 @@ if __name__ == "__main__":
     obs = pd.DataFrame(index=df.index)
     var = pd.DataFrame(index=df.columns)
 
-    #obsm = {"X_umap": u, "Y_map:": u}
+    obsm = {"X_umap": u}
     obs['Y'] = u[:, 0]
     obs['X'] = u[:, 1]
 
     uns = dict()
 
-    adata = ad.AnnData(df.to_numpy(), var=var, obs=obs, uns=uns)
+    adata = ad.AnnData(df.to_numpy(), var=var, obs=obs, uns=uns, obsm=obsm)
     adata.write('./src/H5AD/test.h5ad')
 
     plt.show()

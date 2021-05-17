@@ -11,6 +11,7 @@ import anndata as ad
 import pandas as pd
 from pathlib import Path
 import umap
+import tensorflow as tf
 
 
 class AutoEncoder:
@@ -28,6 +29,9 @@ class AutoEncoder:
 
     input_dim: int
     encoding_dim: int
+
+    input_umap: any
+    latent_umap: any
 
     def __init__(self):
         self.inputs_dim = 0
@@ -93,17 +97,19 @@ class AutoEncoder:
 
         # This is our encoded (32-dimensional) input
         encoded_input = keras.Input(shape=(self.encoding_dim,))
-        # Retrieve the last layer of the autoencoder model
+        # Retrieve the last layer of the auto encoder model
         decoder_layer = self.ae.layers[-1]
         # Create the decoder model
         self.decoder = keras.Model(encoded_input, decoder_layer(encoded_input))
 
-        self.ae.compile(optimizer='adam', loss=keras.losses.MeanSquaredError())
+        self.ae.compile(optimizer=tf.keras.optimizers.SGD(), loss=keras.losses.MeanSquaredError())
 
+        callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=3)
         self.history = self.ae.fit(self.normalized_data.X_train, self.normalized_data.X_train,
-                                   epochs=200,
+                                   epochs=500,
                                    batch_size=92,
                                    shuffle=True,
+                                   callbacks=[callback],
                                    validation_data=(self.normalized_data.X_test, self.normalized_data.X_test))
 
     def predict(self):
@@ -122,55 +128,58 @@ class AutoEncoder:
         print(f"\nDecoded:\n{decoded_cell[0]}")
 
     def create_h5ad_object(self):
-        markers = pd.DataFrame(self.normalized_data.X_train, columns=self.normalized_data.markers)
-
+        # Input
         fit = umap.UMAP()
-        input_umap = fit.fit_transform(self.normalized_data.X_train)
+        self.input_umap = input_umap = fit.fit_transform(self.normalized_data.X_train)
+        input_umap_df = self.__create_df_from_umap(self.input_umap)
 
+        # latent space
         fit = umap.UMAP()
-        z_mean = self.encoder.predict(self.normalized_data.X_train)
-        latent_umap = fit.fit_transform(z_mean)
+        encoded = self.encoder.predict(self.normalized_data.X_train)
+        self.latent_umap = fit.fit_transform(encoded)
+        latent_df = pd.DataFrame(encoded)
+        latent_umap_df = self.__create_df_from_umap(self.latent_umap)
 
-        input_df = pd.DataFrame()
-        input_df['X_centroid'] = input_umap[:, 0]
-        input_df['Y_centroid'] = input_umap[:, 1]
-        input_df['latent'] = 'N'
+        # Decoded data
+        decoded = self.decoder.predict(encoded)
+        decoded_df = pd.DataFrame(decoded)
+        fit = umap.UMAP()
+        decoded_umap = fit.fit_transform(decoded)
+        decoded_umap_df = self.__create_df_from_umap(decoded_umap)
 
-        input_df.reset_index(inplace=True)
-        input_df.rename(columns={'index': 'id'}, inplace=True)
-
-        # Latent space
-        latent_df = pd.DataFrame()
-        latent_df['X_centroid'] = latent_umap[:, 0]
-        latent_df['Y_centroid'] = latent_umap[:, 1]
-        latent_df['latent'] = 'Y'
-        latent_df.reset_index(inplace=True)
-        latent_df.rename(columns={'index': 'id'}, inplace=True)
-
-        frames = [input_df, latent_df]
-
-        merged = pd.concat(frames)
-        merged.reset_index(inplace=True)
-        del merged['index']
-
-        merged['latent'] = pd.Categorical(merged['latent'].astype('category'))
-
-        obs = pd.DataFrame(index=markers.index)
-        var = pd.DataFrame(index=self.normalized_data.markers)
-        obsm = {"X_latent_umap": latent_umap}
-        obs['X_centroid_input'] = latent_df['X_centroid']
-        obs['Y_centroid_input'] = latent_df['Y_centroid']
-        obs['latent'] = pd.Categorical(merged.iloc[markers.index]['latent'])
-        uns = dict()
-
-        adata = ad.AnnData(markers.to_numpy(), var=var, obs=obs, uns=uns, obsm=obsm)
-
-        print(adata.obs['latent'])
-        adata.write(Path('results/vae/ae_markers.h5ad'))
+        self.__create_h5ad("latent_clusters", self.latent_umap, latent_umap_df, latent_df.columns, latent_df)
+        self.__create_h5ad("latent_markers", self.latent_umap, latent_umap_df, self.normalized_data.markers,
+                           pd.DataFrame(columns=self.normalized_data.markers, data=self.normalized_data.X_train))
+        self.__create_h5ad("input", input_umap, input_umap_df, self.normalized_data.markers,
+                           pd.DataFrame(columns=self.normalized_data.markers, data=self.normalized_data.X_train))
+        self.__create_h5ad("decoded", decoded_umap, decoded_umap_df, self.normalized_data.markers, decoded_df)
+        return
 
     def plots(self):
         Plots.plot_model_performance(self.history, f"model_performance_{self.encoding_dim}")
         Plots.plot_reconstructed_intensities(self.ae, self.normalized_data.X_val, self.normalized_data.markers,
                                              f"reconstructed_intensities_{self.encoding_dim}")
-        Plots.latent_space_cluster_ae(self.normalized_data.X_train, self.encoder,
+        Plots.latent_space_cluster_ae(self.input_umap, self.latent_umap,
                                       f"latent_space_clusters_{self.encoding_dim}")
+
+    def __create_df_from_umap(self, umap):
+        df = pd.DataFrame()
+        df['X'] = umap[:, 0]
+        df['Y'] = umap[:, 1]
+
+        df.reset_index(inplace=True)
+        df.rename(columns={'index': 'id'}, inplace=True)
+
+        return df
+
+    def __create_h5ad(self, file_name: str, umap, umap_df, markers, df):
+        obs = pd.DataFrame(index=df.index)
+        var = pd.DataFrame(index=markers)
+        obsm = {"X_umap": umap}
+        obs['X'] = umap_df['X']
+        obs['Y'] = umap_df['Y']
+        uns = dict()
+
+        adata = ad.AnnData(df.to_numpy(), var=var, obs=obs, uns=uns, obsm=obsm)
+
+        adata.write(Path(f'results/ae/{file_name}.h5ad'))
