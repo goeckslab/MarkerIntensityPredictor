@@ -171,19 +171,22 @@ class LinearMarkerIntensity:
         )
         ax.despine(left=True)
         ax.set_axis_labels("R2 Score", "Marker")
-
+        ax.set(xlim=(0, 1))
         # g.set_xticklabels(rotation=90)
-        #fig = ax.get_figure()
+        # fig = ax.get_figure()
 
         if self.test_file is None:
-            ax.fig.suptitle("Single file")
-            ax.legend.set_title("Single file")
+            # ax.fig.suptitle("Single file")
+            plt.title("Single File", y=1.02)
+            ax.legend.set_title("Model")
             ax.savefig(Path(f"results/{self.train_file_name}_score_predictions.png"))
         elif self.train_file is None:
-            ax.legend.set_title("Multi files")
+            plt.title("Multi Files", y=1.02)
+            ax.legend.set_title("Model")
             ax.savefig(Path(f"results/{self.test_file_name}_multi_score_predictions.png"))
         else:
-            ax.legend.set_title("Train/Test files")
+            plt.title("Train Test File", y=1.02)
+            ax.legend.set_title("Model")
             ax.savefig(Path(f"results/{self.train_file_name}_{self.test_file_name}_score_predictions.png"))
 
         plt.close()
