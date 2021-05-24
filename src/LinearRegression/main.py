@@ -6,7 +6,7 @@ import sys
 
 if __name__ == "__main__":
 
-    args = ArgumentParser.load_args()
+    args = ArgumentParser.get_args()
     train_file: Path
     test_file = None
     try:

@@ -1,6 +1,7 @@
 import pandas as pd
 from pathlib import Path
 import re
+import os
 
 
 class DataLoader:
@@ -20,3 +21,18 @@ class DataLoader:
         markers = [re.sub("_nucleiMasks", "", x) for x in markers]
 
         return cells, markers
+
+    @staticmethod
+    def load_folder_data(path: str):
+        merged_data = pd.DataFrame()
+        markers = list
+        for subdir, dirs, files in os.walk(path):
+            for file in files:
+                if not file.endswith(".csv"):
+                    continue
+
+                cells, markers = DataLoader.get_data(os.path.join(subdir, file))
+                merged_data = merged_data.append(cells)
+
+
+        return merged_data, markers

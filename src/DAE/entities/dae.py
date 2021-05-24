@@ -15,7 +15,7 @@ import tensorflow as tf
 import sys
 
 
-class AutoEncoder:
+class DenoisingAutoEncoder:
     un_normalized_data: Data
     normalized_data: Data
 
@@ -40,19 +40,7 @@ class AutoEncoder:
     def load_data(self):
         print("Loading data...")
         self.un_normalized_data = Data()
-        args = ArgumentParser.get_args()
-
-        if args.file:
-            inputs, self.un_normalized_data.markers = DataLoader.get_data(
-                ArgumentParser.get_args().file)
-
-        elif args.dir:
-            inputs, self.un_normalized_data.markers = DataLoader.load_folder_data(
-                args.dir)
-
-        else:
-            print("Please specify a directory or a file")
-            sys.exit()
+        inputs, self.un_normalized_data.markers = DataLoader.get_data(ArgumentParser.get_args().file)
 
         self.un_normalized_data.inputs = np.array(inputs)
 
@@ -92,6 +80,23 @@ class AutoEncoder:
 
         self.inputs_dim = self.normalized_data.inputs.shape[1]
 
+    def add_noise(self):
+        data = pd.DataFrame(self.normalized_data.X_train.copy())
+        min_max = data.apply(lambda x: pd.Series([x.min(), x.max()]))
+
+        for column in data:
+            values = min_max[column].values
+            random_dist = np.random.uniform(low=values[0], high=values[1], size=len(data[column]))
+            r_column = pd.DataFrame(data[column].sample(frac=0.2))
+            noise = np.random.choice(random_dist, size=len(r_column), replace=False)
+            r_column[column] = noise
+
+            for index in data.index:
+                if index in r_column.index:
+                    data[column][index] = r_column[column][index]
+
+        self.normalized_data.X_train_noise = data
+
     def build_auto_encoder(self):
         self.encoding_dim = 6
         activation = 'linear'
@@ -119,12 +124,12 @@ class AutoEncoder:
         callback = tf.keras.callbacks.EarlyStopping(monitor="val_loss",
                                                     mode="min", patience=5,
                                                     restore_best_weights=True)
-        self.history = self.ae.fit(self.normalized_data.X_train, self.normalized_data.X_train,
+        self.history = self.ae.fit(self.normalized_data.X_train_noise, self.normalized_data.X_train_noise,
                                    epochs=500,
                                    batch_size=92,
                                    shuffle=True,
                                    callbacks=[callback],
-                                   validation_data=(self.normalized_data.X_test, self.normalized_data.X_test))
+                                   validation_data=(self.normalized_data.X_train, self.normalized_data.X_train))
 
     def predict(self):
         # Make some predictions
@@ -164,7 +169,7 @@ class AutoEncoder:
         Plots.plot_reconstructed_intensities(self.ae, self.normalized_data.X_val, self.normalized_data.markers,
                                              f"reconstructed_intensities_{self.encoding_dim}")
         Plots.latent_space_cluster(self.input_umap, self.latent_umap,
-                                      f"latent_space_clusters_{self.encoding_dim}")
+                                   f"latent_space_clusters_{self.encoding_dim}")
 
     def __create_df_from_umap(self, umap):
         df = pd.DataFrame()
@@ -183,4 +188,4 @@ class AutoEncoder:
         uns = dict()
         adata = ad.AnnData(df.to_numpy(), var=var, obs=obs, uns=uns, obsm=obsm)
 
-        adata.write(Path(f'results/ae/{file_name}.h5ad'))
+        adata.write(Path(f'results/dae/{file_name}.h5ad'))

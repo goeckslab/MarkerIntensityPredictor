@@ -41,32 +41,7 @@ class Plots:
         plt.savefig(Path("results", "vae", f"{file_name}.png"))
 
     @staticmethod
-    def latent_space_cluster_vae(X_train, vae: VAE, file_name: str):
-        logging.info("Plotting latent space clusters")
-        fit = umap.UMAP()
-        input_umap = fit.fit_transform(X_train)
-
-        fit = umap.UMAP()
-        z_mean, _, _ = vae.encoder.predict(X_train)
-        latent_umap = fit.fit_transform(z_mean)
-
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), dpi=150)
-        plt.subplots_adjust(wspace=0.2)
-
-        ax1.scatter(x=input_umap[:, 0], y=input_umap[:, 1])
-        ax1.set_title("UMAP Embedding/Projection of Input")
-        ax1.set_xlabel("umap1")
-        ax1.set_ylabel("umap2")
-
-        ax2.scatter(x=latent_umap[:, 0], y=latent_umap[:, 1])
-        ax2.set_title("UMAP Embedding/Projection of Latent Space")
-        ax2.set_xlabel("umap1")
-        ax2.set_ylabel("umap2")
-
-        plt.savefig(Path("results", "vae", f"{file_name}.png"))
-
-    @staticmethod
-    def latent_space_cluster_ae(input_umap, latent_umap, file_name: str):
+    def latent_space_cluster(input_umap, latent_umap, file_name: str):
         logging.info("Plotting latent space clusters")
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), dpi=150)

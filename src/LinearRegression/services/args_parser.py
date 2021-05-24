@@ -3,7 +3,7 @@ import argparse
 
 class ArgumentParser:
     @staticmethod
-    def load_args():
+    def get_args():
         parser = argparse.ArgumentParser(description='Process some integers.')
         parser.add_argument('--file', '-f', type=str, action='store', required=True)
         parser.add_argument('--validation', '-v', type=str, action='store', required=False, default=None,
