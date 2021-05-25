@@ -82,11 +82,11 @@ class DenoisingAutoEncoder:
 
     def add_noise(self):
         data = pd.DataFrame(self.normalized_data.X_train.copy())
-        min_max = data.apply(lambda x: pd.Series([x.min(), x.max()]))
+        means = data.mean()
+        std = data.std()
 
         for column in data:
-            values = min_max[column].values
-            random_dist = np.random.uniform(low=values[0], high=values[1], size=len(data[column]))
+            random_dist = np.random.normal(means[column], std[column], size=len(data[column]))
             r_column = pd.DataFrame(data[column].sample(frac=0.2))
             noise = np.random.choice(random_dist, size=len(r_column), replace=False)
             r_column[column] = noise
