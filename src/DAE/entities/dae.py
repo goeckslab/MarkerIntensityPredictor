@@ -95,7 +95,7 @@ class DenoisingAutoEncoder:
                 if index in r_column.index:
                     data[column][index] = r_column[column][index]
 
-        self.normalized_data.X_train_noise = data
+        self.normalized_data.X_train_noise = data.to_numpy()
 
     def build_auto_encoder(self):
         self.encoding_dim = 6
@@ -149,18 +149,16 @@ class DenoisingAutoEncoder:
     def create_h5ad_object(self):
         # Input
         fit = umap.UMAP()
-        self.input_umap = input_umap = fit.fit_transform(self.normalized_data.X_train)
-        input_umap_df = self.__create_df_from_umap(self.input_umap)
+        self.input_umap = input_umap = fit.fit_transform(self.normalized_data.X_train_noise)
 
         # latent space
         fit = umap.UMAP()
         encoded = self.encoder.predict(self.normalized_data.X_train)
         self.latent_umap = fit.fit_transform(encoded)
-        latent_umap_df = self.__create_df_from_umap(self.latent_umap)
 
-        self.__create_h5ad("latent_markers", self.latent_umap, latent_umap_df, self.normalized_data.markers,
+        self.__create_h5ad("latent_markers", self.latent_umap, self.normalized_data.markers,
                            pd.DataFrame(columns=self.normalized_data.markers, data=self.normalized_data.X_train))
-        self.__create_h5ad("input", input_umap, input_umap_df, self.normalized_data.markers,
+        self.__create_h5ad("input", input_umap, self.normalized_data.markers,
                            pd.DataFrame(columns=self.normalized_data.markers, data=self.normalized_data.X_train))
         return
 
@@ -171,17 +169,7 @@ class DenoisingAutoEncoder:
         Plots.latent_space_cluster(self.input_umap, self.latent_umap,
                                    f"latent_space_clusters_{self.encoding_dim}")
 
-    def __create_df_from_umap(self, umap):
-        df = pd.DataFrame()
-        df['X'] = umap[:, 0]
-        df['Y'] = umap[:, 1]
-
-        df.reset_index(inplace=True)
-        df.rename(columns={'index': 'id'}, inplace=True)
-
-        return df
-
-    def __create_h5ad(self, file_name: str, umap, umap_df, markers, df):
+    def __create_h5ad(self, file_name: str, umap, markers, df):
         obs = pd.DataFrame(data=df, index=df.index)
         var = pd.DataFrame(index=markers)
         obsm = {"X_umap": umap}
