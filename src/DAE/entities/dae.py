@@ -98,28 +98,39 @@ class DenoisingAutoEncoder:
         self.normalized_data.X_train_noise = data.to_numpy()
 
     def build_auto_encoder(self):
-        self.encoding_dim = 6
-        activation = 'linear'
-        # This is our input image
-        encoder_input = keras.Input(shape=(self.inputs_dim,))
-        # "encoded" is the encoded representation of the input
-        encoded = layers.Dense(self.encoding_dim, activation=activation)(encoder_input)
-        # "decoded" is the lossy reconstruction of the input
-        decoded = layers.Dense(self.inputs_dim, activation=activation)(encoded)
+        self.encoding_dim = 5
+        activation = "linear"
+        input_layer = keras.Input(shape=(self.inputs_dim,))
 
-        # This model maps an input to its reconstruction
-        self.ae = keras.Model(encoder_input, decoded)
+        # Encoder
+        encoded = layers.Dense(20, activation=activation)(input_layer)
+        encoded = layers.Dense(12, activation=activation)(encoded)
+        encoded = layers.Dense(self.encoding_dim, activation=activation)(encoded)
 
-        self.encoder = keras.Model(encoder_input, encoded)
+        # Decoder
+        decoded = layers.Dense(12, activation=activation)(encoded)
+        decoded = layers.Dense(20, activation=activation)(decoded)
+        decoded = layers.Dense(self.inputs_dim, activation=activation)(decoded)
 
-        # This is our encoded (32-dimensional) input
+        # Auto encoder
+        self.ae = keras.Model(input_layer, decoded)
+        self.ae.summary()
+
+        # Separate encoder model
+        self.encoder = keras.Model(input_layer, encoded)
+        self.encoder.summary()
+
+        # Separate decoder model
         encoded_input = keras.Input(shape=(self.encoding_dim,))
-        # Retrieve the last layer of the auto encoder model
-        decoder_layer = self.ae.layers[-1]
-        # Create the decoder model
-        self.decoder = keras.Model(encoded_input, decoder_layer(encoded_input))
+        deco = self.ae.layers[-3](encoded_input)
+        deco = self.ae.layers[-2](deco)
+        deco = self.ae.layers[-1](deco)
+        # create the decoder model
+        self.decoder = keras.Model(encoded_input, deco)
+        self.decoder.summary()
 
-        self.ae.compile(optimizer='adam', loss=keras.losses.MeanSquaredError())
+        # Compile ae
+        self.ae.compile(optimizer="adam", loss=keras.losses.MeanSquaredError(), metrics=['acc', 'mean_squared_error'])
 
         callback = tf.keras.callbacks.EarlyStopping(monitor="val_loss",
                                                     mode="min", patience=5,
