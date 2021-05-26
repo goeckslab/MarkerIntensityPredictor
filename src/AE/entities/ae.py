@@ -121,7 +121,7 @@ class AutoEncoder:
                                                     restore_best_weights=True)
         self.history = self.ae.fit(self.normalized_data.X_train, self.normalized_data.X_train,
                                    epochs=500,
-                                   batch_size=92,
+                                   batch_size=32,
                                    shuffle=True,
                                    callbacks=[callback],
                                    validation_data=(self.normalized_data.X_test, self.normalized_data.X_test))
@@ -132,7 +132,7 @@ class AutoEncoder:
         cell = cell.reshape(1, cell.shape[0])
         encoded_cell = self.encoder.predict(cell)
         decoded_cell = self.decoder.predict(encoded_cell)
-        var_cell = self.ae.predict(cell)
+        # var_cell = self.ae.predict(cell)
         print(f"Epochs: {len(self.history.history['loss'])}")
         print(f"Input shape:\t{cell.shape}")
         print(f"Encoded shape:\t{encoded_cell.shape}")

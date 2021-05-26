@@ -7,8 +7,6 @@ import matplotlib.pyplot as plt
 from services.data_loader import DataLoader
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from entities.vae import VAE
-from entities.sampling import Sampling
 from services.plots import Plots
 from services.args_parser import ArgumentParser
 

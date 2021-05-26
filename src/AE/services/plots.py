@@ -38,7 +38,7 @@ class Plots:
         plt.xlabel("Epoch")
         plt.ylabel("Value")
         plt.legend()
-        plt.savefig(Path("results", "vae", f"{file_name}.png"))
+        plt.savefig(Path("results", "ae", f"{file_name}.png"))
 
     @staticmethod
     def latent_space_cluster(input_umap, latent_umap, file_name: str):
@@ -75,7 +75,7 @@ class Plots:
 
         ax2.set_title("Reconstructed Marker Intensities")
         ax2.set_xlabel("Marker")
-        plt.savefig(Path("results", "vae", f"{file_name}.png"))
+        plt.savefig(Path("results", "ae", f"{file_name}.png"))
 
     @staticmethod
     def plot_markers(X_train, X_test, X_val, markers, file_name: str):
@@ -89,7 +89,7 @@ class Plots:
         ax2.set_title("X Test")
         ax3.set_title("X Validation")
         fig.tight_layout()
-        plt.savefig(Path("results", "vae", f"{file_name}.png"))
+        plt.savefig(Path("results", "ae", f"{file_name}.png"))
 
     @staticmethod
     def plot_reconstructed_intensities(vae: any, X_val, markers, file_name: str):
@@ -103,7 +103,7 @@ class Plots:
         ax1.set_title("X Validation")
         ax2.set_title("Reconstructed X Validation")
         fig.tight_layout()
-        plt.savefig(Path("results", "vae", f"{file_name}.png"))
+        plt.savefig(Path("results", "ae", f"{file_name}.png"))
 
     @staticmethod
     def plot_distribution_of_latent_variables(encoder, X_train, latent_dim, step_size, z, file_name: str):
@@ -134,4 +134,4 @@ class Plots:
         ax2.set_xlabel("Latent Variables")
         ax2.set_ylabel("Values")
 
-        plt.savefig(Path("results", "vae", f"{file_name}.png"))
+        plt.savefig(Path("results", "ae", f"{file_name}.png"))
