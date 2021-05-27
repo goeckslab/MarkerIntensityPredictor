@@ -112,16 +112,16 @@ class LinearMarkerIntensity:
         :return:
         """
         if self.test_file is None:
-            self.coefficients.to_csv(Path(f"results/{self.train_file_name}_coefficients.csv"))
-            self.prediction_scores.to_csv(Path(f"results/{self.train_file_name}_prediction_scores.csv"))
+            self.coefficients.to_csv(Path(f"results/lr/{self.train_file_name}_coefficients.csv"))
+            self.prediction_scores.to_csv(Path(f"results/lr/{self.train_file_name}_prediction_scores.csv"))
 
         elif self.train_file is None:
-            self.coefficients.to_csv(Path(f"results/{self.test_file_name}_multi_coefficients.csv"))
-            self.prediction_scores.to_csv(Path(f"results/{self.test_file_name}_multi_prediction_scores.csv"))
+            self.coefficients.to_csv(Path(f"results/lr/{self.test_file_name}_multi_coefficients.csv"))
+            self.prediction_scores.to_csv(Path(f"results/lr/{self.test_file_name}_multi_prediction_scores.csv"))
         else:
-            self.coefficients.to_csv(Path(f"results/{self.train_file_name}_{self.test_file_name}_coefficients.csv"))
+            self.coefficients.to_csv(Path(f"results/lr/{self.train_file_name}_{self.test_file_name}_coefficients.csv"))
             self.prediction_scores.to_csv(
-                Path(f"results/{self.train_file_name}_{self.test_file_name}_prediction_scores.csv"))
+                Path(f"results/lr/{self.train_file_name}_{self.test_file_name}_prediction_scores.csv"))
 
     def create_plots(self):
         """
@@ -156,7 +156,7 @@ class LinearMarkerIntensity:
             ax = sns.heatmap(df, linewidths=.5, vmin=0, vmax=1, cmap="YlGnBu")
             ax.set_title(data)
             fig = ax.get_figure()
-            fig.savefig(Path(f"results/{data}_coef_heatmap.png"), bbox_inches='tight')
+            fig.savefig(Path(f"results/lr/{data}_coef_heatmap.png"), bbox_inches='tight')
             plt.close()
 
     def __create_r2_accuracy_plot(self):
@@ -179,15 +179,15 @@ class LinearMarkerIntensity:
             # ax.fig.suptitle("Single file")
             plt.title("Single File", y=1.02)
             ax.legend.set_title("Model")
-            ax.savefig(Path(f"results/{self.train_file_name}_score_predictions.png"))
+            ax.savefig(Path(f"results/lr/{self.train_file_name}_score_predictions.png"))
         elif self.train_file is None:
             plt.title("Multi Files", y=1.02)
             ax.legend.set_title("Model")
-            ax.savefig(Path(f"results/{self.test_file_name}_multi_score_predictions.png"))
+            ax.savefig(Path(f"results/lr/{self.test_file_name}_multi_score_predictions.png"))
         else:
             plt.title("Train Test File", y=1.02)
             ax.legend.set_title("Model")
-            ax.savefig(Path(f"results/{self.train_file_name}_{self.test_file_name}_score_predictions.png"))
+            ax.savefig(Path(f"results/lr/{self.train_file_name}_{self.test_file_name}_score_predictions.png"))
 
         plt.close()
 
