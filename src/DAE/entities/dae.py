@@ -35,7 +35,7 @@ class DenoisingAutoEncoder:
     latent_umap: any
 
     def __init__(self):
-        self.inputs_dim = 0
+        self.encoding_dim = 5
 
     def load_data(self):
         print("Loading data...")
@@ -98,7 +98,7 @@ class DenoisingAutoEncoder:
         self.normalized_data.X_train_noise = data.to_numpy()
 
     def build_auto_encoder(self):
-        self.encoding_dim = 5
+
         activation = "linear"
         input_layer = keras.Input(shape=(self.inputs_dim,))
 
@@ -167,9 +167,9 @@ class DenoisingAutoEncoder:
         encoded = self.encoder.predict(self.normalized_data.X_train)
         self.latent_umap = fit.fit_transform(encoded)
 
-        self.__create_h5ad("latent_markers", self.latent_umap, self.normalized_data.markers,
+        self.__create_h5ad(f"latent_markers_{self.encoding_dim}", self.latent_umap, self.normalized_data.markers,
                            pd.DataFrame(columns=self.normalized_data.markers, data=self.normalized_data.X_train))
-        self.__create_h5ad("input", input_umap, self.normalized_data.markers,
+        self.__create_h5ad(f"input_{self.encoding_dim}", input_umap, self.normalized_data.markers,
                            pd.DataFrame(columns=self.normalized_data.markers, data=self.normalized_data.X_train))
         return
 
@@ -179,6 +179,7 @@ class DenoisingAutoEncoder:
                                              f"reconstructed_intensities_{self.encoding_dim}")
         Plots.latent_space_cluster(self.input_umap, self.latent_umap,
                                    f"latent_space_clusters_{self.encoding_dim}")
+        Plots.plot_markers(self.normalized_data.X_train, self.normalized_data.X_train, self.normalized_data.X_val, self.normalized_data.markers, f"markers_{self.inputs_dim}")
 
     def __create_h5ad(self, file_name: str, umap, markers, df):
         obs = pd.DataFrame(data=df, index=df.index)
