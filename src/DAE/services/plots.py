@@ -38,25 +38,27 @@ class Plots:
         plt.ylabel("Value")
         plt.legend()
         plt.savefig(Path("results", "dae", f"{file_name}.png"))
+        plt.close()
 
     @staticmethod
-    def latent_space_cluster(input_umap, latent_umap, file_name: str):
+    def latent_space_cluster(input_umap, latent_umap, clusters, file_name: str):
         logging.info("Plotting latent space clusters")
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), dpi=150)
         plt.subplots_adjust(wspace=0.2)
 
-        ax1.scatter(x=-input_umap[:, 0], y=-input_umap[:, 1])
+        ax1.scatter(x=-input_umap[:, 0], y=-input_umap[:, 1], s=.1, c=clusters)
         ax1.set_title("UMAP Embedding/Projection of Input")
         ax1.set_xlabel("umap1")
         ax1.set_ylabel("umap2")
 
-        ax2.scatter(x=-latent_umap[:, 0], y=-latent_umap[:, 1])
+        ax2.scatter(x=-latent_umap[:, 0], y=-latent_umap[:, 1], s=.1, c=clusters)
         ax2.set_title("UMAP Embedding/Projection of Latent Space")
         ax2.set_xlabel("umap1")
         ax2.set_ylabel("umap2")
 
         plt.savefig(Path("results", "dae", f"{file_name}.png"))
+        plt.close()
 
     @staticmethod
     def plot_reconstructed_markers(z_grid, x_pred_grid, markers, file_name: str):
@@ -75,6 +77,7 @@ class Plots:
         ax2.set_title("Reconstructed Marker Intensities")
         ax2.set_xlabel("Marker")
         plt.savefig(Path("results", "dae", f"{file_name}.png"))
+        plt.close()
 
     @staticmethod
     def plot_markers(X_train, X_test, X_val, markers, file_name: str):
@@ -89,9 +92,10 @@ class Plots:
         ax3.set_title("X Validation")
         fig.tight_layout()
         plt.savefig(Path("results", "dae", f"{file_name}.png"))
+        plt.close()
 
     @staticmethod
-    def plot_reconstructed_intensities(vae: any, X_val, markers, file_name: str):
+    def plot_reconstructed_validation_markers(vae: any, X_val, markers, file_name: str):
         logging.info("Plotting reconstructed intensities")
         recon_val = vae.predict(X_val)
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 10), dpi=300, sharex=True)
@@ -103,6 +107,7 @@ class Plots:
         ax2.set_title("Reconstructed X Validation")
         fig.tight_layout()
         plt.savefig(Path("results", "dae", f"{file_name}.png"))
+        plt.close()
 
     @staticmethod
     def plot_distribution_of_latent_variables(encoder, X_train, latent_dim, step_size, z, file_name: str):
@@ -134,3 +139,4 @@ class Plots:
         ax2.set_ylabel("Values")
 
         plt.savefig(Path("results", "dae", f"{file_name}.png"))
+        plt.close()

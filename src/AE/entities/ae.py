@@ -159,7 +159,7 @@ class AutoEncoder:
 
     def plots(self):
         Plots.plot_model_performance(self.history, f"model_performance_{self.encoding_dim}")
-        Plots.plot_reconstructed_intensities(self.ae, self.normalized_data.X_val, self.normalized_data.markers,
+        Plots.plot_reconstructed_validation_markers(self.ae, self.normalized_data.X_val, self.normalized_data.markers,
                                              f"reconstructed_intensities_{self.encoding_dim}")
         Plots.latent_space_cluster(self.input_umap, self.latent_umap,
                                    f"latent_space_clusters_{self.encoding_dim}")

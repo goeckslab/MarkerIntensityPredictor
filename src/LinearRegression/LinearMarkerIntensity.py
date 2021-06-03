@@ -7,6 +7,7 @@ from entities.data_storage import DataStorage
 import os
 from pathlib import Path
 import matplotlib.pyplot as plt
+import logging
 
 sns.set_theme(style="darkgrid")
 
@@ -99,7 +100,7 @@ class LinearMarkerIntensity:
             del test_copy[f"{marker}"]
             X_test = test_copy
 
-            self.__predict("Ridge", Ridge(alpha=1), X_train, y_train, X_test, y_test, marker)
+            self.__predict("Ridge", Ridge(alpha=10), X_train, y_train, X_test, y_test, marker)
             self.__predict("LR", LinearRegression(), X_train, y_train, X_test, y_test, marker)
             self.__predict("Lasso", Lasso(alpha=0.5), X_train, y_train, X_test, y_test, marker)
             self.__predict("EN", ElasticNet(alpha=0.5), X_train, y_train, X_test, y_test, marker)
@@ -130,6 +131,7 @@ class LinearMarkerIntensity:
         """
         self.__create_r2_accuracy_plot()
         self.__create_coef_heatmap_plot()
+        self.__create_intensity_heatmap_plot()
 
     def __create_coefficient_df(self, train, model, marker):
         """
@@ -148,16 +150,31 @@ class LinearMarkerIntensity:
         return temp
 
     def __create_coef_heatmap_plot(self):
-        for data in self.coefficients["Model"].unique():
-            df = self.coefficients[self.coefficients["Model"] == data].copy()
+        """
+        Creates a heatmap for the coefficients
+        """
+
+        for model in self.coefficients["Model"].unique():
+            df = self.coefficients[self.coefficients["Model"] == model].copy()
 
             del df["Model"]
             df.fillna(-1, inplace=True)
-            ax = sns.heatmap(df, linewidths=.5, vmin=0, vmax=1, cmap="YlGnBu")
-            ax.set_title(data)
+            # df[(df < 0.001) | (df > 0.6)] = None
+            fig, ax = plt.subplots(figsize=(20, 20))  # Sample figsize in inches
+            ax = sns.heatmap(df, linewidths=1, vmin=0, vmax=0.6, cmap="YlGnBu", ax=ax)
+            ax.set_title(model)
             fig = ax.get_figure()
-            fig.savefig(Path(f"results/lr/{data}_coef_heatmap.png"), bbox_inches='tight')
+            fig.savefig(Path(f"results/lr/{model}_coef_heatmap.png"), bbox_inches='tight')
             plt.close()
+
+    def __create_intensity_heatmap_plot(self):
+        fig, ax = plt.subplots(figsize=(30, 30), dpi=300)  # Sample figsize in inches
+        sns.heatmap(self.train_data.X_train, xticklabels=self.train_data.markers)
+        ax.set_title("Marker intensities")
+        fig = ax.get_figure()
+        fig.tight_layout()
+        fig.savefig(Path(f"results/lr/marker_heatmap.png"), bbox_inches='tight')
+        plt.close()
 
     def __create_r2_accuracy_plot(self):
         """
@@ -172,8 +189,6 @@ class LinearMarkerIntensity:
         ax.despine(left=True)
         ax.set_axis_labels("R2 Score", "Marker")
         ax.set(xlim=(0, 1))
-        # g.set_xticklabels(rotation=90)
-        # fig = ax.get_figure()
 
         if self.test_file is None:
             # ax.fig.suptitle("Single file")

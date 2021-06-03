@@ -29,6 +29,28 @@ class Plots:
         ax.set_title(title)
         # ax.set_yscale('log')
 
+
+
+    @staticmethod
+    def plot_clustering(input_umap, latent_umap, markers):
+        f, axs = plt.subplots(nrows=1, ncols=2, figsize=(15, 8))
+        sns.scatterplot(input_umap[:, 0],
+                        input_umap[:, 1],
+                        hue=class_names[labels], ax=axs[0],
+                        palette=sns.color_palette("colorblind", 6))
+        sns.scatterplot(latent_umap[:, 0],
+                        latent_umap[:, 1],
+                        hue=class_names[labels], ax=axs[1],
+                        palette=sns.color_palette("colorblind", 6))
+
+        axs[0].set_title('Encodings of example images before training')
+        axs[1].set_title('Encodings of example images after training')
+
+        for ax in axs:
+            ax.set_xlabel('Encoding dimension 1')
+            ax.set_ylabel('Encoding dimension 2')
+            ax.legend(loc='upper right')
+
     @staticmethod
     def plot_model_performance(history, file_name: str):
         logging.info("Plotting model performance")
@@ -92,7 +114,7 @@ class Plots:
         plt.savefig(Path("results", "ae", f"{file_name}.png"))
 
     @staticmethod
-    def plot_reconstructed_intensities(vae: any, X_val, markers, file_name: str):
+    def plot_reconstructed_validation_markers(vae: any, X_val, markers, file_name: str):
         logging.info("Plotting reconstructed intensities")
         recon_val = vae.predict(X_val)
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 10), dpi=300, sharex=True)

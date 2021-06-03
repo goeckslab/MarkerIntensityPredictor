@@ -16,3 +16,4 @@ seaborn
 umap-learn
 PyYAML
 cellxgene
+Phenograph

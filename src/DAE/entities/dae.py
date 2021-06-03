@@ -13,6 +13,10 @@ from pathlib import Path
 import umap
 import tensorflow as tf
 import sys
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+import phenograph
+import plotly.express as px
 
 
 class DenoisingAutoEncoder:
@@ -35,12 +39,24 @@ class DenoisingAutoEncoder:
     latent_umap: any
 
     def __init__(self):
-        self.encoding_dim = 5
+        self.encoding_dim = 6
 
     def load_data(self):
         print("Loading data...")
         self.un_normalized_data = Data()
-        inputs, self.un_normalized_data.markers = DataLoader.get_data(ArgumentParser.get_args().file)
+        args = ArgumentParser.get_args()
+
+        if args.file:
+            inputs, self.un_normalized_data.markers = DataLoader.get_data(
+                ArgumentParser.get_args().file)
+
+        elif args.dir:
+            inputs, self.un_normalized_data.markers = DataLoader.load_folder_data(
+                args.dir)
+
+        else:
+            print("Please specify a directory or a file")
+            sys.exit()
 
         self.un_normalized_data.inputs = np.array(inputs)
 
@@ -113,11 +129,11 @@ class DenoisingAutoEncoder:
         decoded = layers.Dense(self.inputs_dim, activation=activation)(decoded)
 
         # Auto encoder
-        self.ae = keras.Model(input_layer, decoded)
+        self.ae = keras.Model(input_layer, decoded, name="DAE")
         self.ae.summary()
 
         # Separate encoder model
-        self.encoder = keras.Model(input_layer, encoded)
+        self.encoder = keras.Model(input_layer, encoded, name="encoder")
         self.encoder.summary()
 
         # Separate decoder model
@@ -126,7 +142,7 @@ class DenoisingAutoEncoder:
         deco = self.ae.layers[-2](deco)
         deco = self.ae.layers[-1](deco)
         # create the decoder model
-        self.decoder = keras.Model(encoded_input, deco)
+        self.decoder = keras.Model(encoded_input, deco, name="decoder")
         self.decoder.summary()
 
         # Compile ae
@@ -137,7 +153,7 @@ class DenoisingAutoEncoder:
                                                     restore_best_weights=True)
         self.history = self.ae.fit(self.normalized_data.X_train_noise, self.normalized_data.X_train_noise,
                                    epochs=500,
-                                   batch_size=92,
+                                   batch_size=32,
                                    shuffle=True,
                                    callbacks=[callback],
                                    validation_data=(self.normalized_data.X_train, self.normalized_data.X_train))
@@ -148,7 +164,6 @@ class DenoisingAutoEncoder:
         cell = cell.reshape(1, cell.shape[0])
         encoded_cell = self.encoder.predict(cell)
         decoded_cell = self.decoder.predict(encoded_cell)
-        var_cell = self.ae.predict(cell)
         print(f"Epochs: {len(self.history.history['loss'])}")
         print(f"Input shape:\t{cell.shape}")
         print(f"Encoded shape:\t{encoded_cell.shape}")
@@ -160,7 +175,7 @@ class DenoisingAutoEncoder:
     def create_h5ad_object(self):
         # Input
         fit = umap.UMAP()
-        self.input_umap = input_umap = fit.fit_transform(self.normalized_data.X_train_noise)
+        self.input_umap = fit.fit_transform(self.normalized_data.X_train_noise)
 
         # latent space
         fit = umap.UMAP()
@@ -169,17 +184,41 @@ class DenoisingAutoEncoder:
 
         self.__create_h5ad(f"latent_markers_{self.encoding_dim}", self.latent_umap, self.normalized_data.markers,
                            pd.DataFrame(columns=self.normalized_data.markers, data=self.normalized_data.X_train))
-        self.__create_h5ad(f"input_{self.encoding_dim}", input_umap, self.normalized_data.markers,
+        self.__create_h5ad(f"input_{self.encoding_dim}", self.input_umap, self.normalized_data.markers,
                            pd.DataFrame(columns=self.normalized_data.markers, data=self.normalized_data.X_train))
         return
 
+    def k_means(self):
+        # k means determine k
+        distortions = []
+        K = range(1, 15)
+        encoded = self.encoder.predict(self.normalized_data.X_train)
+        for k in K:
+            kmeanModel = KMeans(n_clusters=k)
+            kmeanModel.fit(encoded)
+            distortions.append(kmeanModel.inertia_)
+
+        # Plot the elbow
+        plt.plot(K, distortions, 'bx-')
+        plt.xlabel('k')
+        plt.ylabel('Distortion')
+        plt.title('Optimal k')
+        plt.savefig(Path("results", "dae", f"elbow_{self.encoding_dim}.png"))
+        plt.close()
+
+    def phenograph(self, encoded_data):
+        communities, graph, Q = phenograph.cluster(encoded_data)
+        return pd.Series(communities)
+
     def plots(self):
+        clusters = self.phenograph(self.encoder.predict(self.normalized_data.X_train))
         Plots.plot_model_performance(self.history, f"model_performance_{self.encoding_dim}")
-        Plots.plot_reconstructed_intensities(self.ae, self.normalized_data.X_val, self.normalized_data.markers,
-                                             f"reconstructed_intensities_{self.encoding_dim}")
-        Plots.latent_space_cluster(self.input_umap, self.latent_umap,
+        Plots.plot_reconstructed_validation_markers(self.ae, self.normalized_data.X_val, self.normalized_data.markers,
+                                                    f"reconstructed_intensities_{self.encoding_dim}")
+        Plots.latent_space_cluster(self.input_umap, self.latent_umap, clusters,
                                    f"latent_space_clusters_{self.encoding_dim}")
-        Plots.plot_markers(self.normalized_data.X_train, self.normalized_data.X_train, self.normalized_data.X_val, self.normalized_data.markers, f"markers_{self.inputs_dim}")
+        Plots.plot_markers(self.normalized_data.X_train, self.normalized_data.X_test, self.normalized_data.X_val,
+                           self.normalized_data.markers, f"markers_{self.inputs_dim}")
 
     def __create_h5ad(self, file_name: str, umap, markers, df):
         obs = pd.DataFrame(data=df, index=df.index)
