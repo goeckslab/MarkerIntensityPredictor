@@ -16,7 +16,9 @@ import sys
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 import phenograph
-import plotly.express as px
+from sklearn.metrics import r2_score
+import seaborn as sns
+sns.set_theme(style="darkgrid")
 
 
 class DenoisingAutoEncoder:
@@ -37,6 +39,7 @@ class DenoisingAutoEncoder:
 
     input_umap: any
     latent_umap: any
+    r2_scores = pd.DataFrame(columns=["Marker", "Score"])
 
     def __init__(self):
         self.encoding_dim = 6
@@ -187,6 +190,38 @@ class DenoisingAutoEncoder:
         self.__create_h5ad(f"input_{self.encoding_dim}", self.input_umap, self.normalized_data.markers,
                            pd.DataFrame(columns=self.normalized_data.markers, data=self.normalized_data.X_train))
         return
+
+    def calculate_r2_score(self):
+        recon_val = self.ae.predict(self.normalized_data.X_val)
+
+        recon_val = pd.DataFrame(data=recon_val, columns=self.normalized_data.markers)
+        input_data = pd.DataFrame(data=self.normalized_data.X_val, columns=self.normalized_data.markers)
+
+        for marker in self.normalized_data.markers:
+            input_marker = input_data[f"{marker}"]
+            var_marker = recon_val[f"{marker}"]
+
+            score = r2_score(input_marker, var_marker)
+            self.r2_scores = self.r2_scores.append(
+                {
+                    "Marker": marker,
+                    "Score": score
+                }, ignore_index=True
+            )
+
+        # Plot it
+        ax = sns.catplot(
+            data=self.r2_scores, kind="bar",
+            x="Score", y="Marker", ci="sd", palette="dark", alpha=.6, height=6
+        )
+        ax.despine(left=True)
+        ax.set_axis_labels("R2 Score", "Marker")
+        ax.set(xlim=(0, 1))
+
+        plt.title("DAE Scores", y=1.02)
+        ax.savefig(Path(f"results/dae/r2_scores.png"))
+
+
 
     def k_means(self):
         # k means determine k

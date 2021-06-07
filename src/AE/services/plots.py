@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import umap
-from entities.vae import VAE
 import seaborn as sns
 from scipy import stats
 from matplotlib.pyplot import figure
@@ -29,28 +28,6 @@ class Plots:
         ax.set_title(title)
         # ax.set_yscale('log')
 
-
-
-    @staticmethod
-    def plot_clustering(input_umap, latent_umap, markers):
-        f, axs = plt.subplots(nrows=1, ncols=2, figsize=(15, 8))
-        sns.scatterplot(input_umap[:, 0],
-                        input_umap[:, 1],
-                        hue=class_names[labels], ax=axs[0],
-                        palette=sns.color_palette("colorblind", 6))
-        sns.scatterplot(latent_umap[:, 0],
-                        latent_umap[:, 1],
-                        hue=class_names[labels], ax=axs[1],
-                        palette=sns.color_palette("colorblind", 6))
-
-        axs[0].set_title('Encodings of example images before training')
-        axs[1].set_title('Encodings of example images after training')
-
-        for ax in axs:
-            ax.set_xlabel('Encoding dimension 1')
-            ax.set_ylabel('Encoding dimension 2')
-            ax.legend(loc='upper right')
-
     @staticmethod
     def plot_model_performance(history, file_name: str):
         logging.info("Plotting model performance")
@@ -63,23 +40,24 @@ class Plots:
         plt.savefig(Path("results", "ae", f"{file_name}.png"))
 
     @staticmethod
-    def latent_space_cluster(input_umap, latent_umap, file_name: str):
+    def latent_space_cluster(input_umap, latent_umap, clusters, file_name: str):
         logging.info("Plotting latent space clusters")
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), dpi=150)
         plt.subplots_adjust(wspace=0.2)
 
-        ax1.scatter(x=-input_umap[:, 0], y=-input_umap[:, 1])
+        ax1.scatter(x=-input_umap[:, 0], y=-input_umap[:, 1], s=.1, c=clusters)
         ax1.set_title("UMAP Embedding/Projection of Input")
         ax1.set_xlabel("umap1")
         ax1.set_ylabel("umap2")
 
-        ax2.scatter(x=-latent_umap[:, 0], y=-latent_umap[:, 1])
+        ax2.scatter(x=-latent_umap[:, 0], y=-latent_umap[:, 1], s=.1, c=clusters)
         ax2.set_title("UMAP Embedding/Projection of Latent Space")
         ax2.set_xlabel("umap1")
         ax2.set_ylabel("umap2")
 
         plt.savefig(Path("results", "ae", f"{file_name}.png"))
+        plt.close()
 
     @staticmethod
     def plot_reconstructed_markers(z_grid, x_pred_grid, markers, file_name: str):

@@ -1,10 +1,10 @@
 import matplotlib.pyplot as plt
-import umap
 import seaborn as sns
 from scipy import stats
 from matplotlib.pyplot import figure
 from pathlib import Path
 import logging
+
 
 
 class Plots:
@@ -95,9 +95,9 @@ class Plots:
         plt.close()
 
     @staticmethod
-    def plot_reconstructed_validation_markers(vae: any, X_val, markers, file_name: str):
+    def plot_reconstructed_validation_markers(dae: any, X_val, markers, file_name: str):
         logging.info("Plotting reconstructed intensities")
-        recon_val = vae.predict(X_val)
+        recon_val = dae.predict(X_val)
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 10), dpi=300, sharex=True)
         sns.heatmap(X_val, ax=ax1, xticklabels=markers)
 

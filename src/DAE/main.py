@@ -10,6 +10,7 @@ if __name__ == "__main__":
     dae.add_noise()
     dae.build_auto_encoder()
     dae.predict()
+    dae.calculate_r2_score()
     dae.create_h5ad_object()
     dae.plots()
     dae.k_means()

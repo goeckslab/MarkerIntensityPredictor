@@ -13,6 +13,12 @@ from pathlib import Path
 import umap
 import tensorflow as tf
 import sys
+from sklearn.metrics import r2_score
+import seaborn as sns
+import matplotlib.pyplot as plt
+import phenograph
+
+sns.set_theme(style="darkgrid")
 
 
 class AutoEncoder:
@@ -33,6 +39,8 @@ class AutoEncoder:
 
     input_umap: any
     latent_umap: any
+
+    r2_scores = pd.DataFrame(columns=["Marker", "Score"])
 
     def __init__(self):
         self.inputs_dim = 0
@@ -141,6 +149,36 @@ class AutoEncoder:
         print(f"\nEncoded:\n{encoded_cell[0]}")
         print(f"\nDecoded:\n{decoded_cell[0]}")
 
+    def calculate_r2_score(self):
+        recon_val = self.ae.predict(self.normalized_data.X_val)
+
+        recon_val = pd.DataFrame(data=recon_val, columns=self.normalized_data.markers)
+        input_data = pd.DataFrame(data=self.normalized_data.X_val, columns=self.normalized_data.markers)
+
+        for marker in self.normalized_data.markers:
+            input_marker = input_data[f"{marker}"]
+            var_marker = recon_val[f"{marker}"]
+
+            score = r2_score(input_marker, var_marker)
+            self.r2_scores = self.r2_scores.append(
+                {
+                    "Marker": marker,
+                    "Score": score
+                }, ignore_index=True
+            )
+
+        # Plot it
+        ax = sns.catplot(
+            data=self.r2_scores, kind="bar",
+            x="Score", y="Marker", ci="sd", palette="dark", alpha=.6, height=6
+        )
+        ax.despine(left=True)
+        ax.set_axis_labels("R2 Score", "Marker")
+        ax.set(xlim=(0, 1))
+
+        plt.title("AE Scores", y=1.02)
+        ax.savefig(Path(f"results/ae/r2_scores.png"))
+
     def create_h5ad_object(self):
         # Input
         fit = umap.UMAP()
@@ -157,11 +195,16 @@ class AutoEncoder:
                            pd.DataFrame(columns=self.normalized_data.markers, data=self.normalized_data.X_train))
         return
 
+    def phenograph(self, encoded_data):
+        communities, graph, Q = phenograph.cluster(encoded_data)
+        return pd.Series(communities)
+
     def plots(self):
+        clusters = self.phenograph(self.encoder.predict(self.normalized_data.X_train))
         Plots.plot_model_performance(self.history, f"model_performance_{self.encoding_dim}")
         Plots.plot_reconstructed_validation_markers(self.ae, self.normalized_data.X_val, self.normalized_data.markers,
-                                             f"reconstructed_intensities_{self.encoding_dim}")
-        Plots.latent_space_cluster(self.input_umap, self.latent_umap,
+                                                    f"reconstructed_intensities_{self.encoding_dim}")
+        Plots.latent_space_cluster(self.input_umap, self.latent_umap, clusters,
                                    f"latent_space_clusters_{self.encoding_dim}")
 
     def __create_h5ad(self, file_name: str, umap, markers, df):
