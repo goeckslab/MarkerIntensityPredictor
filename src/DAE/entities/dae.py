@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import phenograph
 from sklearn.metrics import r2_score
 import seaborn as sns
+
 sns.set_theme(style="darkgrid")
 
 
@@ -42,7 +43,7 @@ class DenoisingAutoEncoder:
     r2_scores = pd.DataFrame(columns=["Marker", "Score"])
 
     def __init__(self):
-        self.encoding_dim = 6
+        self.encoding_dim = 5
 
     def load_data(self):
         print("Loading data...")
@@ -210,6 +211,7 @@ class DenoisingAutoEncoder:
             )
 
         # Plot it
+
         ax = sns.catplot(
             data=self.r2_scores, kind="bar",
             x="Score", y="Marker", ci="sd", palette="dark", alpha=.6, height=6
@@ -219,9 +221,8 @@ class DenoisingAutoEncoder:
         ax.set(xlim=(0, 1))
 
         plt.title("DAE Scores", y=1.02)
-        ax.savefig(Path(f"results/dae/r2_scores.png"))
-
-
+        ax.savefig(Path(f"results/dae/r2_scores_{self.encoding_dim}.png"))
+        plt.close()
 
     def k_means(self):
         # k means determine k
@@ -246,11 +247,12 @@ class DenoisingAutoEncoder:
         return pd.Series(communities)
 
     def plots(self):
-        clusters = self.phenograph(self.encoder.predict(self.normalized_data.X_train))
+        input_clusters = self.phenograph(self.normalized_data.X_train_noise)
+        latent_clusters = self.phenograph(self.encoder.predict(self.normalized_data.X_train))
         Plots.plot_model_performance(self.history, f"model_performance_{self.encoding_dim}")
         Plots.plot_reconstructed_validation_markers(self.ae, self.normalized_data.X_val, self.normalized_data.markers,
                                                     f"reconstructed_intensities_{self.encoding_dim}")
-        Plots.latent_space_cluster(self.input_umap, self.latent_umap, clusters,
+        Plots.latent_space_cluster(self.input_umap, self.latent_umap, input_clusters, latent_clusters,
                                    f"latent_space_clusters_{self.encoding_dim}")
         Plots.plot_markers(self.normalized_data.X_train, self.normalized_data.X_test, self.normalized_data.X_val,
                            self.normalized_data.markers, f"markers_{self.inputs_dim}")

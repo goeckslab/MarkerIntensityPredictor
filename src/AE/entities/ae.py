@@ -43,7 +43,7 @@ class AutoEncoder:
     r2_scores = pd.DataFrame(columns=["Marker", "Score"])
 
     def __init__(self):
-        self.inputs_dim = 0
+        self.encoding_dim = 5
 
     def load_data(self):
         print("Loading data...")
@@ -101,7 +101,6 @@ class AutoEncoder:
         self.inputs_dim = self.normalized_data.inputs.shape[1]
 
     def build_auto_encoder(self):
-        self.encoding_dim = 6
         activation = 'linear'
         # This is our input image
         encoder_input = keras.Input(shape=(self.inputs_dim,))
@@ -113,6 +112,8 @@ class AutoEncoder:
         # This model maps an input to its reconstruction
         self.ae = keras.Model(encoder_input, decoded)
 
+        print(self.ae.summary())
+
         self.encoder = keras.Model(encoder_input, encoded)
 
         # This is our encoded (32-dimensional) input
@@ -122,7 +123,7 @@ class AutoEncoder:
         # Create the decoder model
         self.decoder = keras.Model(encoded_input, decoder_layer(encoded_input))
 
-        self.ae.compile(optimizer='adam', loss=keras.losses.MeanSquaredError())
+        self.ae.compile(optimizer='adam', loss=keras.losses.MeanSquaredError(),  metrics=['acc', 'mean_squared_error'])
 
         callback = tf.keras.callbacks.EarlyStopping(monitor="val_loss",
                                                     mode="min", patience=5,
@@ -177,7 +178,8 @@ class AutoEncoder:
         ax.set(xlim=(0, 1))
 
         plt.title("AE Scores", y=1.02)
-        ax.savefig(Path(f"results/ae/r2_scores.png"))
+        ax.savefig(Path(f"results/ae/r2_scores_{self.encoding_dim}.png"))
+        plt.close()
 
     def create_h5ad_object(self):
         # Input

@@ -6,7 +6,6 @@ from pathlib import Path
 import logging
 
 
-
 class Plots:
     @staticmethod
     def plot_dists(ax, data, title, plot_type=""):
@@ -37,22 +36,23 @@ class Plots:
         plt.xlabel("Epoch")
         plt.ylabel("Value")
         plt.legend()
+        plt.tight_layout()
         plt.savefig(Path("results", "dae", f"{file_name}.png"))
         plt.close()
 
     @staticmethod
-    def latent_space_cluster(input_umap, latent_umap, clusters, file_name: str):
+    def latent_space_cluster(input_umap, latent_umap, input_clusters, latent_clusters, file_name: str):
         logging.info("Plotting latent space clusters")
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), dpi=150)
         plt.subplots_adjust(wspace=0.2)
 
-        ax1.scatter(x=-input_umap[:, 0], y=-input_umap[:, 1], s=.1, c=clusters)
+        ax1.scatter(x=-input_umap[:, 0], y=-input_umap[:, 1], s=.1, c=input_clusters)
         ax1.set_title("UMAP Embedding/Projection of Input")
         ax1.set_xlabel("umap1")
         ax1.set_ylabel("umap2")
 
-        ax2.scatter(x=-latent_umap[:, 0], y=-latent_umap[:, 1], s=.1, c=clusters)
+        ax2.scatter(x=-latent_umap[:, 0], y=-latent_umap[:, 1], s=.1, c=latent_clusters)
         ax2.set_title("UMAP Embedding/Projection of Latent Space")
         ax2.set_xlabel("umap1")
         ax2.set_ylabel("umap2")

@@ -37,6 +37,7 @@ class Plots:
         plt.xlabel("Epoch")
         plt.ylabel("Value")
         plt.legend()
+        plt.tight_layout()
         plt.savefig(Path("results", "ae", f"{file_name}.png"))
 
     @staticmethod
