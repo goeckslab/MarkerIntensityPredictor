@@ -20,7 +20,8 @@ class DataLoader:
         markers = cells.columns
         markers = [re.sub("_nucleiMasks", "", x) for x in markers]
 
-        return cells, markers
+        # return cells, markers
+        return cells.iloc[:, :], markers
 
     @staticmethod
     def load_folder_data(path: str):
@@ -33,6 +34,5 @@ class DataLoader:
 
                 cells, markers = DataLoader.get_data(os.path.join(subdir, file))
                 merged_data = merged_data.append(cells)
-
 
         return merged_data, markers

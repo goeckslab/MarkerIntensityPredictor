@@ -8,4 +8,3 @@ if __name__ == "__main__":
     ae.predict()
     ae.calculate_r2_score()
     ae.create_h5ad_object()
-    ae.plots()

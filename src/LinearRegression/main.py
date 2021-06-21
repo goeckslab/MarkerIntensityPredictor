@@ -24,5 +24,4 @@ if __name__ == "__main__":
     marker.load()
     marker.train_predict()
     marker.write_csv()
-    marker.create_plots()
     print("Finished linear marker intensity prediction")

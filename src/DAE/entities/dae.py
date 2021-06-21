@@ -1,12 +1,11 @@
-from entities.data import Data
-from services.data_loader import DataLoader
+from Shared.data import Data
+from Shared.data_loader import DataLoader
 from services.args_parser import ArgumentParser
 import numpy as np
 import keras
 from keras import layers
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from services.plots import Plots
 import anndata as ad
 import pandas as pd
 from pathlib import Path
@@ -245,17 +244,6 @@ class DenoisingAutoEncoder:
     def phenograph(self, encoded_data):
         communities, graph, Q = phenograph.cluster(encoded_data)
         return pd.Series(communities)
-
-    def plots(self):
-        input_clusters = self.phenograph(self.normalized_data.X_train_noise)
-        latent_clusters = self.phenograph(self.encoder.predict(self.normalized_data.X_train))
-        Plots.plot_model_performance(self.history, f"model_performance_{self.encoding_dim}")
-        Plots.plot_reconstructed_validation_markers(self.ae, self.normalized_data.X_val, self.normalized_data.markers,
-                                                    f"reconstructed_intensities_{self.encoding_dim}")
-        Plots.latent_space_cluster(self.input_umap, self.latent_umap, input_clusters, latent_clusters,
-                                   f"latent_space_clusters_{self.encoding_dim}")
-        Plots.plot_markers(self.normalized_data.X_train, self.normalized_data.X_test, self.normalized_data.X_val,
-                           self.normalized_data.markers, f"markers_{self.inputs_dim}")
 
     def __create_h5ad(self, file_name: str, umap, markers, df):
         obs = pd.DataFrame(data=df, index=df.index)

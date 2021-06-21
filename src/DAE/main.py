@@ -12,5 +12,4 @@ if __name__ == "__main__":
     dae.predict()
     dae.calculate_r2_score()
     dae.create_h5ad_object()
-    dae.plots()
     dae.k_means()
