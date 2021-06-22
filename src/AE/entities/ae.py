@@ -1,3 +1,8 @@
+import pickle
+import sys
+
+sys.path.append("..")
+from pathlib import Path
 from Shared.data import Data
 from Shared.data_loader import DataLoader
 from services.args_parser import ArgumentParser
@@ -7,16 +12,12 @@ from keras import layers
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import anndata as ad
 import pandas as pd
-from pathlib import Path
 import umap
 import tensorflow as tf
-import sys
 from sklearn.metrics import r2_score
-import seaborn as sns
-import matplotlib.pyplot as plt
-import phenograph
+import os
 
-sns.set_theme(style="darkgrid")
+results_folder = f"{os.path.split(os.environ['VIRTUAL_ENV'])[0]}/results/ae"
 
 
 class AutoEncoder:
@@ -29,6 +30,7 @@ class AutoEncoder:
     # The ae
     ae: any
 
+    # the training history of the AE
     history: any
 
     input_dim: int
@@ -38,6 +40,8 @@ class AutoEncoder:
     latent_umap: any
 
     r2_scores = pd.DataFrame(columns=["Marker", "Score"])
+    encoded_data = pd.DataFrame()
+    reconstructed_data = pd.DataFrame()
 
     def __init__(self):
         self.encoding_dim = 5
@@ -129,7 +133,6 @@ class AutoEncoder:
 
     def calculate_r2_score(self):
         recon_test = self.ae.predict(self.data.X_test)
-
         recon_test = pd.DataFrame(data=recon_test, columns=self.data.markers)
         input_data = pd.DataFrame(data=self.data.X_test, columns=self.data.markers)
 
@@ -144,19 +147,6 @@ class AutoEncoder:
                     "Score": score
                 }, ignore_index=True
             )
-
-        # Plot it
-        ax = sns.catplot(
-            data=self.r2_scores, kind="bar",
-            x="Score", y="Marker", ci="sd", palette="dark", alpha=.6, height=6
-        )
-        ax.despine(left=True)
-        ax.set_axis_labels("R2 Score", "Marker")
-        ax.set(xlim=(0, 1))
-
-        plt.title("AE Scores", y=1.02)
-        ax.savefig(Path(f"results/ae/r2_scores_{self.encoding_dim}.png"))
-        plt.close()
 
     def create_h5ad_object(self):
         # Input
@@ -174,15 +164,24 @@ class AutoEncoder:
                            pd.DataFrame(columns=self.data.markers, data=self.data.X_train))
         return
 
-    def phenograph(self, encoded_data):
-        communities, graph, Q = phenograph.cluster(encoded_data)
-        return pd.Series(communities)
-
-    def __create_h5ad(self, file_name: str, umap, markers, df):
+    @staticmethod
+    def __create_h5ad(file_name: str, umap, markers, df):
         obs = pd.DataFrame(data=df, index=df.index)
         var = pd.DataFrame(index=markers)
         obsm = {"X_umap": umap}
         uns = dict()
         adata = ad.AnnData(df.to_numpy(), var=var, obs=obs, uns=uns, obsm=obsm)
 
-        adata.write(Path(f'results/ae/{file_name}.h5ad'))
+        adata.write(Path(f'{results_folder}/{file_name}.h5ad'))
+
+    def create_val_predictions(self):
+        self.encoded_data = pd.DataFrame(self.encoder.predict(self.data.X_val))
+        self.reconstructed_data = pd.DataFrame(columns=self.data.markers, data=self.decoder.predict(self.encoded_data))
+
+    def write_created_data_to_disk(self):
+        with open(f'{results_folder}/ae_history', 'wb') as file_pi:
+            pickle.dump(self.history.history, file_pi)
+
+        self.encoded_data.to_csv(Path(f'{results_folder}/val_encoded_data.csv'), index=False)
+        self.reconstructed_data.to_csv(Path(f'{results_folder}/reconstructed_data.csv'), index=False)
+        self.r2_scores.to_csv(Path(f'{results_folder}/r2scores.csv'), index=False)

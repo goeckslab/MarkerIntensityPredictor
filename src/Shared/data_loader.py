@@ -13,7 +13,9 @@ class DataLoader:
         :return:
         """
 
-        cells = pd.read_csv(Path(input_file), header=0)
+        path = Path(f"{os.path.split(os.environ['VIRTUAL_ENV'])[0]}/{input_file}")
+        print(path)
+        cells = pd.read_csv(path, header=0)
 
         # Keeps only the 'interesting' columns.
         cells = cells.filter(regex="nucleiMasks$", axis=1).filter(regex="^(?!(DAPI|AF))", axis=1)

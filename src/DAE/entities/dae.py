@@ -1,10 +1,13 @@
+import pickle
+import sys
+import os
+sys.path.append("..")
 from Shared.data import Data
 from Shared.data_loader import DataLoader
 from services.args_parser import ArgumentParser
 import numpy as np
 import keras
 from keras import layers
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import anndata as ad
 import pandas as pd
@@ -14,16 +17,12 @@ import tensorflow as tf
 import sys
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
-import phenograph
 from sklearn.metrics import r2_score
-import seaborn as sns
 
-sns.set_theme(style="darkgrid")
-
+results_folder = f"{os.path.split(os.environ['VIRTUAL_ENV'])[0]}/results/dae"
 
 class DenoisingAutoEncoder:
-    un_normalized_data: Data
-    normalized_data: Data
+    data: Data
 
     # The defined encoder
     encoder: any
@@ -39,29 +38,32 @@ class DenoisingAutoEncoder:
 
     input_umap: any
     latent_umap: any
+
     r2_scores = pd.DataFrame(columns=["Marker", "Score"])
+    encoded_data = pd.DataFrame()
+    reconstructed_data = pd.DataFrame()
 
     def __init__(self):
         self.encoding_dim = 5
 
     def load_data(self):
         print("Loading data...")
-        self.un_normalized_data = Data()
+
         args = ArgumentParser.get_args()
 
         if args.file:
-            inputs, self.un_normalized_data.markers = DataLoader.get_data(
+            inputs, markers = DataLoader.get_data(
                 ArgumentParser.get_args().file)
 
         elif args.dir:
-            inputs, self.un_normalized_data.markers = DataLoader.load_folder_data(
+            inputs, markers = DataLoader.load_folder_data(
                 args.dir)
 
         else:
             print("Please specify a directory or a file")
             sys.exit()
 
-        self.un_normalized_data.inputs = np.array(inputs)
+        self.data = Data(np.array(inputs), markers, self.normalize)
 
     def normalize(self, data):
         # Input data contains some zeros which results in NaN (or Inf)
@@ -80,27 +82,8 @@ class DenoisingAutoEncoder:
         data = min_max_scaler.fit_transform(data)
         return data
 
-    def split_data(self):
-        print("Splitting data")
-        X_dev, X_val = train_test_split(self.un_normalized_data.inputs, test_size=0.05, random_state=1, shuffle=True)
-        X_train, X_test = train_test_split(X_dev, test_size=0.25, random_state=1)
-
-        self.un_normalized_data.X_train = X_train
-        self.un_normalized_data.X_test = X_test
-        self.un_normalized_data.X_val = X_val
-
-        # Store the normalized data
-        self.normalized_data = Data()
-        self.normalized_data.markers = self.un_normalized_data.markers
-        self.normalized_data.inputs = np.array(self.normalize(self.un_normalized_data.inputs))
-        self.normalized_data.X_train = self.normalize(X_train)
-        self.normalized_data.X_test = self.normalize(X_test)
-        self.normalized_data.X_val = self.normalize(X_val)
-
-        self.inputs_dim = self.normalized_data.inputs.shape[1]
-
     def add_noise(self):
-        data = pd.DataFrame(self.normalized_data.X_train.copy())
+        data = pd.DataFrame(self.data.X_train.copy())
         means = data.mean()
         std = data.std()
 
@@ -114,12 +97,12 @@ class DenoisingAutoEncoder:
                 if index in r_column.index:
                     data[column][index] = r_column[column][index]
 
-        self.normalized_data.X_train_noise = data.to_numpy()
+        self.data.X_train_noise = data.to_numpy()
 
     def build_auto_encoder(self):
 
         activation = "linear"
-        input_layer = keras.Input(shape=(self.inputs_dim,))
+        input_layer = keras.Input(shape=(self.data.inputs_dim,))
 
         # Encoder
         encoded = layers.Dense(20, activation=activation)(input_layer)
@@ -129,7 +112,7 @@ class DenoisingAutoEncoder:
         # Decoder
         decoded = layers.Dense(12, activation=activation)(encoded)
         decoded = layers.Dense(20, activation=activation)(decoded)
-        decoded = layers.Dense(self.inputs_dim, activation=activation)(decoded)
+        decoded = layers.Dense(self.data.inputs_dim, activation=activation)(decoded)
 
         # Auto encoder
         self.ae = keras.Model(input_layer, decoded, name="DAE")
@@ -154,16 +137,16 @@ class DenoisingAutoEncoder:
         callback = tf.keras.callbacks.EarlyStopping(monitor="val_loss",
                                                     mode="min", patience=5,
                                                     restore_best_weights=True)
-        self.history = self.ae.fit(self.normalized_data.X_train_noise, self.normalized_data.X_train_noise,
+        self.history = self.ae.fit(self.data.X_train_noise, self.data.X_train_noise,
                                    epochs=500,
                                    batch_size=32,
                                    shuffle=True,
                                    callbacks=[callback],
-                                   validation_data=(self.normalized_data.X_train, self.normalized_data.X_train))
+                                   validation_data=(self.data.X_train, self.data.X_train))
 
     def predict(self):
         # Make some predictions
-        cell = self.normalized_data.X_val[0]
+        cell = self.data.X_val[0]
         cell = cell.reshape(1, cell.shape[0])
         encoded_cell = self.encoder.predict(cell)
         decoded_cell = self.decoder.predict(encoded_cell)
@@ -178,26 +161,26 @@ class DenoisingAutoEncoder:
     def create_h5ad_object(self):
         # Input
         fit = umap.UMAP()
-        self.input_umap = fit.fit_transform(self.normalized_data.X_train_noise)
+        self.input_umap = fit.fit_transform(self.data.X_train_noise)
 
         # latent space
         fit = umap.UMAP()
-        encoded = self.encoder.predict(self.normalized_data.X_train)
+        encoded = self.encoder.predict(self.data.X_train)
         self.latent_umap = fit.fit_transform(encoded)
 
-        self.__create_h5ad(f"latent_markers_{self.encoding_dim}", self.latent_umap, self.normalized_data.markers,
-                           pd.DataFrame(columns=self.normalized_data.markers, data=self.normalized_data.X_train))
-        self.__create_h5ad(f"input_{self.encoding_dim}", self.input_umap, self.normalized_data.markers,
-                           pd.DataFrame(columns=self.normalized_data.markers, data=self.normalized_data.X_train))
+        self.__create_h5ad(f"latent_markers_{self.encoding_dim}", self.latent_umap, self.data.markers,
+                           pd.DataFrame(columns=self.data.markers, data=self.data.X_train))
+        self.__create_h5ad(f"input_{self.encoding_dim}", self.input_umap, self.data.markers,
+                           pd.DataFrame(columns=self.data.markers, data=self.data.X_train))
         return
 
     def calculate_r2_score(self):
-        recon_val = self.ae.predict(self.normalized_data.X_val)
+        recon_val = self.ae.predict(self.data.X_val)
 
-        recon_val = pd.DataFrame(data=recon_val, columns=self.normalized_data.markers)
-        input_data = pd.DataFrame(data=self.normalized_data.X_val, columns=self.normalized_data.markers)
+        recon_val = pd.DataFrame(data=recon_val, columns=self.data.markers)
+        input_data = pd.DataFrame(data=self.data.X_val, columns=self.data.markers)
 
-        for marker in self.normalized_data.markers:
+        for marker in self.data.markers:
             input_marker = input_data[f"{marker}"]
             var_marker = recon_val[f"{marker}"]
 
@@ -209,25 +192,11 @@ class DenoisingAutoEncoder:
                 }, ignore_index=True
             )
 
-        # Plot it
-
-        ax = sns.catplot(
-            data=self.r2_scores, kind="bar",
-            x="Score", y="Marker", ci="sd", palette="dark", alpha=.6, height=6
-        )
-        ax.despine(left=True)
-        ax.set_axis_labels("R2 Score", "Marker")
-        ax.set(xlim=(0, 1))
-
-        plt.title("DAE Scores", y=1.02)
-        ax.savefig(Path(f"results/dae/r2_scores_{self.encoding_dim}.png"))
-        plt.close()
-
     def k_means(self):
         # k means determine k
         distortions = []
         K = range(1, 15)
-        encoded = self.encoder.predict(self.normalized_data.X_train)
+        encoded = self.encoder.predict(self.data.X_train)
         for k in K:
             kmeanModel = KMeans(n_clusters=k)
             kmeanModel.fit(encoded)
@@ -238,12 +207,8 @@ class DenoisingAutoEncoder:
         plt.xlabel('k')
         plt.ylabel('Distortion')
         plt.title('Optimal k')
-        plt.savefig(Path("results", "dae", f"elbow_{self.encoding_dim}.png"))
+        plt.savefig(Path(f"{results_folder}/{self.encoding_dim}.png"))
         plt.close()
-
-    def phenograph(self, encoded_data):
-        communities, graph, Q = phenograph.cluster(encoded_data)
-        return pd.Series(communities)
 
     def __create_h5ad(self, file_name: str, umap, markers, df):
         obs = pd.DataFrame(data=df, index=df.index)
@@ -252,4 +217,16 @@ class DenoisingAutoEncoder:
         uns = dict()
         adata = ad.AnnData(df.to_numpy(), var=var, obs=obs, uns=uns, obsm=obsm)
 
-        adata.write(Path(f'results/dae/{file_name}.h5ad'))
+        adata.write(Path(f'{results_folder}/{file_name}.h5ad'))
+
+    def create_val_predictions(self):
+        self.encoded_data = pd.DataFrame(self.encoder.predict(self.data.X_val))
+        self.reconstructed_data = pd.DataFrame(columns=self.data.markers, data=self.decoder.predict(self.encoded_data))
+
+    def write_created_data_to_disk(self):
+        with open(f'{results_folder}/ae_history', 'wb') as file_pi:
+            pickle.dump(self.history.history, file_pi)
+
+        self.encoded_data.to_csv(Path(f'{results_folder}val_encoded_data.csv'), index=False)
+        self.reconstructed_data.to_csv(Path(f'{results_folder}/reconstructed_data.csv'), index=False)
+        self.r2_scores.to_csv(Path(f'{results_folder}/r2scores.csv'), index=False)
