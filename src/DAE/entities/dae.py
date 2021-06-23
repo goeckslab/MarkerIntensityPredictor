@@ -175,10 +175,10 @@ class DenoisingAutoEncoder:
         return
 
     def calculate_r2_score(self):
-        recon_val = self.ae.predict(self.data.X_val)
+        reconstructed_data = self.ae.predict(self.data.X_test)
 
-        recon_val = pd.DataFrame(data=recon_val, columns=self.data.markers)
-        input_data = pd.DataFrame(data=self.data.X_val, columns=self.data.markers)
+        recon_val = pd.DataFrame(data=reconstructed_data, columns=self.data.markers)
+        input_data = pd.DataFrame(data=self.data.X_test, columns=self.data.markers)
 
         for marker in self.data.markers:
             input_marker = input_data[f"{marker}"]
@@ -220,13 +220,16 @@ class DenoisingAutoEncoder:
         adata.write(Path(f'{results_folder}/{file_name}.h5ad'))
 
     def create_val_predictions(self):
-        self.encoded_data = pd.DataFrame(self.encoder.predict(self.data.X_val))
+        self.encoded_data = pd.DataFrame(self.encoder.predict(self.data.X_test))
         self.reconstructed_data = pd.DataFrame(columns=self.data.markers, data=self.decoder.predict(self.encoded_data))
 
     def write_created_data_to_disk(self):
         with open(f'{results_folder}/ae_history', 'wb') as file_pi:
             pickle.dump(self.history.history, file_pi)
 
-        self.encoded_data.to_csv(Path(f'{results_folder}val_encoded_data.csv'), index=False)
+        X_test = pd.DataFrame(columns=self.data.markers, data=self.data.X_test)
+
+        X_test.to_csv(Path(f'{results_folder}/test_data.csv'), index=False)
+        self.encoded_data.to_csv(Path(f'{results_folder}/encoded_data.csv'), index=False)
         self.reconstructed_data.to_csv(Path(f'{results_folder}/reconstructed_data.csv'), index=False)
         self.r2_scores.to_csv(Path(f'{results_folder}/r2scores.csv'), index=False)

@@ -1,3 +1,8 @@
+import matplotlib.pyplot as plt
+import seaborn as sns
+from pathlib import Path
+
+
 def __create_intensity_heatmap_plot(self):
     fig, ax = plt.subplots(figsize=(30, 30), dpi=300)  # Sample figsize in inches
     sns.heatmap(self.train_data.X_train, xticklabels=self.train_data.markers)

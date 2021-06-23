@@ -1,5 +1,8 @@
+import sys
+
+sys.path.append("..")
 import pandas as pd
-from services.data_loader import DataLoader
+from Shared.data_loader import DataLoader
 from sklearn.linear_model import Ridge, Lasso, LinearRegression, ElasticNet
 import seaborn as sns
 import re
@@ -7,9 +10,10 @@ from entities.data_storage import DataStorage
 import os
 from pathlib import Path
 import matplotlib.pyplot as plt
-import logging
 
 sns.set_theme(style="darkgrid")
+
+results_folder = f"{os.path.split(os.environ['VIRTUAL_ENV'])[0]}/results/lr"
 
 
 class LinearMarkerIntensity:
@@ -21,7 +25,7 @@ class LinearMarkerIntensity:
     test_data: DataStorage
 
     coefficients = pd.DataFrame()
-    prediction_scores = pd.DataFrame(columns=["Marker", "Score", "Model"])
+    r2scores = pd.DataFrame(columns=["Marker", "Score", "Model"])
 
     __args = list
 
@@ -105,7 +109,7 @@ class LinearMarkerIntensity:
             self.__predict("Lasso", Lasso(alpha=0.5), X_train, y_train, X_test, y_test, marker)
             self.__predict("EN", ElasticNet(alpha=0.5), X_train, y_train, X_test, y_test, marker)
 
-        self.prediction_scores["Marker"] = [re.sub("_nucleiMasks", "", x) for x in self.prediction_scores["Marker"]]
+        self.r2scores["Marker"] = [re.sub("_nucleiMasks", "", x) for x in self.r2scores["Marker"]]
 
     def write_csv(self):
         """
@@ -113,17 +117,20 @@ class LinearMarkerIntensity:
         :return:
         """
         if self.test_file is None:
-            self.coefficients.to_csv(Path(f"results/lr/{self.train_file_name}_coefficients.csv"))
-            self.prediction_scores.to_csv(Path(f"results/lr/{self.train_file_name}_prediction_scores.csv"))
+            self.coefficients.to_csv(Path(f"{results_folder}/{self.train_file_name}_coefficients.csv"),
+                                     index=False)
+            self.r2scores.to_csv(Path(f"{results_folder}/{self.train_file_name}_r2_scores.csv"), index=False)
 
         elif self.train_file is None:
-            self.coefficients.to_csv(Path(f"results/lr/{self.test_file_name}_multi_coefficients.csv"))
-            self.prediction_scores.to_csv(Path(f"results/lr/{self.test_file_name}_multi_prediction_scores.csv"))
+            self.coefficients.to_csv(Path(f"{results_folder}/{self.test_file_name}_multi_coefficients.csv"),
+                                     index=False)
+            self.r2scores.to_csv(Path(f"{results_folder}/{self.test_file_name}_multi_r2_scores.csv"), index=False)
         else:
-            self.coefficients.to_csv(Path(f"results/lr/{self.train_file_name}_{self.test_file_name}_coefficients.csv"))
-            self.prediction_scores.to_csv(
-                Path(f"results/lr/{self.train_file_name}_{self.test_file_name}_prediction_scores.csv"))
-
+            self.coefficients.to_csv(
+                Path(f"{results_folder}/{self.train_file_name}_{self.test_file_name}_coefficients.csv"),
+                index=False)
+            self.r2scores.to_csv(
+                Path(f"results/lr/{self.train_file_name}_{self.test_file_name}_r2_scores.csv"), index=False)
 
     def __create_coefficient_df(self, train, model, marker):
         """
@@ -156,14 +163,12 @@ class LinearMarkerIntensity:
             ax = sns.heatmap(df, linewidths=1, vmin=0, vmax=0.6, cmap="YlGnBu", ax=ax)
             ax.set_title(model)
             fig = ax.get_figure()
-            fig.savefig(Path(f"results/lr/{model}_coef_heatmap.png"), bbox_inches='tight')
+            fig.savefig(Path(f"{results_folder}/{model}_coef_heatmap.png"), bbox_inches='tight')
             plt.close()
-
-
 
     def __predict(self, name: str, model, X_train, y_train, X_test, y_test, marker):
         model.fit(X_train, y_train)
-        self.prediction_scores = self.prediction_scores.append({
+        self.r2scores = self.r2scores.append({
             "Marker": marker,
             "Score": model.score(X_test, y_test),
             "Model": name

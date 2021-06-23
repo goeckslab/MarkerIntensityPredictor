@@ -5,7 +5,8 @@ This repo contains different part of Marker Intensity Research, based on HTAN da
 It includes:
 1. Jupyter notebooks
 2. A linear regression model to calculate LR baseline data
-3. A Ludwig AI tool to create yaml files for Ludwig
+3. Different auto encoders to train models 
+4. A plotting package to combine the results of linear regression and different auto encoders
 
 
 
@@ -24,5 +25,23 @@ $ jupyter-lab
 ### Linear mode
 
 1. Create or reuse your venv.
-2. ```pip install -r requirements.txt```
-3. 
+2. ```./start_linear.sh```
+3. Use arguments to start different modes
+
+
+### Auto Encoders
+
+#### Vanilla Auto Encoder
+
+1. Create or reuse your venv.
+2. ```./start_ae.sh```
+
+#### Denoising Auto Encoder
+
+1. Create or reuse your venv.
+2. ```./start_dae.sh```
+
+
+### Plotting
+
+1. Create or reuse your venv.
