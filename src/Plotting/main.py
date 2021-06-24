@@ -44,3 +44,22 @@ if __name__ == "__main__":
             reconstructed_data = pd.read_csv(args.ae[1], sep=",")
 
             Plots.plot_reconstructed_markers(input_data, reconstructed_data, "ae")
+
+        if args.dae is not None:
+            if len(args.ae) != 2:
+                print("Need 2 files only!")
+                sys.exit()
+
+            input_data = pd.read_csv(args.ae[0], sep=",")
+            reconstructed_data = pd.read_csv(args.ae[1], sep=",")
+
+            Plots.plot_reconstructed_markers(input_data, reconstructed_data, "dae")
+
+    if args.corr is True:
+        if args.ae is not None:
+            input_data = pd.read_csv(args.ae[0], sep=",")
+            Plots.plot_corr_heatmap(input_data, "ae")
+
+
+    else:
+        print("No mode selected!")

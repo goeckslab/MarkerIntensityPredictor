@@ -174,9 +174,14 @@ class AutoEncoder:
 
         adata.write(Path(f'{results_folder}/{file_name}.h5ad'))
 
-    def create_val_predictions(self):
+    def create_test_predictions(self):
         self.encoded_data = pd.DataFrame(self.encoder.predict(self.data.X_test))
         self.reconstructed_data = pd.DataFrame(columns=self.data.markers, data=self.decoder.predict(self.encoded_data))
+
+    def create_correlation_data(self):
+        inputs = pd.DataFrame(columns=self.data.markers, data=self.data.inputs)
+        corr = inputs.corr()
+        corr.to_csv(Path(f'{results_folder}/correlation.csv'), index=False)
 
     def write_created_data_to_disk(self):
         with open(f'{results_folder}/ae_history', 'wb') as file_pi:

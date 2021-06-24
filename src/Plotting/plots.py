@@ -3,6 +3,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import os
 import logging
+import numpy as np
 
 sns.set_theme(style="darkgrid")
 results_folder = f"{os.path.split(os.environ['VIRTUAL_ENV'])[0]}/results/plots"
@@ -37,7 +38,7 @@ class Plots:
         plt.close()
 
     @staticmethod
-    def plot_reconstructed_markers(X, X_pred, file_name):
+    def plot_reconstructed_markers(X, X_pred, data_origin):
         logging.info("Plotting reconstructed intensities")
         markers = X.columns
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 10), dpi=300, sharex=True)
@@ -47,5 +48,21 @@ class Plots:
         ax1.set_title("X Validation")
         ax2.set_title("Reconstructed X Validation")
         fig.tight_layout()
-        plt.savefig(Path(f"{results_folder}/{file_name}_reconstructed.png"))
+        plt.savefig(Path(f"{results_folder}/{data_origin}_reconstructed.png"))
+        plt.close()
+
+    @staticmethod
+    def plot_corr_heatmap(correlation_df, data_origin: str):
+        plt.figure(figsize=(20, 16))
+        # define the mask to set the values in the upper triangle to True
+        mask = np.triu(np.ones_like(correlation_df, dtype=np.bool))
+        heatmap = sns.heatmap(correlation_df, mask=mask, vmin=-1, vmax=.6, annot=True, cmap='BrBG')
+        heatmap.set_title('Correlation Heatmap of Markers', fontdict={'fontsize': 18}, pad=16)
+
+        heatmap.set_yticklabels(correlation_df.columns)
+
+        for item in heatmap.get_yticklabels():
+            item.set_rotation(0)
+
+        plt.savefig(Path(f"{results_folder}/{data_origin}_correlation.png"))
         plt.close()

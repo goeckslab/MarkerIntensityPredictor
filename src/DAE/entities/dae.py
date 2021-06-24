@@ -219,7 +219,7 @@ class DenoisingAutoEncoder:
 
         adata.write(Path(f'{results_folder}/{file_name}.h5ad'))
 
-    def create_val_predictions(self):
+    def create_test_predictions(self):
         self.encoded_data = pd.DataFrame(self.encoder.predict(self.data.X_test))
         self.reconstructed_data = pd.DataFrame(columns=self.data.markers, data=self.decoder.predict(self.encoded_data))
 

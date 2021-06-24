@@ -22,5 +22,6 @@ class ArgumentParser:
 
         parser.add_argument("-r2", "--r2score", action="store_true", help="Generates the r2 score plots")
         parser.add_argument("-r", "--reconstructed", action="store_true", help="Generates the ae reconstructing plots")
+        parser.add_argument("-corr", "--corr", action="store_true", help="Generates the correlation heatmap")
 
         return parser.parse_args()

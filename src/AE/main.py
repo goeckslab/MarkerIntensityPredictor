@@ -10,5 +10,6 @@ if __name__ == "__main__":
     ae.predict()
     ae.calculate_r2_score()
     ae.create_h5ad_object()
-    ae.create_val_predictions()
+    ae.create_test_predictions()
+    ae.create_correlation_data()
     ae.write_created_data_to_disk()
