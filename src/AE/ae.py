@@ -14,8 +14,6 @@ import tensorflow as tf
 from sklearn.metrics import r2_score
 import os
 
-results_folder = f"{os.path.split(os.environ['VIRTUAL_ENV'])[0]}/results/ae"
-
 
 class AutoEncoder:
     data: Data
@@ -40,6 +38,7 @@ class AutoEncoder:
     encoded_data = pd.DataFrame()
     reconstructed_data = pd.DataFrame()
     args = None
+    results_folder = Path("results", "ae")
 
     def __init__(self, args):
         self.encoding_dim = 5
@@ -96,7 +95,7 @@ class AutoEncoder:
 
         self.encoder = keras.Model(encoder_input, encoded)
 
-        # This is our encoded (32-dimensional) input
+        # This is our encoded (21-dimensional) input
         encoded_input = keras.Input(shape=(self.encoding_dim,))
         # Retrieve the last layer of the auto encoder model
         decoder_layer = self.ae.layers[-1]
@@ -163,15 +162,14 @@ class AutoEncoder:
                            pd.DataFrame(columns=self.data.markers, data=self.data.X_train))
         return
 
-    @staticmethod
-    def __create_h5ad(file_name: str, umap, markers, df):
+    def __create_h5ad(self, file_name: str, umap, markers, df):
         obs = pd.DataFrame(data=df, index=df.index)
         var = pd.DataFrame(index=markers)
         obsm = {"X_umap": umap}
         uns = dict()
         adata = ad.AnnData(df.to_numpy(), var=var, obs=obs, uns=uns, obsm=obsm)
 
-        adata.write(Path(f'{results_folder}/{file_name}.h5ad'))
+        adata.write(Path(f'{self.results_folder}/{file_name}.h5ad'))
 
     def create_test_predictions(self):
         self.encoded_data = pd.DataFrame(self.encoder.predict(self.data.X_test))
@@ -180,15 +178,15 @@ class AutoEncoder:
     def create_correlation_data(self):
         inputs = pd.DataFrame(columns=self.data.markers, data=self.data.inputs)
         corr = inputs.corr()
-        corr.to_csv(Path(f'{results_folder}/correlation.csv'), index=False)
+        corr.to_csv(Path(f'{self.results_folder}/correlation.csv'), index=False)
 
     def write_created_data_to_disk(self):
-        with open(f'{results_folder}/ae_history', 'wb') as file_pi:
+        with open(f'{self.results_folder}/ae_history', 'wb') as file_pi:
             pickle.dump(self.history.history, file_pi)
 
         X_test = pd.DataFrame(columns=self.data.markers, data=self.data.X_test)
 
-        X_test.to_csv(Path(f'{results_folder}/test_data.csv'), index=False)
-        self.encoded_data.to_csv(Path(f'{results_folder}/encoded_data.csv'), index=False)
-        self.reconstructed_data.to_csv(Path(f'{results_folder}/reconstructed_data.csv'), index=False)
-        self.r2_scores.to_csv(Path(f'{results_folder}/r2scores.csv'), index=False)
+        X_test.to_csv(Path(f'{self.results_folder}/test_data.csv'), index=False)
+        self.encoded_data.to_csv(Path(f'{self.results_folder}/encoded_data.csv'), index=False)
+        self.reconstructed_data.to_csv(Path(f'{self.results_folder}/reconstructed_data.csv'), index=False)
+        self.r2_scores.to_csv(Path(f'{self.results_folder}/r2scores.csv'), index=False)

@@ -12,8 +12,6 @@ from sklearn.preprocessing import StandardScaler
 
 sns.set_theme(style="darkgrid")
 
-results_folder = f"{os.path.split(os.environ['VIRTUAL_ENV'])[0]}/results/lr"
-
 
 class LinearMarkerIntensity:
     train_file: str
@@ -27,8 +25,9 @@ class LinearMarkerIntensity:
     r2scores = pd.DataFrame(columns=["Marker", "Score", "Model"])
 
     args = None
+    results_folder = Path("results", "lr")
 
-    def __init__(self, train_file, args, validation_file):
+    def __init__(self, train_file, validation_file, args):
         self.args = args
 
         # Multi file
@@ -74,17 +73,17 @@ class LinearMarkerIntensity:
             self.train_data = Data(inputs, markers, self.normalize)
 
     def train_predict(self):
-        self.coefficients = pd.DataFrame(columns=self.train_data.X_train.columns)
+        self.coefficients = pd.DataFrame(columns=self.train_data.markers)
         self.coefficients["Model"] = ""
 
-        for marker in self.train_data.X_train.columns:
+        for marker in self.train_data.markers:
             # Copy df to not change
-            train_copy = self.train_data.X_train.copy()
+            train_copy = pd.DataFrame(columns=self.train_data.markers, data=self.train_data.X_train.copy())
 
             if self.test_file is not None:
-                test_copy = self.test_data.X_test.copy()
+                test_copy = pd.DataFrame(columns=self.test_data.markers, data=self.test_data.X_test.copy())
             else:
-                test_copy = self.train_data.X_test.copy()
+                test_copy = pd.DataFrame(columns=self.train_data.markers, data=self.train_data.X_test.copy())
 
             if marker == "ERK1_1":
                 del train_copy["ERK1_2"]
@@ -116,18 +115,15 @@ class LinearMarkerIntensity:
         :return:
         """
         if self.test_file is None:
-            self.coefficients.to_csv(Path(f"{results_folder}/{self.train_file_name}_coefficients.csv"),
-                                     index=False)
-            self.r2scores.to_csv(Path(f"{results_folder}/{self.train_file_name}_r2_scores.csv"), index=False)
+            self.coefficients.to_csv(Path(f"{self.results_folder}/{self.train_file_name}_coefficients.csv"))
+            self.r2scores.to_csv(Path(f"{self.results_folder}/{self.train_file_name}_r2_scores.csv"), index=False)
 
         elif self.train_file is None:
-            self.coefficients.to_csv(Path(f"{results_folder}/{self.test_file_name}_multi_coefficients.csv"),
-                                     index=False)
-            self.r2scores.to_csv(Path(f"{results_folder}/{self.test_file_name}_multi_r2_scores.csv"), index=False)
+            self.coefficients.to_csv(Path(f"{self.results_folder}/{self.test_file_name}_multi_coefficients.csv"))
+            self.r2scores.to_csv(Path(f"{self.results_folder}/{self.test_file_name}_multi_r2_scores.csv"), index=False)
         else:
             self.coefficients.to_csv(
-                Path(f"{results_folder}/{self.train_file_name}_{self.test_file_name}_coefficients.csv"),
-                index=False)
+                Path(f"{self.results_folder}/{self.train_file_name}_{self.test_file_name}_coefficients.csv"))
             self.r2scores.to_csv(
                 Path(f"results/lr/{self.train_file_name}_{self.test_file_name}_r2_scores.csv"), index=False)
 
@@ -162,7 +158,7 @@ class LinearMarkerIntensity:
             ax = sns.heatmap(df, linewidths=1, vmin=0, vmax=0.6, cmap="YlGnBu", ax=ax)
             ax.set_title(model)
             fig = ax.get_figure()
-            fig.savefig(Path(f"{results_folder}/{model}_coef_heatmap.png"), bbox_inches='tight')
+            fig.savefig(Path(f"{self.results_folder}/{model}_coef_heatmap.png"), bbox_inches='tight')
             plt.close()
 
     def __predict(self, name: str, model, X_train, y_train, X_test, y_test, marker):

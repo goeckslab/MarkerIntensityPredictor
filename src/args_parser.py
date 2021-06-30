@@ -11,6 +11,10 @@ class ArgumentParser:
         parser = argparse.ArgumentParser()
         subparsers = parser.add_subparsers(help='Argument parser for Marker Intensity Predictor', dest="command")
 
+        parser.add_argument("--remove", action="store_true", default=False,
+                            help="If presents the results folder will not be recreated. "
+                                 "This is useful for script executions.")
+
         ArgumentParser.create_lr_parser(subparsers)
         ArgumentParser.create_ae_parser(subparsers)
         ArgumentParser.create_plotting_parser(subparsers)
