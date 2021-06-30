@@ -56,10 +56,9 @@ if __name__ == "__main__":
             Plots.plot_reconstructed_markers(input_data, reconstructed_data, "dae")
 
     if args.corr is True:
+        print("Generating correlation heatmaps.")
         if args.ae is not None:
             input_data = pd.read_csv(args.ae[0], sep=",")
             Plots.plot_corr_heatmap(input_data, "ae")
 
 
-    else:
-        print("No mode selected!")

@@ -14,11 +14,13 @@ class DataLoader:
         """
 
         path = Path(f"{os.path.split(os.environ['VIRTUAL_ENV'])[0]}/{input_file}")
-        print(path)
         cells = pd.read_csv(path, header=0)
 
         # Keeps only the 'interesting' columns.
         cells = cells.filter(regex="nucleiMasks$", axis=1).filter(regex="^(?!(DAPI|AF))", axis=1)
+        # cells.columns = [re.sub("_nucleiMasks", "", x) for x in cells.columns]
+        # cells = cells.filter(['HER2', 'CK7', 'CK17', 'cPARP', 'AR', 'CK14', 'p21', 'CK19', 'EGFR', 'Ki67'])
+
         markers = cells.columns
         markers = [re.sub("_nucleiMasks", "", x) for x in markers]
 
@@ -38,7 +40,6 @@ class DataLoader:
                 merged_data = merged_data.append(cells)
 
         return merged_data, markers
-
 
     @staticmethod
     def merge_files(exclude_file: str):
