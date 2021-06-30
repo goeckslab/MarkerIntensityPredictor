@@ -1,11 +1,8 @@
 import pickle
 import sys
-
-sys.path.append("..")
 from pathlib import Path
 from Shared.data import Data
 from Shared.data_loader import DataLoader
-from services.args_parser import ArgumentParser
 import numpy as np
 import keras
 from keras import layers
@@ -42,9 +39,11 @@ class AutoEncoder:
     r2_scores = pd.DataFrame(columns=["Marker", "Score"])
     encoded_data = pd.DataFrame()
     reconstructed_data = pd.DataFrame()
+    args = None
 
-    def __init__(self):
+    def __init__(self, args):
         self.encoding_dim = 5
+        self.args = args
 
     def normalize(self, data):
         # Input data contains some zeros which results in NaN (or Inf)
@@ -52,6 +51,7 @@ class AutoEncoder:
         # values for downstream analysis. Therefore, zeros are replaced by
         # a small value; see the following thread for related discussion.
         # https://www.researchgate.net/post/Log_transformation_of_values_that_include_0_zero_for_statistical_analyses2
+
         data[data == 0] = 1e-32
         data = np.log10(data)
 
@@ -65,15 +65,14 @@ class AutoEncoder:
 
     def load_data(self):
         print("Loading data...")
-        args = ArgumentParser.get_args()
 
-        if args.file:
+        if self.args.file:
             inputs, markers = DataLoader.get_data(
-                ArgumentParser.get_args().file)
+                self.args.file)
 
-        elif args.dir:
+        elif self.args.dir:
             inputs, markers = DataLoader.load_folder_data(
-                args.dir)
+                self.args.dir)
 
         else:
             print("Please specify a directory or a file")

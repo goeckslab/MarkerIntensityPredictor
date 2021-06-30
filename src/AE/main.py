@@ -1,10 +1,8 @@
-import sys
-import os
-sys.path.append(os.path.split(os.environ['VIRTUAL_ENV'])[0])
-from entities.ae import AutoEncoder
+from AE.ae import AutoEncoder
 
-if __name__ == "__main__":
-    ae = AutoEncoder()
+
+def start(args):
+    ae = AutoEncoder(args)
     ae.load_data()
     ae.build_auto_encoder()
     ae.predict()

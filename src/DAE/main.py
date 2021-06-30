@@ -1,8 +1,8 @@
-from entities.dae import DenoisingAutoEncoder
-import numpy as np
+from DAE.dae import DenoisingAutoEncoder
 
-if __name__ == "__main__":
-    dae = DenoisingAutoEncoder()
+
+def start(args):
+    dae = DenoisingAutoEncoder(args)
     dae.load_data()
     dae.add_noise()
     dae.build_auto_encoder()

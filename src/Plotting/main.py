@@ -1,30 +1,35 @@
-from args_parser import ArgumentParser
 import pandas as pd
 import sys
+from Plotting.plots import Plots
+from pathlib import Path
+import logging
 
-sys.path.append("..")
-from plots import Plots
 
-if __name__ == "__main__":
-    args = ArgumentParser.get_args()
-
+def start(args):
     if args.r2score is True:
-        print("Creating r2 score plots")
+        logging.info("Creating r2 score plots")
         frames = []
 
-        if args.linear is not None:
-            linear_data = pd.read_csv(args.linear[0], sep=",")
+        try:
+            linear_data = pd.read_csv(Path("results/lr/r2scores.csv"), sep=",")
             frames.append(linear_data)
+        except:
+            logging.info("Could not find linear regression r2 scores. Skipping...")
 
-        if args.ae is not None:
-            ae_data = pd.read_csv(args.ae[0], sep=",")
+        try:
+            ae_data = pd.read_csv(Path("results/ae/r2scores.csv"), sep=",")
             ae_data["Model"] = "AE"
             frames.append(ae_data)
+        except:
+            logging.info("Could not find auto encoder regression r2 scores. Skipping...")
 
-        if args.dae is not None:
-            dae_data = pd.read_csv(args.dae[0], sep=",")
+        try:
+            dae_data = pd.read_csv(Path("results/ae/r2scores.csv"), sep=",")
             dae_data["Model"] = "DAE"
             frames.append(dae_data)
+
+        except:
+            logging.info("Could not find denoising auto encoder regression r2 scores. Skipping...")
 
         if len(frames) == 0:
             print("No data found. Stopping.")
@@ -60,5 +65,3 @@ if __name__ == "__main__":
         if args.ae is not None:
             input_data = pd.read_csv(args.ae[0], sep=",")
             Plots.plot_corr_heatmap(input_data, "ae")
-
-

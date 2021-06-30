@@ -1,12 +1,10 @@
-from LinearMarkerIntensity import LinearMarkerIntensity
-from services.args_parser import ArgumentParser
+from LinearRegression.lr import LinearMarkerIntensity
 from pathlib import Path
 import logging
 import sys
 
-if __name__ == "__main__":
 
-    args = ArgumentParser.get_args()
+def start(args):
     train_file: Path
     test_file = None
     try:

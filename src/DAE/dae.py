@@ -1,10 +1,8 @@
 import pickle
 import sys
 import os
-sys.path.append("..")
 from Shared.data import Data
 from Shared.data_loader import DataLoader
-from services.args_parser import ArgumentParser
 import numpy as np
 import keras
 from keras import layers
@@ -20,6 +18,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
 
 results_folder = f"{os.path.split(os.environ['VIRTUAL_ENV'])[0]}/results/dae"
+
 
 class DenoisingAutoEncoder:
     data: Data
@@ -43,21 +42,22 @@ class DenoisingAutoEncoder:
     encoded_data = pd.DataFrame()
     reconstructed_data = pd.DataFrame()
 
-    def __init__(self):
+    args = None
+
+    def __init__(self, args):
         self.encoding_dim = 5
+        self.args = args
 
     def load_data(self):
         print("Loading data...")
 
-        args = ArgumentParser.get_args()
-
-        if args.file:
+        if self.args.file:
             inputs, markers = DataLoader.get_data(
-                ArgumentParser.get_args().file)
+                self.args.file)
 
-        elif args.dir:
+        elif self.args.dir:
             inputs, markers = DataLoader.load_folder_data(
-                args.dir)
+                self.args.dir)
 
         else:
             print("Please specify a directory or a file")
