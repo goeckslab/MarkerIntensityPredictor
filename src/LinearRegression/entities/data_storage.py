@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from services.normalization import Normalizer
+from sklearn.preprocessing import StandardScaler
 
 
 class DataStorage:
@@ -30,7 +30,25 @@ class DataStorage:
         self.init_X_test = self.X_test
         self.init_X_val = self.X_val
 
-        self.inputs = pd.DataFrame(columns=self.markers, data=Normalizer.normalize(self.inputs))
-        self.X_train = pd.DataFrame(columns=self.markers, data=Normalizer.normalize(self.X_train))
-        self.X_test = pd.DataFrame(columns=self.markers, data=Normalizer.normalize(self.X_test))
-        self.X_val = pd.DataFrame(columns=self.markers, data=Normalizer.normalize(self.X_val))
+        self.inputs = pd.DataFrame(columns=self.markers, data=self.normalize(self.inputs))
+        self.X_train = pd.DataFrame(columns=self.markers, data=self.normalize(self.X_train))
+        self.X_test = pd.DataFrame(columns=self.markers, data=self.normalize(self.X_test))
+        self.X_val = pd.DataFrame(columns=self.markers, data=self.normalize(self.X_val))
+
+    @staticmethod
+    def normalize(data):
+        # Input data contains some zeros which results in NaN (or Inf)
+        # values when their log10 is computed. NaN (or Inf) are problematic
+        # values for downstream analysis. Therefore, zeros are replaced by
+        # a small value; see the following thread for related discussion.
+        # https://www.researchgate.net/post/Log_transformation_of_values_that_include_0_zero_for_statistical_analyses2
+        data[data == 0] = 1e-32
+        data = np.log10(data)
+
+        standard_scaler = StandardScaler()
+        data = standard_scaler.fit_transform(data)
+        data = data.clip(min=-5, max=5)
+
+        # min_max_scaler = MinMaxScaler()
+        # data = min_max_scaler.fit_transform(data)
+        return data
