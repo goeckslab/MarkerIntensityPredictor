@@ -1,16 +1,12 @@
 import pandas as pd
 from Shared.data_loader import DataLoader
 from sklearn.linear_model import Ridge, Lasso, LinearRegression, ElasticNet
-import seaborn as sns
 import re
 import numpy as np
 import os
 from pathlib import Path
-import matplotlib.pyplot as plt
 from Shared.data import Data
 from sklearn.preprocessing import StandardScaler
-
-sns.set_theme(style="darkgrid")
 
 
 class LinearMarkerIntensity:
@@ -114,18 +110,11 @@ class LinearMarkerIntensity:
         Creates csv files for each important csv
         :return:
         """
-        if self.test_file is None:
-            self.coefficients.to_csv(Path(f"{self.results_folder}/{self.train_file_name}_coefficients.csv"))
-            self.r2scores.to_csv(Path(f"{self.results_folder}/{self.train_file_name}_r2_scores.csv"), index=False)
 
-        elif self.train_file is None:
-            self.coefficients.to_csv(Path(f"{self.results_folder}/{self.test_file_name}_multi_coefficients.csv"))
-            self.r2scores.to_csv(Path(f"{self.results_folder}/{self.test_file_name}_multi_r2_scores.csv"), index=False)
-        else:
-            self.coefficients.to_csv(
-                Path(f"{self.results_folder}/{self.train_file_name}_{self.test_file_name}_coefficients.csv"))
-            self.r2scores.to_csv(
-                Path(f"results/lr/{self.train_file_name}_{self.test_file_name}_r2_scores.csv"), index=False)
+        self.coefficients.to_csv(
+            Path(f"{self.results_folder}/coefficients.csv"))
+        self.r2scores.to_csv(
+            Path(f"results/lr/r2_scores.csv"), index=False)
 
     def __create_coefficient_df(self, train, model, marker):
         """
@@ -142,24 +131,6 @@ class LinearMarkerIntensity:
         temp = temp[1:]
         temp.columns = new_header
         return temp
-
-    def __create_coef_heatmap_plot(self):
-        """
-        Creates a heatmap for the coefficients
-        """
-
-        for model in self.coefficients["Model"].unique():
-            df = self.coefficients[self.coefficients["Model"] == model].copy()
-
-            del df["Model"]
-            df.fillna(-1, inplace=True)
-            # df[(df < 0.001) | (df > 0.6)] = None
-            fig, ax = plt.subplots(figsize=(20, 20))  # Sample figsize in inches
-            ax = sns.heatmap(df, linewidths=1, vmin=0, vmax=0.6, cmap="YlGnBu", ax=ax)
-            ax.set_title(model)
-            fig = ax.get_figure()
-            fig.savefig(Path(f"{self.results_folder}/{model}_coef_heatmap.png"), bbox_inches='tight')
-            plt.close()
 
     def __predict(self, name: str, model, X_train, y_train, X_test, y_test, marker):
         model.fit(X_train, y_train)

@@ -12,7 +12,6 @@ import pandas as pd
 import umap
 import tensorflow as tf
 from sklearn.metrics import r2_score
-import os
 
 
 class AutoEncoder:
@@ -189,4 +188,4 @@ class AutoEncoder:
         X_test.to_csv(Path(f'{self.results_folder}/test_data.csv'), index=False)
         self.encoded_data.to_csv(Path(f'{self.results_folder}/encoded_data.csv'), index=False)
         self.reconstructed_data.to_csv(Path(f'{self.results_folder}/reconstructed_data.csv'), index=False)
-        self.r2_scores.to_csv(Path(f'{self.results_folder}/r2scores.csv'), index=False)
+        self.r2_scores.to_csv(Path(f'{self.results_folder}/r2_scores.csv'), index=False)

@@ -1,5 +1,4 @@
 import pickle
-import sys
 import os
 from Shared.data import Data
 from Shared.data_loader import DataLoader
@@ -16,8 +15,6 @@ import sys
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
-
-results_folder = f"{os.path.split(os.environ['VIRTUAL_ENV'])[0]}/results/dae"
 
 
 class DenoisingAutoEncoder:
@@ -43,6 +40,7 @@ class DenoisingAutoEncoder:
     reconstructed_data = pd.DataFrame()
 
     args = None
+    results_folder = Path("results", "dae")
 
     def __init__(self, args):
         self.encoding_dim = 5
@@ -232,4 +230,4 @@ class DenoisingAutoEncoder:
         X_test.to_csv(Path(f'{results_folder}/test_data.csv'), index=False)
         self.encoded_data.to_csv(Path(f'{results_folder}/encoded_data.csv'), index=False)
         self.reconstructed_data.to_csv(Path(f'{results_folder}/reconstructed_data.csv'), index=False)
-        self.r2_scores.to_csv(Path(f'{results_folder}/r2scores.csv'), index=False)
+        self.r2_scores.to_csv(Path(f'{results_folder}/r2_scores.csv'), index=False)

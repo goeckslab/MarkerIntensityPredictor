@@ -6,25 +6,28 @@ import logging
 
 
 def start(args):
+    plots = Path("results", "plots")
+    plots.mkdir(parents=True, exist_ok=True)
+
     if args.r2score is True:
         logging.info("Creating r2 score plots")
         frames = []
 
         try:
-            linear_data = pd.read_csv(Path("results/lr/r2scores.csv"), sep=",")
+            linear_data = pd.read_csv(Path("results", "lr", "r2_scores.csv"), sep=",")
             frames.append(linear_data)
         except:
             logging.info("Could not find linear regression r2 scores. Skipping...")
 
         try:
-            ae_data = pd.read_csv(Path("results/ae/r2scores.csv"), sep=",")
+            ae_data = pd.read_csv(Path("results", "ae", "r2_scores.csv"), sep=",")
             ae_data["Model"] = "AE"
             frames.append(ae_data)
         except:
             logging.info("Could not find auto encoder regression r2 scores. Skipping...")
 
         try:
-            dae_data = pd.read_csv(Path("results/ae/r2scores.csv"), sep=",")
+            dae_data = pd.read_csv(Path("results", "dae", "r2_scores.csv"), sep=",")
             dae_data["Model"] = "DAE"
             frames.append(dae_data)
 
