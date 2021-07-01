@@ -6,7 +6,7 @@ import logging
 import numpy as np
 
 sns.set_theme(style="darkgrid")
-results_folder = f"{os.path.split(os.environ['VIRTUAL_ENV'])[0]}/results/plots"
+results_folder = Path("results", "plots")
 
 
 class Plots:
@@ -66,3 +66,22 @@ class Plots:
 
         plt.savefig(Path(f"{results_folder}/{data_origin}_correlation.png"))
         plt.close()
+
+    @staticmethod
+    def __create_linear_coefficients_heatmap_plot(self):
+        """
+        Creates a heatmap for the coefficients
+        """
+
+        for model in self.coefficients["Model"].unique():
+            df = self.coefficients[self.coefficients["Model"] == model].copy()
+
+            del df["Model"]
+            df.fillna(-1, inplace=True)
+            # df[(df < 0.001) | (df > 0.6)] = None
+            fig, ax = plt.subplots(figsize=(20, 20))  # Sample figsize in inches
+            ax = sns.heatmap(df, linewidths=1, vmin=0, vmax=0.6, cmap="YlGnBu", ax=ax)
+            ax.set_title(model)
+            fig = ax.get_figure()
+            fig.savefig(Path(f"{self.results_folder}/{model}_coef_heatmap.png"), bbox_inches='tight')
+            plt.close()
