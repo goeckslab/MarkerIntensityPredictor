@@ -40,6 +40,7 @@ def execute_auto_encoder():
     ae.create_test_predictions()
     ae.create_correlation_data()
     ae.write_created_data_to_disk()
+    ae.get_activations()
 
 
 def execute_denoising_auto_encoder():
@@ -71,5 +72,4 @@ if __name__ == "__main__":
         execute_denoising_auto_encoder()
 
     elif invoked_parser == "plt":
-        print(args.r2score)
         plt.start(args)

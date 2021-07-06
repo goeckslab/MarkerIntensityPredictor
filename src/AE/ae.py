@@ -12,6 +12,7 @@ import pandas as pd
 import umap
 import tensorflow as tf
 from sklearn.metrics import r2_score
+import keract as kt
 
 
 class AutoEncoder:
@@ -79,29 +80,38 @@ class AutoEncoder:
         self.data = Data(np.array(inputs), markers, self.normalize)
 
     def build_auto_encoder(self):
-        activation = 'linear'
-        # This is our input image
-        encoder_input = keras.Input(shape=(self.data.inputs_dim,))
-        # "encoded" is the encoded representation of the input
-        encoded = layers.Dense(self.encoding_dim, activation=activation)(encoder_input)
-        # "decoded" is the lossy reconstruction of the input
-        decoded = layers.Dense(self.data.inputs_dim, activation=activation)(encoded)
+        activation = "linear"
+        input_layer = keras.Input(shape=(self.data.inputs_dim,))
 
-        # This model maps an input to its reconstruction
-        self.ae = keras.Model(encoder_input, decoded)
+        # Encoder
+        encoded = layers.Dense(self.data.inputs_dim / 2, activation=activation)(input_layer)
+        encoded = layers.Dense(self.data.inputs_dim / 3, activation=activation)(encoded)
+        encoded = layers.Dense(self.encoding_dim, activation=activation)(encoded)
 
-        print(self.ae.summary())
+        # Decoder
+        decoded = layers.Dense(self.data.inputs_dim / 3, activation=activation)(encoded)
+        decoded = layers.Dense(self.data.inputs_dim / 2, activation=activation)(decoded)
+        decoded = layers.Dense(self.data.inputs_dim, activation=activation)(decoded)
 
-        self.encoder = keras.Model(encoder_input, encoded)
+        # Auto encoder
+        self.ae = keras.Model(input_layer, decoded, name="DAE")
+        self.ae.summary()
 
-        # This is our encoded (21-dimensional) input
+        # Separate encoder model
+        self.encoder = keras.Model(input_layer, encoded, name="encoder")
+        self.encoder.summary()
+
+        # Separate decoder model
         encoded_input = keras.Input(shape=(self.encoding_dim,))
-        # Retrieve the last layer of the auto encoder model
-        decoder_layer = self.ae.layers[-1]
-        # Create the decoder model
-        self.decoder = keras.Model(encoded_input, decoder_layer(encoded_input))
+        deco = self.ae.layers[-3](encoded_input)
+        deco = self.ae.layers[-2](deco)
+        deco = self.ae.layers[-1](deco)
+        # create the decoder model
+        self.decoder = keras.Model(encoded_input, deco, name="decoder")
+        self.decoder.summary()
 
-        self.ae.compile(optimizer='adam', loss=keras.losses.MeanSquaredError(), metrics=['acc', 'mean_squared_error'])
+        # Compile ae
+        self.ae.compile(optimizer="adam", loss=keras.losses.MeanSquaredError(), metrics=['acc', 'mean_squared_error'])
 
         callback = tf.keras.callbacks.EarlyStopping(monitor="val_loss",
                                                     mode="min", patience=5,
@@ -189,3 +199,10 @@ class AutoEncoder:
         self.encoded_data.to_csv(Path(f'{self.results_folder}/encoded_data.csv'), index=False)
         self.reconstructed_data.to_csv(Path(f'{self.results_folder}/reconstructed_data.csv'), index=False)
         self.r2_scores.to_csv(Path(f'{self.results_folder}/r2_scores.csv'), index=False)
+
+    def get_activations(self):
+        cell = self.data.X_test[0]
+        cell = cell.reshape(1, cell.shape[0])
+        # activations = kt.get_activations(self.encoder, self.data.X_val)
+        activations = kt.get_activations(self.ae, cell)
+        fig = kt.display_activations(activations, cmap="summer", directory=f'{self.results_folder}', save=True)

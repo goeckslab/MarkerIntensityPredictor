@@ -68,6 +68,35 @@ class Plots:
         plt.close()
 
     @staticmethod
+    def plot_combined_corr_plot(df):
+        fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(40, 30), dpi=300, sharey=True)
+
+        column = 0
+        row = 0
+        for file in df["File"].unique():
+            correlation_df = df[df["File"] == file]
+            del correlation_df["File"]
+
+            mask = np.triu(np.ones_like(correlation_df, dtype=np.bool))
+            heatmap = sns.heatmap(correlation_df, ax=axes[row, column], mask=mask, vmin=-1, vmax=.6, annot=True,
+                                  cmap='BrBG')
+            # heatmap.set_title('Correlation Heatmap of Markers', fontdict={'fontsize': 18}, pad=16)
+            axes[row, column].set_title(file)
+            heatmap.set_yticklabels(correlation_df.columns)
+
+            for item in heatmap.get_yticklabels():
+                item.set_rotation(0)
+
+            column += 1
+            # Reset column and increase row by 1
+            if column == 2:
+                column = 0
+                row += 1
+
+        plt.savefig(Path(f"{results_folder}/combined_correlation.png"))
+        plt.close()
+
+    @staticmethod
     def __create_linear_coefficients_heatmap_plot(self):
         """
         Creates a heatmap for the coefficients

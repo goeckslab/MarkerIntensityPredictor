@@ -17,3 +17,4 @@ umap-learn
 PyYAML
 cellxgene
 Phenograph
+keract

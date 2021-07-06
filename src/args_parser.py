@@ -52,14 +52,13 @@ class ArgumentParser:
     @staticmethod
     def create_plotting_parser(subparsers):
         plotting_parser = subparsers.add_parser("plt")
-        plotting_parser.add_argument("-l", "--linear", type=argparse.FileType('r'), required=False, action="store",
-                                     help="The data for the linear files", nargs='+')
-        plotting_parser.add_argument("-ae", "--ae", type=argparse.FileType('r'), required=False, action="store",
-                                     help="The data for the linear files", nargs='+')
-        plotting_parser.add_argument("-dae", "--dae", type=argparse.FileType('r'), required=False, action="store",
-                                     help="The data for the linear files", nargs='+')
-        plotting_parser.add_argument("-vae", "--vae", type=argparse.FileType('r'), required=False, action="store",
-                                     help="The data for the linear files", nargs='+')
+
+        plotting_parser.add_argument("-f", "--files", type=argparse.FileType('r'), required=False, action="store",
+                                     help="The files used to generate the plot", nargs='+')
+        plotting_parser.add_argument("-n", "--names", type=str, required=False, action="store",
+                                     help="The names for the legend", nargs='+')
+
+
 
         # Modes
 
