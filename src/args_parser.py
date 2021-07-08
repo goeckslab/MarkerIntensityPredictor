@@ -18,12 +18,23 @@ class ArgumentParser:
         ArgumentParser.create_lr_parser(subparsers)
         ArgumentParser.create_ae_parser(subparsers)
         ArgumentParser.create_plotting_parser(subparsers)
+        ArgumentParser.create_vae_parser(subparsers)
 
         return parser.parse_args()
 
     @staticmethod
     def create_ae_parser(subparsers):
         ae_parser = subparsers.add_parser("ae")
+        ae_parser.add_argument("-f", "--file", type=str, required=False, action="store",
+                               help="The file to load and use")
+        ae_parser.add_argument("-d", "--dir", type=str, required=False, action="store",
+                               help="The directory to use for loading the data")
+
+        return
+
+    @staticmethod
+    def create_vae_parser(subparsers):
+        ae_parser = subparsers.add_parser("vae")
         ae_parser.add_argument("-f", "--file", type=str, required=False, action="store",
                                help="The file to load and use")
         ae_parser.add_argument("-d", "--dir", type=str, required=False, action="store",

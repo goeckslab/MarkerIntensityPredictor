@@ -69,7 +69,7 @@ class Plots:
 
     @staticmethod
     def plot_combined_corr_plot(df):
-        fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(40, 30), dpi=300, sharey=True)
+        fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(40, 30), dpi=300)
 
         column = 0
         row = 0
