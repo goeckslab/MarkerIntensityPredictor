@@ -10,8 +10,30 @@ results_folder = Path("results", "plots")
 
 
 class Plots:
+
     @staticmethod
-    def r2_scores_combined(r2_scores_df):
+    def latent_space_cluster(input_umap, latent_umap, file_name: str):
+        logging.info("Plotting latent space clusters")
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), dpi=150)
+        plt.subplots_adjust(wspace=0.2)
+
+        ax1.scatter(x=-input_umap[:, 0], y=-input_umap[:, 1], s=.1)
+        ax1.set_title("UMAP Embedding/Projection of Input")
+        ax1.set_xlabel("umap1")
+        ax1.set_ylabel("umap2")
+
+        ax2.scatter(x=-latent_umap[:, 0], y=-latent_umap[:, 1], s=.1)
+        ax2.set_title("UMAP Embedding/Projection of Latent Space")
+        ax2.set_xlabel("umap1")
+        ax2.set_ylabel("umap2")
+
+        plt.savefig(Path(f"{results_folder}", f"{file_name}.png"))
+        plt.close()
+
+
+    @staticmethod
+    def r2_scores_combined(r2_scores_df, file_name: str = None):
         g = sns.catplot(
             data=r2_scores_df, kind="bar",
             x="Score", y="Marker", hue="Model",
@@ -23,7 +45,7 @@ class Plots:
         g.set(xlim=(0, 1))
 
         plt.title("R2 Scores", y=1.02)
-        g.legend.set_title("Model")
+        g.legend.set_title("Legend")
 
         # extract the matplotlib axes_subplot objects from the FacetGrid
         # ax = g.facet_axis(0, 0)
@@ -33,7 +55,10 @@ class Plots:
         #    labels = [f'{(v.get_width() / 1000):.1f}' for v in c]
         #    ax.bar_label(c, labels=labels, label_type='edge')
 
-        g.savefig(Path(f"{results_folder}/r2_scores.png"))
+        if file_name is None:
+            g.savefig(Path(f"{results_folder}/r2_scores.png"))
+        else:
+            g.savefig(Path(f"{results_folder}/{file_name}.png"))
 
         plt.close()
 
@@ -69,10 +94,15 @@ class Plots:
 
     @staticmethod
     def plot_combined_corr_plot(df):
+
+        if len(df["File"].unique()) == 1:
+            return
+
         fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(40, 30), dpi=300)
 
         column = 0
         row = 0
+
         for file in df["File"].unique():
             correlation_df = df[df["File"] == file]
             del correlation_df["File"]

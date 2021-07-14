@@ -5,7 +5,7 @@ from Shared.data import Data
 from Shared.data_loader import DataLoader
 import numpy as np
 import keras
-from keras import layers
+from keras import layers, regularizers
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import anndata as ad
 import pandas as pd
@@ -80,13 +80,19 @@ class AutoEncoder:
         self.data = Data(np.array(inputs), markers, self.normalize)
 
     def build_auto_encoder(self):
-        activation = "linear"
+        activation = tf.keras.layers.LeakyReLU()
+        activity_regularizer = regularizers.l1_l2(10e-5)
         input_layer = keras.Input(shape=(self.data.inputs_dim,))
 
         # Encoder
-        encoded = layers.Dense(self.data.inputs_dim / 2, activation=activation)(input_layer)
-        encoded = layers.Dense(self.data.inputs_dim / 3, activation=activation)(encoded)
-        encoded = layers.Dense(self.encoding_dim, activation=activation)(encoded)
+        encoded = layers.Dense(self.data.inputs_dim / 2, activation=activation,
+                               activity_regularizer=activity_regularizer)(input_layer)
+        encoded = layers.Dense(self.data.inputs_dim / 3, activation=activation,
+                               activity_regularizer=activity_regularizer)(encoded)
+        # encoded = layers.Dropout(0.2)(encoded)
+        encoded = layers.Dense(self.encoding_dim, activation=activation, activity_regularizer=activity_regularizer)(
+            encoded)
+        # encoded = layers.Dropout(0.3)(encoded)
 
         # Decoder
         decoded = layers.Dense(self.data.inputs_dim / 3, activation=activation)(encoded)
@@ -94,7 +100,7 @@ class AutoEncoder:
         decoded = layers.Dense(self.data.inputs_dim, activation=activation)(decoded)
 
         # Auto encoder
-        self.ae = keras.Model(input_layer, decoded, name="DAE")
+        self.ae = keras.Model(input_layer, decoded, name="AE")
         self.ae.summary()
 
         # Separate encoder model
@@ -158,17 +164,17 @@ class AutoEncoder:
     def create_h5ad_object(self):
         # Input
         fit = umap.UMAP()
-        self.input_umap = input_umap = fit.fit_transform(self.data.X_train)
+        self.input_umap = input_umap = fit.fit_transform(self.data.X_test)
 
         # latent space
         fit = umap.UMAP()
-        encoded = self.encoder.predict(self.data.X_train)
+        encoded = self.encoder.predict(self.data.X_test)
         self.latent_umap = fit.fit_transform(encoded)
 
         self.__create_h5ad("latent_markers", self.latent_umap, self.data.markers,
-                           pd.DataFrame(columns=self.data.markers, data=self.data.X_train))
+                           pd.DataFrame(columns=self.data.markers, data=self.data.X_test))
         self.__create_h5ad("input", input_umap, self.data.markers,
-                           pd.DataFrame(columns=self.data.markers, data=self.data.X_train))
+                           pd.DataFrame(columns=self.data.markers, data=self.data.X_test))
         return
 
     def __create_h5ad(self, file_name: str, umap, markers, df):

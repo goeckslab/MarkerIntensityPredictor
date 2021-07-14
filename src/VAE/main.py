@@ -10,7 +10,7 @@ import keras
 from VAE.sampling import Sampling
 from VAE.vae_model import VAE
 import anndata as ad
-import keract as kt
+import matplotlib.pyplot as plt
 import pickle
 from sklearn.metrics import r2_score
 import umap
@@ -84,17 +84,17 @@ class VAutoEncoder:
     def build_auto_encoder(self):
         # Build the encoder
         inputs_dim = self.data.inputs.shape[1]
-        r = regularizers.l1(10e-5)
-        activation = "linear"
+        activity_regularizer = regularizers.l1_l2(10e-5)
+        activation = tf.keras.layers.LeakyReLU()
 
         encoder_inputs = keras.Input(shape=(inputs_dim,))
-        h1 = layers.Dense(inputs_dim, activation=activation, activity_regularizer=r)(encoder_inputs)
-        h2 = layers.Dense(inputs_dim / 2, activation=activation, activity_regularizer=r)(h1)
-        h3 = layers.Dense(inputs_dim / 3, activation=activation, activity_regularizer=r)(h2)
-
+        h1 = layers.Dense(inputs_dim, activation=activation, activity_regularizer=activity_regularizer)(encoder_inputs)
+        h2 = layers.Dropout(0.8)(h1)
+        h3 = layers.Dense(inputs_dim / 3, activation=activation, activity_regularizer=activity_regularizer)(h2)
+        h4 = layers.Dropout(0.8)(h3)
         # The following variables are for the convenience of building the decoder.
         # last layer before flatten
-        lbf = h3
+        lbf = h4
         # shape before flatten.
         sbf = keras.backend.int_shape(lbf)[1:]
         # neurons count before latent dim
@@ -109,9 +109,8 @@ class VAutoEncoder:
         # Build the decoder
         decoder_inputs = keras.Input(shape=(self.encoding_dim,))
         h1 = layers.Dense(nbl, activation=activation)(decoder_inputs)
-        h2 = layers.Dense(inputs_dim / 2, activation=activation)(h1)
 
-        decoder_outputs = layers.Dense(inputs_dim)(h2)
+        decoder_outputs = layers.Dense(inputs_dim)(h1)
         self.decoder = keras.Model(decoder_inputs, decoder_outputs, name="decoder")
         self.decoder.summary()
 
@@ -125,11 +124,11 @@ class VAutoEncoder:
                                                     mode="min", patience=5,
                                                     restore_best_weights=True)
         self.vae = VAE(self.encoder, self.decoder)
-        self.vae.compile(optimizer=keras.optimizers.Adam(lr=0.0005))
+        self.vae.compile(optimizer="adam")
         self.history = self.vae.fit(self.data.X_train,
                                     validation_data=(self.data.X_val, self.data.X_val),
-                                    epochs=100,
-                                    callbacks=[callback],
+                                    epochs=500,
+                                    callbacks=callback,
                                     batch_size=32,
                                     shuffle=True,
                                     verbose=1)
@@ -155,32 +154,46 @@ class VAutoEncoder:
         recon_test = pd.DataFrame(data=recon_test, columns=self.data.markers)
         input_data = pd.DataFrame(data=self.data.X_test, columns=self.data.markers)
 
+        # self.plot_clusters(input_data, range(len(self.data.markers)))
+
         for marker in self.data.markers:
             input_marker = input_data[f"{marker}"]
             var_marker = recon_test[f"{marker}"]
 
-            score = r2_score(input_marker, var_marker)
             self.r2_scores = self.r2_scores.append(
                 {
                     "Marker": marker,
-                    "Score": score
+                    "Score": r2_score(input_marker, var_marker)
                 }, ignore_index=True
             )
+        # self.plot_label_clusters(self.data.X_test, self.data.X_test)
+
+    def plot_label_clusters(self, data, labels):
+        # display a 2D plot of the digit classes in the latent space
+        z_mean, _, _ = self.vae.encoder.predict(data)
+        print(len(z_mean))
+        input()
+        plt.figure(figsize=(12, 10))
+        plt.scatter(z_mean[:, 0], z_mean[:, 1], c=labels)
+        plt.colorbar()
+        plt.xlabel("z[0]")
+        plt.ylabel("z[1]")
+        plt.show()
 
     def create_h5ad_object(self):
         # Input
         fit = umap.UMAP()
-        self.input_umap = input_umap = fit.fit_transform(self.data.X_train)
+        self.input_umap = input_umap = fit.fit_transform(self.data.X_test)
 
         # latent space
         fit = umap.UMAP()
-        mean, log_var, z = self.encoder.predict(self.data.X_train)
+        mean, log_var, z = self.encoder.predict(self.data.X_test)
         self.latent_umap = fit.fit_transform(z)
 
         self.__create_h5ad("latent_markers", self.latent_umap, self.data.markers,
-                           pd.DataFrame(columns=self.data.markers, data=self.data.X_train))
+                           pd.DataFrame(columns=self.data.markers, data=self.data.X_test))
         self.__create_h5ad("input", input_umap, self.data.markers,
-                           pd.DataFrame(columns=self.data.markers, data=self.data.X_train))
+                           pd.DataFrame(columns=self.data.markers, data=self.data.X_test))
         return
 
     def __create_h5ad(self, file_name: str, umap, markers, df):
@@ -203,7 +216,7 @@ class VAutoEncoder:
         corr.to_csv(Path(f'{self.results_folder}/correlation.csv'), index=False)
 
     def write_created_data_to_disk(self):
-        with open(f'{self.results_folder}/ae_history', 'wb') as file_pi:
+        with open(f'{self.results_folder}/vae_history', 'wb') as file_pi:
             pickle.dump(self.history.history, file_pi)
 
         X_test = pd.DataFrame(columns=self.data.markers, data=self.data.X_test)

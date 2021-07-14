@@ -21,6 +21,9 @@ class DataLoader:
         # cells.columns = [re.sub("_nucleiMasks", "", x) for x in cells.columns]
         # cells = cells.filter(['HER2', 'CK7', 'CK17', 'cPARP', 'AR', 'CK14', 'p21', 'CK19', 'EGFR', 'Ki67'])
 
+        if "ERK1_2_nucleiMasks" in cells.columns:
+            del cells["ERK1_2_nucleiMasks"]
+
         markers = cells.columns
         markers = [re.sub("_nucleiMasks", "", x) for x in markers]
 

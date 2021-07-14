@@ -20,6 +20,7 @@ class ArgumentParser:
         ArgumentParser.create_plotting_parser(subparsers)
         ArgumentParser.create_vae_parser(subparsers)
 
+
         return parser.parse_args()
 
     @staticmethod
@@ -66,8 +67,11 @@ class ArgumentParser:
 
         plotting_parser.add_argument("-f", "--files", type=argparse.FileType('r'), required=False, action="store",
                                      help="The files used to generate the plot", nargs='+')
-        plotting_parser.add_argument("-n", "--names", type=str, required=False, action="store",
-                                     help="The names for the legend", nargs='+')
+        plotting_parser.add_argument("-l", "--legend", type=str, required=False, action="store",
+                                     help="The data for the legend", nargs='+')
+        plotting_parser.add_argument("-n", "--name", type=str, required=False, action="store",
+                                     help="The file name")
+
 
 
 
@@ -77,3 +81,4 @@ class ArgumentParser:
         plotting_parser.add_argument("-r", "--reconstructed", action="store_true",
                                      help="Generates the ae reconstructing plots")
         plotting_parser.add_argument("-corr", "--corr", action="store_true", help="Generates the correlation heatmap")
+        plotting_parser.add_argument("-cluster", "--cluster", action="store_true", help="Generates a umap cluster plot")
