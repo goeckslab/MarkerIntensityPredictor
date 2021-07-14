@@ -171,8 +171,6 @@ class VAutoEncoder:
     def plot_label_clusters(self, data, labels):
         # display a 2D plot of the digit classes in the latent space
         z_mean, _, _ = self.vae.encoder.predict(data)
-        print(len(z_mean))
-        input()
         plt.figure(figsize=(12, 10))
         plt.scatter(z_mean[:, 0], z_mean[:, 1], c=labels)
         plt.colorbar()

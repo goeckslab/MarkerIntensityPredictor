@@ -70,8 +70,8 @@ class Plots:
         sns.heatmap(X, ax=ax1, xticklabels=markers)
         sns.heatmap(X_pred, ax=ax2, xticklabels=markers)
 
-        ax1.set_title("X Validation")
-        ax2.set_title("Reconstructed X Validation")
+        ax1.set_title("X Test")
+        ax2.set_title("Reconstructed X Test")
         fig.tight_layout()
         plt.savefig(Path(f"{results_folder}/{data_origin}_reconstructed.png"))
         plt.close()
