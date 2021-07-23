@@ -19,6 +19,7 @@ class ArgumentParser:
         ArgumentParser.create_ae_parser(subparsers)
         ArgumentParser.create_plotting_parser(subparsers)
         ArgumentParser.create_vae_parser(subparsers)
+        ArgumentParser.create_phenograph_parser(subparsers)
 
 
         return parser.parse_args()
@@ -43,6 +44,7 @@ class ArgumentParser:
 
         return
 
+
     @staticmethod
     def create_lr_parser(subparsers):
         lr_parser = subparsers.add_parser("lr")
@@ -61,6 +63,14 @@ class ArgumentParser:
 
         return
 
+
+    @staticmethod
+    def create_phenograph_parser(subparsers):
+        pheno_parser = subparsers.add_parser("pg")
+        pheno_parser.add_argument('--file', '-f', type=str, action='store', required=True)
+
+        return
+
     @staticmethod
     def create_plotting_parser(subparsers):
         plotting_parser = subparsers.add_parser("plt")
@@ -71,6 +81,8 @@ class ArgumentParser:
                                      help="The data for the legend", nargs='+')
         plotting_parser.add_argument("-n", "--name", type=str, required=False, action="store",
                                      help="The file name")
+
+
 
 
 

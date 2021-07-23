@@ -8,6 +8,7 @@ import sys
 import logging
 from LinearRegression.lr import LinearMarkerIntensity
 from Shared.prepare import Prepare
+from Phenograph.main import PhenographCluster
 
 
 def execute_linear_regression():
@@ -89,3 +90,6 @@ if __name__ == "__main__":
 
     elif invoked_parser == "plt":
         plt.start(args)
+
+    elif invoked_parser == 'pg':
+        pg = PhenographCluster()
