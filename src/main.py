@@ -8,7 +8,8 @@ import sys
 import logging
 from LinearRegression.lr import LinearMarkerIntensity
 from Shared.prepare import Prepare
-from Phenograph.main import PhenographCluster
+from Clustering.main import Clustering
+from PCA.main import PCAMode
 
 
 def execute_linear_regression():
@@ -70,6 +71,12 @@ def execute_vae():
     vae.write_created_data_to_disk()
 
 
+def execute_pca():
+    pca = PCAMode(args)
+    pca.load_data()
+    pca.reduce_dimensions()
+
+
 if __name__ == "__main__":
     args = ArgumentParser.get_args()
 
@@ -91,5 +98,8 @@ if __name__ == "__main__":
     elif invoked_parser == "plt":
         plt.start(args)
 
-    elif invoked_parser == 'pg':
-        pg = PhenographCluster()
+    elif invoked_parser == 'cl':
+        pg = Clustering()
+
+    elif invoked_parser == 'pca':
+        execute_pca()

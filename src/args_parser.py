@@ -19,8 +19,8 @@ class ArgumentParser:
         ArgumentParser.create_ae_parser(subparsers)
         ArgumentParser.create_plotting_parser(subparsers)
         ArgumentParser.create_vae_parser(subparsers)
-        ArgumentParser.create_phenograph_parser(subparsers)
-
+        ArgumentParser.create_cluster_parser(subparsers)
+        ArgumentParser.create_pca_parser(subparsers)
 
         return parser.parse_args()
 
@@ -44,7 +44,6 @@ class ArgumentParser:
 
         return
 
-
     @staticmethod
     def create_lr_parser(subparsers):
         lr_parser = subparsers.add_parser("lr")
@@ -54,20 +53,29 @@ class ArgumentParser:
         lr_parser.add_argument("--multi", "-m", default=False, action="store_true")
 
     @staticmethod
-    def dae_parser(subparsers):
-        ae_parser = subparsers.add_parser("dae")
-        ae_parser.add_argument("-f", "--file", type=str, required=False, action="store",
-                               help="The file to load and use")
-        ae_parser.add_argument("-d", "--dir", type=str, required=False, action="store",
-                               help="The directory to use for loading the data")
+    def create_dae_parser(subparsers):
+        dae_parser = subparsers.add_parser("dae")
+        dae_parser.add_argument("-f", "--file", type=str, required=False, action="store",
+                                help="The file to load and use")
+        dae_parser.add_argument("-d", "--dir", type=str, required=False, action="store",
+                                help="The directory to use for loading the data")
 
         return
 
+    @staticmethod
+    def create_pca_parser(subparsers):
+        pca_parser = subparsers.add_parser("pca")
+        pca_parser.add_argument("-f", "--file", type=str, required=False, action="store",
+                                help="The file to load and use")
+        pca_parser.add_argument("-d", "--dir", type=str, required=False, action="store",
+                                help="The directory to use for loading the data")
 
     @staticmethod
-    def create_phenograph_parser(subparsers):
-        pheno_parser = subparsers.add_parser("pg")
-        pheno_parser.add_argument('--file', '-f', type=str, action='store', required=True)
+    def create_cluster_parser(subparsers):
+        cluster_parser = subparsers.add_parser("cl")
+        cluster_parser.add_argument('--file', '-f', type=str, action='store', required=True)
+        cluster_parser.add_argument("-n", "--name", type=str, required=False, action="store",
+                                    help="The file name")
 
         return
 
@@ -81,11 +89,6 @@ class ArgumentParser:
                                      help="The data for the legend", nargs='+')
         plotting_parser.add_argument("-n", "--name", type=str, required=False, action="store",
                                      help="The file name")
-
-
-
-
-
 
         # Modes
 

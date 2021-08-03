@@ -33,6 +33,16 @@ class Prepare:
                 shutil.rmtree(vae)
             vae.mkdir(parents=True, exist_ok=True)
 
+            cluster = Path("results/cluster")
+            if cluster.exists() and args.remove:
+                shutil.rmtree(cluster)
+            cluster.mkdir(parents=True, exist_ok=True)
+
+            pca = Path("results/pca")
+            if pca.exists() and args.remove:
+                shutil.rmtree(pca)
+            pca.mkdir(parents=True, exist_ok=True)
+
         except BaseException as ex:
             logging.info("Could not create path. Aborting!")
             print(ex)
