@@ -8,6 +8,7 @@ from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 from pathlib import Path
 import pandas as pd
+import logging
 
 
 class PCAMode:
@@ -54,8 +55,10 @@ class PCAMode:
         self.data = Data(np.array(inputs), markers, self.normalize)
 
     def reduce_dimensions(self):
+        logging.info("Executing pca...")
         pca = PCA(n_components=3)
-        principal_components = pca.fit_transform(self.data.X_test)
+        x_test = pd.DataFrame(pca.fit_transform(self.data.X_test))
+        x_test.to_csv(f"{self.results_folder}/encoded_data.csv", index=False)
         # Plotting the variances for each PC
         components = range(1, pca.n_components_ + 1)
         fig = plt.figure(figsize=(10, 5))
@@ -66,9 +69,6 @@ class PCAMode:
         plt.xticks(components)
         fig.savefig(f"{self.results_folder}/pca_components.png")
 
-        # Putting components in a dataframe for later
-        pca_components = pd.DataFrame(principal_components)
-
         inertias = []
 
         # Creating 10 K-Mean models while varying the number of clusters (k)
@@ -76,7 +76,7 @@ class PCAMode:
             model = KMeans(n_clusters=k)
 
             # Fit model to samples
-            model.fit(pca_components.iloc[:, :3])
+            model.fit(x_test.iloc[:, :3])
 
             # Append the inertia to the list of inertias
             inertias.append(model.inertia_)
@@ -90,9 +90,9 @@ class PCAMode:
         fig.figure.savefig(f"{self.results_folder}/k_means.png")
 
         model = KMeans(n_clusters=3)
-        model.fit(pca_components.iloc[:, :2])
+        model.fit(x_test.iloc[:, :2])
 
         fig = plt.figure(figsize=(10, 5))
-        labels = model.predict(pca_components.iloc[:, :2])
-        plt.scatter(pca_components[0], pca_components[1], c=labels)
-        fig.savefig(f"{self.results_folder}/pca_clusters.png")
+        labels = model.predict(x_test.iloc[:, :2])
+        plt.scatter(x_test[0], x_test[1], c=labels)
+        fig.savefig(f"{self.results_folder}/k_means_clusters.png")

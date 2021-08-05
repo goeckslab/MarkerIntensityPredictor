@@ -77,6 +77,11 @@ def execute_pca():
     pca.reduce_dimensions()
 
 
+def execute_clustering():
+    cluster = Clustering(args)
+    cluster.create_cluster()
+
+
 if __name__ == "__main__":
     args = ArgumentParser.get_args()
 
@@ -99,7 +104,7 @@ if __name__ == "__main__":
         plt.start(args)
 
     elif invoked_parser == 'cl':
-        pg = Clustering()
+        execute_clustering()
 
     elif invoked_parser == 'pca':
         execute_pca()

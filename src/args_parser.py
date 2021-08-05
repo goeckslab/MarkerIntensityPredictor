@@ -73,9 +73,10 @@ class ArgumentParser:
     @staticmethod
     def create_cluster_parser(subparsers):
         cluster_parser = subparsers.add_parser("cl")
-        cluster_parser.add_argument('--file', '-f', type=str, action='store', required=True)
-        cluster_parser.add_argument("-n", "--name", type=str, required=False, action="store",
-                                    help="The file name")
+        cluster_parser.add_argument("-f", "--files", type=argparse.FileType('r'), required=False, action="store",
+                                    help="The files used to generate the clusters", nargs='+')
+        cluster_parser.add_argument("-n", "--names", type=str, required=False, action="store",
+                                    help="The file name", nargs='+')
 
         return
 
