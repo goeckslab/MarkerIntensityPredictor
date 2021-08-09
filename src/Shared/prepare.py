@@ -33,7 +33,7 @@ class Prepare:
                 shutil.rmtree(vae)
             vae.mkdir(parents=True, exist_ok=True)
 
-            cluster = Path("results/clusters")
+            cluster = Path("results/cluster_analysis")
             if cluster.exists() and args.remove:
                 shutil.rmtree(cluster)
             cluster.mkdir(parents=True, exist_ok=True)

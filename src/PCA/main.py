@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import pandas as pd
 import logging
+import umap
 
 
 class PCAMode:
@@ -55,7 +56,7 @@ class PCAMode:
         self.data = Data(np.array(inputs), markers, self.normalize)
 
     def reduce_dimensions(self):
-        logging.info("Executing pca...")
+        print("Executing pca...")
         pca = PCA(n_components=3)
         x_test = pd.DataFrame(pca.fit_transform(self.data.X_test))
         x_test.to_csv(f"{self.results_folder}/encoded_data.csv", index=False)
@@ -87,12 +88,16 @@ class PCAMode:
         plt.xlabel('number of clusters, k')
         plt.ylabel('inertia')
         # plt.xticks(ks)
-        fig.figure.savefig(f"{self.results_folder}/k_means.png")
+        fig.figure.savefig(f"{self.results_folder}/elbow_clusters.png")
 
         model = KMeans(n_clusters=3)
         model.fit(x_test.iloc[:, :2])
 
         fig = plt.figure(figsize=(10, 5))
         labels = model.predict(x_test.iloc[:, :2])
-        plt.scatter(x_test[0], x_test[1], c=labels)
+
+        fit = umap.UMAP()
+        input_umap = fit.fit_transform(x_test)
+
+        plt.scatter(input_umap[:, 0], input_umap[:, 1], c=labels)
         fig.savefig(f"{self.results_folder}/k_means_clusters.png")

@@ -8,7 +8,7 @@ import sys
 import logging
 from LinearRegression.lr import LinearMarkerIntensity
 from Shared.prepare import Prepare
-from Clustering.main import Clustering
+from ClusterAnalysis.main import ClusterAnalysis
 from PCA.main import PCAMode
 
 
@@ -71,14 +71,14 @@ def execute_vae():
     vae.write_created_data_to_disk()
 
 
-def execute_pca():
+def pca_clustering():
     pca = PCAMode(args)
     pca.load_data()
     pca.reduce_dimensions()
 
 
-def execute_clustering():
-    cluster = Clustering(args)
+def cluster_analysis():
+    cluster = ClusterAnalysis(args)
     cluster.create_cluster()
 
 
@@ -104,7 +104,7 @@ if __name__ == "__main__":
         plt.start(args)
 
     elif invoked_parser == 'cl':
-        execute_clustering()
+        cluster_analysis()
 
     elif invoked_parser == 'pca':
-        execute_pca()
+        pca_clustering()
