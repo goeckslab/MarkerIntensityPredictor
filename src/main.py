@@ -79,7 +79,11 @@ def pca_clustering():
 
 def cluster_analysis():
     cluster = ClusterAnalysis(args)
-    cluster.create_cluster()
+    # Load all file
+    if args.mean:
+        cluster.create_mean_score_plots()
+    else:
+        cluster.create_cluster()
 
 
 if __name__ == "__main__":

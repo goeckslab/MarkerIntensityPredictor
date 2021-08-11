@@ -77,6 +77,7 @@ class ArgumentParser:
                                     help="The files used to generate the clusters", nargs='+')
         cluster_parser.add_argument("-n", "--names", type=str, required=False, action="store",
                                     help="The file name", nargs='+')
+        cluster_parser.add_argument("-m", "--mean", action="store_true", default=False)
 
         return
 
