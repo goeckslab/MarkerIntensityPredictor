@@ -8,10 +8,9 @@ runs=$1
 
 for ((i = 1; i <= $runs; i++)); 
 do
-    echo $i
     folderName=Run$i
 
-    echo $folderName
+    echo "Creating folder: $folderName"
 
     mkdir -p results/cluster_analysis/$folderName
 
@@ -33,7 +32,8 @@ do
 
     for file in results/cluster_analysis/*; do 
         if [ -f "$file" ]; then 
-            mv $file results/cluster_analysis/$folderName/$file
+            echo $file
+            mv $file results/cluster_analysis/$folderName
         fi 
     done
 

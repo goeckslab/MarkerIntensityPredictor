@@ -47,7 +47,7 @@ class ArgumentParser:
     @staticmethod
     def create_lr_parser(subparsers):
         lr_parser = subparsers.add_parser("lr")
-        lr_parser.add_argument('--file', '-f', type=str, action='store', required=True)
+        lr_parser.add_argument('--file', '-f', type=argparse.FileType('r'), action='store', required=True)
         lr_parser.add_argument('--validation', '-v', type=str, action='store', required=False, default=None,
                                help="The validation file which is used to validate the models.")
         lr_parser.add_argument("--multi", "-m", default=False, action="store_true")
@@ -75,6 +75,8 @@ class ArgumentParser:
         cluster_parser = subparsers.add_parser("cl")
         cluster_parser.add_argument("-f", "--files", type=argparse.FileType('r'), required=False, action="store",
                                     help="The files used to generate the clusters", nargs='+')
+        cluster_parser.add_argument("-d", "--dir", type=str, required=False, action="store",
+                                    help="The directory to use for loading the data")
         cluster_parser.add_argument("-n", "--names", type=str, required=False, action="store",
                                     help="The file name", nargs='+')
         cluster_parser.add_argument("-m", "--mean", action="store_true", default=False)

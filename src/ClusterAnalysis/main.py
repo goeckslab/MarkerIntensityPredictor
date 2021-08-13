@@ -1,16 +1,22 @@
+import pathlib
+
 import phenograph
 import pandas as pd
 from pathlib import Path
-import plotly.express as px
 import umap
 import seaborn as sns
 from sklearn import metrics
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
+import os
 
 
 class ClusterAnalysis:
+    # The files provided by the arguments
     files = None
+
+    # The directory provided by the arguments
+    directory = None
     results_folder = Path("results", "cluster_analysis")
     cluster_assignments = pd.DataFrame(columns=['pca', 'vae', 'non'])
     silhouette_scores = pd.DataFrame(columns=['model', 'score', "group", "cluster"])
@@ -20,23 +26,15 @@ class ClusterAnalysis:
     def __init__(self, args):
         self.args = args
         self.files = self.args.files
+        self.directory = self.args.dir
 
     def create_mean_score_plots(self):
 
-        frames = []
-        for file in self.files:
-            data = pd.read_csv(file)
-            if 'silhouette' in file.name:
-                data['algo'] = "silhouette"
+        if self.directory is not None:
+            scores = self.__load_files_in_directory()
 
-            elif 'calinski' in file.name:
-                data['algo'] = "calinski"
-            else:
-                print("invalid file, skipping")
-                continue
-            frames.append(data)
-
-        scores = pd.concat(frames).reset_index()
+        else:
+            scores = self.__load_files()
 
         for algo in scores["algo"].unique():
             data = scores[scores["algo"] == algo]
@@ -58,10 +56,29 @@ class ClusterAnalysis:
             )
             g.despine(left=True)
             g.set_axis_labels("", "Cluster scores")
-            g.fig.suptitle("Silhouette")
+            g.fig.suptitle(f"{algo}")
 
             g.savefig(Path(f"{self.results_folder}/{algo}_mean_scores.png"))
             plt.close('all')
+
+            for cluster in scores["cluster"].unique():
+                clusters = data[data["cluster"] == cluster]
+
+                mean_score = clusters.groupby(["group", "model"], as_index=False)["score"].mean()
+
+                mean_score["cluster"] = cluster
+
+                g = sns.catplot(
+                    data=mean_score, kind="bar",
+                    x="group", y="score", hue="model",
+                    ci="sd", palette="dark", alpha=.6, height=6
+                )
+                g.despine(left=True)
+                g.set_axis_labels("", "Cluster scores")
+                g.fig.suptitle(f"{algo}")
+
+                g.savefig(Path(f"{self.results_folder}/{algo}_{cluster}_scores.png"))
+                plt.close('all')
 
     def create_cluster(self):
         j: int = 0
@@ -208,3 +225,46 @@ class ClusterAnalysis:
 
         elif i <= 11:
             return "9_3_2"
+
+    def __load_files(self):
+        frames = []
+        for file in self.files:
+            data = pd.read_csv(file)
+            if 'silhouette_scores' in file.name:
+                data['algo'] = "silhouette"
+
+            elif 'calinski_harabasz_scores' in file.name:
+                data['algo'] = "calinski"
+            else:
+                print("invalid file, skipping")
+                continue
+            frames.append(data)
+
+        return pd.concat(frames).reset_index()
+
+    def __load_files_in_directory(self):
+        frames = []
+        for (dirpath, dirnames, filenames) in os.walk(self.directory):
+            for file in filenames:
+
+                if not file.endswith(".csv"):
+                    continue
+
+                path = pathlib.Path(dirpath, file)
+                print(f"Loading file {path}")
+                data = pd.read_csv(path)
+
+                if 'silhouette_scores' in file:
+                    data['algo'] = "silhouette"
+
+                elif 'calinski_harabasz_scores' in file:
+                    data['algo'] = "calinski"
+                else:
+                    print("invalid file, skipping")
+                    continue
+
+                frames.append(data)
+
+        scores = pd.concat(frames).reset_index()
+        del scores["index"]
+        return scores
