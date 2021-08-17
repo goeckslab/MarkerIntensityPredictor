@@ -59,7 +59,7 @@ class PCAMode:
         print("Executing pca...")
         pca = PCA(n_components=3)
         x_test = pd.DataFrame(pca.fit_transform(self.data.X_test))
-        x_test.to_csv(f"{self.results_folder}/encoded_data.csv", index=False)
+        x_test.to_csv(f"{self.results_folder}/pca_encoded_data.csv", index=False)
         # Plotting the variances for each PC
         components = range(1, pca.n_components_ + 1)
         fig = plt.figure(figsize=(10, 5))

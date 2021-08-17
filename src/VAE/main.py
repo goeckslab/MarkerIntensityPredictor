@@ -220,6 +220,6 @@ class VAutoEncoder:
         X_test = pd.DataFrame(columns=self.data.markers, data=self.data.X_test)
 
         X_test.to_csv(Path(f'{self.results_folder}/test_data.csv'), index=False)
-        self.encoded_data.to_csv(Path(f'{self.results_folder}/encoded_data.csv'), index=False)
+        self.encoded_data.to_csv(Path(f'{self.results_folder}/vae_encoded_data.csv'), index=False)
         self.reconstructed_data.to_csv(Path(f'{self.results_folder}/reconstructed_data.csv'), index=False)
         self.r2_scores.to_csv(Path(f'{self.results_folder}/r2_scores.csv'), index=False)
