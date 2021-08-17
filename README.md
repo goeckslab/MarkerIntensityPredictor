@@ -22,7 +22,7 @@ $ jupyter-lab
 
 ## Scripts
 
-### Linear mode
+### Linear Regression
 
 1. Create or reuse your venv.
 2. ```./start_linear.sh```
@@ -41,7 +41,33 @@ $ jupyter-lab
 1. Create or reuse your venv.
 2. ```./start_dae.sh```
 
+#### VAE
+
+
 
 ### Plotting
 
 1. Create or reuse your venv.
+
+
+
+### Cluster Analysis
+
+#### Clustering
+
+```shell
+./start_clustering.sh
+```
+
+Supported arguments:
+
+| Short   |  Long  |  Description  | Multiple args  |
+|---|---|---|---|
+| -f  | --file  | Specifies the files to use for the algorithm  | x  |
+| -n | --names  | Specify the names of the groups associated to the files  | x  |
+
+
+
+
+#### Scoring
+

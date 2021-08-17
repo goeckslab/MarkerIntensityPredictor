@@ -1,5 +1,4 @@
 import pathlib
-
 import phenograph
 import pandas as pd
 from pathlib import Path
@@ -9,6 +8,7 @@ from sklearn import metrics
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 import os
+import ntpath
 
 
 class ClusterAnalysis:
@@ -19,8 +19,8 @@ class ClusterAnalysis:
     directory = None
     results_folder = Path("results", "cluster_analysis")
     cluster_assignments = pd.DataFrame(columns=['pca', 'vae', 'non'])
-    silhouette_scores = pd.DataFrame(columns=['model', 'score', "group", "cluster"])
-    calinski_harabasz_scores = pd.DataFrame(columns=['model', 'score', "group", "cluster"])
+    silhouette_scores = pd.DataFrame(columns=['model', 'score', "file", "cluster"])
+    calinski_harabasz_scores = pd.DataFrame(columns=['model', 'score', "file", "cluster"])
     args = None
 
     def __init__(self, args):
@@ -64,13 +64,13 @@ class ClusterAnalysis:
             for cluster in scores["cluster"].unique():
                 clusters = data[data["cluster"] == cluster]
 
-                mean_score = clusters.groupby(["group", "model"], as_index=False)["score"].mean()
+                mean_score = clusters.groupby(["file", "model"], as_index=False)["score"].mean()
 
                 mean_score["cluster"] = cluster
 
                 g = sns.catplot(
                     data=mean_score, kind="bar",
-                    x="group", y="score", hue="model",
+                    x="file", y="score", hue="model",
                     ci="sd", palette="dark", alpha=.6, height=6
                 )
                 g.despine(left=True)
@@ -81,18 +81,27 @@ class ClusterAnalysis:
                 plt.close('all')
 
     def create_cluster(self):
-        j: int = 0
         k: int = 0
 
         for file in self.files:
             data = pd.read_csv(file)
-            name = self.args.names[k]
-            group = self.__resolve_group(j)
 
+            # Minimum of 3 columns as pca will have only 3
+            if data.shape[1] < 3:
+                print("Number of cols is not big enough to represent the expected data.")
+                print(f"File: {file}")
+                print(f"Shape: {data.shape}")
+                input()
+                continue
+
+            name = self.args.names[k]
+            file = self.__resolve_file(str(file.name))
+
+            # KMeans clustering
             silhouette, calinksi = self.__create_k_means_cluster(data, name)
 
             self.silhouette_scores = self.silhouette_scores.append({
-                "group": group,
+                "file": file,
                 "model": name,
                 "score": silhouette,
                 "cluster": "kmeans"
@@ -100,17 +109,18 @@ class ClusterAnalysis:
                 ignore_index=True)
 
             self.calinski_harabasz_scores = self.calinski_harabasz_scores.append({
-                "group": group,
+                "file": file,
                 "model": name,
                 "score": calinksi,
                 "cluster": "kmeans"
             },
                 ignore_index=True)
 
+            # Phenograph clustering
             silhouette, calinksi = self.__create_phenograph_cluster(data, name)
 
             self.silhouette_scores = self.silhouette_scores.append({
-                "group": group,
+                "file": file,
                 "model": name,
                 "score": silhouette,
                 "cluster": "pg"
@@ -118,14 +128,12 @@ class ClusterAnalysis:
                 ignore_index=True)
 
             self.calinski_harabasz_scores = self.calinski_harabasz_scores.append({
-                "group": group,
+                "file": file,
                 "model": name,
                 "score": calinksi,
                 "cluster": "pg"
             },
                 ignore_index=True)
-
-            j += 1
 
             if k == 2:
                 k = 0
@@ -141,7 +149,7 @@ class ClusterAnalysis:
             data = self.silhouette_scores[self.silhouette_scores["cluster"] == cluster]
             g = sns.catplot(
                 data=data, kind="bar",
-                x="group", y="score", hue="model",
+                x="file", y="score", hue="model",
                 ci="sd", palette="dark", alpha=.6, height=6
             )
             g.despine(left=True)
@@ -155,7 +163,7 @@ class ClusterAnalysis:
             data = self.calinski_harabasz_scores[self.calinski_harabasz_scores["cluster"] == cluster]
             g = sns.catplot(
                 data=data, kind="bar",
-                x="group", y="score", hue="model",
+                x="file", y="score", hue="model",
                 ci="sd", palette="dark", alpha=.6, height=6
             )
             g.despine(left=True)
@@ -196,37 +204,20 @@ class ClusterAnalysis:
         fit = umap.UMAP()
         latent_umap = fit.fit_transform(data)
 
-        plot = sns.scatterplot(data=latent_umap, x=latent_umap[:, 0], y=latent_umap[:, 1], hue=pg_clusters)
+        plot = sns.scatterplot(data=latent_umap, x=latent_umap[:, 0], y=latent_umap[:, 1], hue=pg_clusters.values)
         fig = plot.get_figure()
         fig.savefig(f"{self.results_folder}/{name}_pg_clusters.png")
         plt.close('all')
 
-        # means = []
-        # for i in range(0, pd.Series(communities).max() + 1):
-        # cells_index = pg_clusters[pg_clusters == i].index
-        # filtered_markers_df = data[data.index.isin(cells_index)]
-        # means.append(filtered_markers_df.mean().values)
-
-        # fig = px.imshow(means, x=data.columns)
-        # fig.show()
-
         return metrics.silhouette_score(data, clusters, metric='euclidean'), metrics.calinski_harabasz_score(data,
                                                                                                              clusters)
 
-    def __resolve_group(self, i: int) -> str:
-        if i <= 2:
-            return "9_2_1"
+    @staticmethod
+    def __resolve_file(file: str) -> str:
+        head, tail = ntpath.split(file)
+        return tail or ntpath.basename(head)
 
-        elif i <= 5:
-            return "9_2_2"
-
-        elif i <= 8:
-            return "9_3_1"
-
-        elif i <= 11:
-            return "9_3_2"
-
-    def __load_files(self):
+    def __load_files(self) -> pd.DataFrame:
         frames = []
         for file in self.files:
             data = pd.read_csv(file)
@@ -239,10 +230,9 @@ class ClusterAnalysis:
                 print("invalid file, skipping")
                 continue
             frames.append(data)
-
         return pd.concat(frames).reset_index()
 
-    def __load_files_in_directory(self):
+    def __load_files_in_directory(self) -> pd.DataFrame:
         frames = []
         for (dirpath, dirnames, filenames) in os.walk(self.directory):
             for file in filenames:
@@ -251,7 +241,7 @@ class ClusterAnalysis:
                     continue
 
                 path = pathlib.Path(dirpath, file)
-                print(f"Loading file {path}")
+
                 data = pd.read_csv(path)
 
                 if 'silhouette_scores' in file:
@@ -260,7 +250,7 @@ class ClusterAnalysis:
                 elif 'calinski_harabasz_scores' in file:
                     data['algo'] = "calinski"
                 else:
-                    print("invalid file, skipping")
+                    print(f"invalid file {path}, skipping")
                     continue
 
                 frames.append(data)
