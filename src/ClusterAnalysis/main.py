@@ -95,7 +95,7 @@ class ClusterAnalysis:
                 continue
 
             name = self.args.names[k]
-            file = self.__resolve_file(str(file.name))
+            file = self.__resolve_file(Path(file.name))
 
             # KMeans clustering
             silhouette, calinksi = self.__create_k_means_cluster(data, name)
@@ -145,33 +145,33 @@ class ClusterAnalysis:
         self.silhouette_scores.to_csv(f"{self.results_folder}/silhouette_scores.csv", index=False)
         self.calinski_harabasz_scores.to_csv(f"{self.results_folder}/calinski_harabasz_scores.csv", index=False)
 
-        for cluster in self.silhouette_scores["cluster"].unique():
-            data = self.silhouette_scores[self.silhouette_scores["cluster"] == cluster]
-            g = sns.catplot(
-                data=data, kind="bar",
-                x="file", y="score", hue="model",
-                ci="sd", palette="dark", alpha=.6, height=6
-            )
-            g.despine(left=True)
-            g.set_axis_labels("", "Cluster scores")
-            g.fig.suptitle("Silhouette")
+        g = sns.catplot(
+            data=self.silhouette_scores, kind="bar",
+            x="cluster", y="score", hue="model",
+            ci="sd", palette="dark", alpha=.6, height=6
+        )
+        g.despine(left=True)
+        g.set_axis_labels("", "Cluster scores")
+        g.fig.suptitle("Silhouette")
 
-            g.savefig(Path(f"{self.results_folder}/{cluster}_silhouette_scores.png"))
-            plt.close('all')
+        g.set_xticklabels(rotation=90)
+        g.savefig(Path(f"{self.results_folder}/silhouette_scores.png"))
+        plt.close('all')
 
-        for cluster in self.calinski_harabasz_scores["cluster"].unique():
-            data = self.calinski_harabasz_scores[self.calinski_harabasz_scores["cluster"] == cluster]
-            g = sns.catplot(
-                data=data, kind="bar",
-                x="file", y="score", hue="model",
-                ci="sd", palette="dark", alpha=.6, height=6
-            )
-            g.despine(left=True)
-            g.set_axis_labels("", "Cluster scores")
-            g.fig.suptitle("Calinski Harabasz")
+        # data = self.calinski_harabasz_scores[self.calinski_harabasz_scores["cluster"] == cluster]
+        g = sns.catplot(
+            data=self.calinski_harabasz_scores, kind="bar",
+            x="cluster", y="score", hue="model",
+            ci="sd", palette="dark", alpha=.6, height=6
+        )
+        g.despine(left=True)
+        g.set_axis_labels("", "Cluster scores")
+        g.fig.suptitle("Calinski Harabasz")
 
-            g.savefig(Path(f"{self.results_folder}/{cluster}_calinski_harabasz_scores.png"))
-            plt.close('all')
+        g.set_xticklabels(rotation=90)
+
+        g.savefig(Path(f"{self.results_folder}/calinski_harabasz_scores.png"))
+        plt.close('all')
 
     def __create_k_means_cluster(self, data, name) -> (int, int):
         print("Creating kmeans clusters ...")
@@ -213,7 +213,8 @@ class ClusterAnalysis:
                                                                                                              clusters)
 
     @staticmethod
-    def __resolve_file(file: str) -> str:
+    def __resolve_file(file: Path) -> str:
+        file = file.with_name(file.name.split('.')[0])
         head, tail = ntpath.split(file)
         return tail or ntpath.basename(head)
 
