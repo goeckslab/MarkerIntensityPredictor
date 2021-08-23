@@ -43,11 +43,11 @@ class PCAMode:
 
         if self.args.file:
             inputs, markers = DataLoader.get_data(
-                self.args.file)
+                self.args.file, self.args.morph)
 
         elif self.args.dir:
             inputs, markers = DataLoader.load_folder_data(
-                self.args.dir)
+                self.args.dir, self.args.morph)
 
         else:
             print("Please specify a directory or a file")

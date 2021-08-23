@@ -69,11 +69,11 @@ class VAutoEncoder:
 
         if self.args.file:
             inputs, markers = DataLoader.get_data(
-                self.args.file)
+                self.args.file, self.args.morph)
 
         elif self.args.dir:
             inputs, markers = DataLoader.load_folder_data(
-                self.args.dir)
+                self.args.dir, self.args.morph)
 
         else:
             print("Please specify a directory or a file")
@@ -89,9 +89,9 @@ class VAutoEncoder:
 
         encoder_inputs = keras.Input(shape=(inputs_dim,))
         h1 = layers.Dense(inputs_dim, activation=activation, activity_regularizer=activity_regularizer)(encoder_inputs)
-        h2 = layers.Dropout(0.8)(h1)
+        h2 = layers.Dropout(0.2)(h1)
         h3 = layers.Dense(inputs_dim / 3, activation=activation, activity_regularizer=activity_regularizer)(h2)
-        h4 = layers.Dropout(0.8)(h3)
+        h4 = layers.Dropout(0.2)(h3)
         # The following variables are for the convenience of building the decoder.
         # last layer before flatten
         lbf = h4
@@ -201,6 +201,7 @@ class VAutoEncoder:
         uns = dict()
         adata = ad.AnnData(df.to_numpy(), var=var, obs=obs, uns=uns, obsm=obsm)
 
+        adata.var_names_make_unique()
         adata.write(Path(f'{self.results_folder}/{file_name}.h5ad'))
 
     def create_test_predictions(self):

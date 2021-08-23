@@ -26,6 +26,9 @@ class ArgumentParser:
 
     @staticmethod
     def create_ae_parser(subparsers):
+        """
+        The args parser for the auto encoder
+        """
         ae_parser = subparsers.add_parser("ae")
         ae_parser.add_argument("-f", "--file", type=str, required=False, action="store",
                                help="The file to load and use")
@@ -36,11 +39,15 @@ class ArgumentParser:
 
     @staticmethod
     def create_vae_parser(subparsers):
-        ae_parser = subparsers.add_parser("vae")
-        ae_parser.add_argument("-f", "--file", type=str, required=False, action="store",
-                               help="The file to load and use")
-        ae_parser.add_argument("-d", "--dir", type=str, required=False, action="store",
-                               help="The directory to use for loading the data")
+        """
+        The args parser for the variational auto encoder
+        """
+        vae_parser = subparsers.add_parser("vae")
+        vae_parser.add_argument("-f", "--file", type=str, required=False, action="store",
+                                help="The file to load and use")
+        vae_parser.add_argument("-d", "--dir", type=str, required=False, action="store",
+                                help="The directory to use for loading the data")
+        vae_parser.add_argument("-m", "--morph", action="store_true", help="Include morphological data", default=False)
 
         return
 
@@ -64,14 +71,21 @@ class ArgumentParser:
 
     @staticmethod
     def create_pca_parser(subparsers):
+        """
+        Args for the pca analysis
+        """
         pca_parser = subparsers.add_parser("pca")
         pca_parser.add_argument("-f", "--file", type=str, required=False, action="store",
                                 help="The file to load and use")
         pca_parser.add_argument("-d", "--dir", type=str, required=False, action="store",
                                 help="The directory to use for loading the data")
+        pca_parser.add_argument("-m", "--morph", action="store_true", help="Include morphological data", default=False)
 
     @staticmethod
     def create_cluster_parser(subparsers):
+        """
+        Args for the cluster analysis
+        """
         cluster_parser = subparsers.add_parser("cl")
         cluster_parser.add_argument("-f", "--files", type=argparse.FileType('r'), required=False, action="store",
                                     help="The files used to generate the clusters", nargs='+')
