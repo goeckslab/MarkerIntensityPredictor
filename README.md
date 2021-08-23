@@ -22,42 +22,43 @@ $ jupyter-lab
 
 ## Scripts
 
-### Linear Regression
-
-1. Create or reuse your venv.
-2. ```./start_linear.sh```
-3. Use arguments to start different modes
-
-
-### Auto Encoders
-
-#### Vanilla Auto Encoder
-
-1. Create or reuse your venv.
-2. ```./start_ae.sh```
-
-#### Denoising Auto Encoder
-
-1. Create or reuse your venv.
-2. ```./start_dae.sh```
 
 #### VAE
 
+Example: 
+```python3 src/main.py vae -f data/HTA9-2_Bx1_HMS_Tumor_quant.csv ```
+
+Will perform the following tasks.
+1. Trains a model using a setup vae
+2. Decode the data
+3. Encode the data
+4. Writes the resulting dataset to disk
 
 
-### Plotting
+#### PCA
 
-1. Create or reuse your venv.
+Example: 
+```python3 src/main.py pca -f data/HTA9-2_Bx1_HMS_Tumor_quant.csv ```
+
+Will perform the following tasks.
+1. Trains a model using pca
+2. Decode the data
+3. Encode the data
+4. Writes the resulting dataset to disk
+
 
 
 
 ### Cluster Analysis
 
+Example: ```python3 src/main.py cl -f results/vae/vae_encoded_data.csv results/vae/test_data.csv results/pca/pca_encoded_data.csv -n vae non pca ```
+
+Will perform a cluster analysis using kmeans and phenograph.
+
+
+
 #### Clustering
 
-```shell
-./start_clustering.sh
-```
 
 Supported arguments:
 
@@ -67,7 +68,4 @@ Supported arguments:
 | -n | --names  | Specify the names of the groups associated to the files  | x  |
 
 
-
-
-#### Scoring
 
