@@ -29,7 +29,8 @@ class ClusterAnalysis:
         self.directory = self.args.dir
 
     def create_mean_score_plots(self):
-
+        print("here")
+        input()
         if self.directory is not None:
             scores = self.__load_files_in_directory()
 

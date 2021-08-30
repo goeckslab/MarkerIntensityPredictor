@@ -57,7 +57,8 @@ class PCAMode:
 
     def reduce_dimensions(self):
         print("Executing pca...")
-        pca = PCA(n_components=3)
+        n_clusters = 4
+        pca = PCA(n_components=n_clusters)
         x_test = pd.DataFrame(pca.fit_transform(self.data.X_test))
         x_test.to_csv(f"{self.results_folder}/pca_encoded_data.csv", index=False)
         # Plotting the variances for each PC
@@ -90,7 +91,7 @@ class PCAMode:
         # plt.xticks(ks)
         fig.figure.savefig(f"{self.results_folder}/elbow_clusters.png")
 
-        model = KMeans(n_clusters=3)
+        model = KMeans(n_clusters=n_clusters)
         model.fit(x_test.iloc[:, :2])
 
         fig = plt.figure(figsize=(10, 5))

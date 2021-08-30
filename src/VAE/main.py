@@ -42,9 +42,11 @@ class VAutoEncoder:
     args = None
     results_folder = Path("results", "vae")
 
-    def __init__(self, args):
+    def __init__(self, args, folder: str = None):
         self.encoding_dim = 5
         self.args = args
+        if folder is not None:
+            self.results_folder = Path(self.results_folder, folder)
 
     def normalize(self, data):
         # Input data contains some zeros which results in NaN (or Inf)
@@ -89,12 +91,18 @@ class VAutoEncoder:
 
         encoder_inputs = keras.Input(shape=(inputs_dim,))
         h1 = layers.Dense(inputs_dim, activation=activation, activity_regularizer=activity_regularizer)(encoder_inputs)
-        h2 = layers.Dropout(0.2)(h1)
-        h3 = layers.Dense(inputs_dim / 3, activation=activation, activity_regularizer=activity_regularizer)(h2)
-        h4 = layers.Dropout(0.2)(h3)
+        h2 = layers.BatchNormalization()(h1)
+        h3 = layers.Dropout(0.5)(h2)
+        h4 = layers.Dense(inputs_dim / 2, activation=activation, activity_regularizer=activity_regularizer)(h3)
+        h5 = layers.BatchNormalization()(h4)
+        h6 = layers.Dropout(0.5)(h5)
+        h7 = layers.Dense(inputs_dim / 3, activation=activation, activity_regularizer=activity_regularizer)(h6)
+        h8 = layers.Dropout(0.5)(h7)
+        h9 = layers.BatchNormalization()(h8)
+
         # The following variables are for the convenience of building the decoder.
         # last layer before flatten
-        lbf = h4
+        lbf = h9
         # shape before flatten.
         sbf = keras.backend.int_shape(lbf)[1:]
         # neurons count before latent dim
@@ -109,8 +117,9 @@ class VAutoEncoder:
         # Build the decoder
         decoder_inputs = keras.Input(shape=(self.encoding_dim,))
         h1 = layers.Dense(nbl, activation=activation)(decoder_inputs)
+        h2 = layers.Dense(inputs_dim / 2, activation=activation)(h1)
+        decoder_outputs = layers.Dense(inputs_dim)(h2)
 
-        decoder_outputs = layers.Dense(inputs_dim)(h1)
         self.decoder = keras.Model(decoder_inputs, decoder_outputs, name="decoder")
         self.decoder.summary()
 

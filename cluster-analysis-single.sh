@@ -1,0 +1,35 @@
+#!/bin/bash
+
+
+source ./venv/bin/activate
+
+folder=$1
+runs=$2
+
+
+for ((i = 1; i <= $runs; i++)); 
+do
+    folderName=Run$i
+
+    echo Creating folder: $folderName
+    
+    mkdir -p results/cluster_analysis/$folderName
+
+
+    python3 src/main.py cl -f \
+    $folder/vae/vae_encoded_data.csv \
+    $folder/pca/pca_encoded_data.csv  \
+    $folder/vae/test_data.csv \
+    -n vae pca non
+
+    for file in results/cluster_analysis/*; do 
+        if [ -f "$file" ]; then 
+            mv $file results/cluster_analysis/$folderName
+        fi 
+    done
+
+
+done
+
+
+

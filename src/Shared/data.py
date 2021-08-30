@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import RepeatedKFold
 
 
 class Data:
@@ -21,7 +22,7 @@ class Data:
         self.init_inputs = inputs
         self.init_markers = markers
         X_dev, X_val = train_test_split(self.init_inputs, test_size=0.05, random_state=1, shuffle=True)
-        X_train, X_test = train_test_split(X_dev, test_size=0.25, random_state=1)
+        X_train, X_test = train_test_split(X_dev, test_size=0.25, random_state=1, shuffle=True)
 
         self.init_X_train = X_train
         self.init_X_test = X_test

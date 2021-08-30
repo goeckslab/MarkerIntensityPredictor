@@ -20,6 +20,7 @@ class DataLoader:
 
         # Keeps only the 'interesting' columns with morphological features
         if keep_morph:
+            print("Including morphological data")
             morph_data = pd.DataFrame(
                 columns=["Area", "MajorAxisLength", "MinorAxisLength", "Eccentricity", "Solidity", "Extent",
                          "Orientation"])
@@ -37,6 +38,7 @@ class DataLoader:
 
         # Keep only markers
         else:
+            print("Excluding morphological data")
             cells = cells.filter(regex="nucleiMasks$", axis=1).filter(regex="^(?!(DAPI|AF))", axis=1)  # No morph data
 
         # Remove not required columns
@@ -83,7 +85,7 @@ class DataLoader:
                 if file in str(exclude_file):
                     continue
 
-                cells, markers = DataLoader.get_data(os.path.join(subdir, file))
+                cells, markers = DataLoader.get_data(os.path.join(subdir, file), True)
                 merged_data = merged_data.append(cells)
 
         return merged_data, markers

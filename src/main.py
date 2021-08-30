@@ -81,12 +81,14 @@ def cluster_analysis():
     cluster = ClusterAnalysis(args)
     # Load all file
     if args.mean:
+        print("Creating mean plots")
         cluster.create_mean_score_plots()
     else:
         cluster.create_cluster()
 
 
 if __name__ == "__main__":
+    print("Start")
     args = ArgumentParser.get_args()
 
     Prepare.create_folders(args)
@@ -108,6 +110,7 @@ if __name__ == "__main__":
         plt.start(args)
 
     elif invoked_parser == 'cl':
+        print("Starting cluster analysis")
         cluster_analysis()
 
     elif invoked_parser == 'pca':
