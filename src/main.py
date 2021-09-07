@@ -1,3 +1,7 @@
+import os
+
+import pandas as pd
+
 from args_parser import ArgumentParser
 import Plotting.main as plt
 from AE.ae import AutoEncoder
@@ -10,6 +14,7 @@ from LinearRegression.lr import LinearMarkerIntensity
 from Shared.prepare import Prepare
 from ClusterAnalysis.main import ClusterAnalysis
 from PCA.main import PCAMode
+from sklearn.model_selection import KFold
 
 
 def execute_linear_regression():
@@ -61,14 +66,26 @@ def execute_denoising_auto_encoder():
 
 def execute_vae():
     vae = VAutoEncoder(args)
-    vae.load_data()
-    vae.build_auto_encoder()
-    vae.predict()
-    vae.calculate_r2_score()
-    vae.create_h5ad_object()
-    vae.create_test_predictions()
-    vae.create_correlation_data()
-    vae.write_created_data_to_disk()
+    vae.load_data_set()
+
+    kf = KFold(n_splits=6)
+    run = 0
+    for train, test in kf.split(vae.data_set):
+        os.mkdir(Path("results", "vae", str(run)))
+        vae.results_folder = Path("results", "vae", str(run))
+        train_set = vae.data_set.iloc[train]
+        test_set = vae.data_set.iloc[test]
+        vae.load_data(train_set, test_set)
+        vae.build_auto_encoder()
+        vae.predict()
+        vae.calculate_r2_score()
+        vae.create_h5ad_object()
+        vae.create_test_predictions()
+        vae.create_correlation_data()
+        vae.write_created_data_to_disk()
+        vae.reset()
+        run += 1
+
 
 
 def pca_clustering():

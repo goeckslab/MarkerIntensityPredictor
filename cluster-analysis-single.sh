@@ -4,7 +4,8 @@
 source ./venv/bin/activate
 
 folder=$1
-runs=$2
+subfolder=$2
+runs=$3
 
 
 for ((i = 1; i <= $runs; i++)); 
@@ -17,9 +18,9 @@ do
 
 
     python3 src/main.py cl -f \
-    $folder/vae/vae_encoded_data.csv \
+    $folder/vae/$subfolder/vae_encoded_data.csv \
     $folder/pca/pca_encoded_data.csv  \
-    $folder/vae/test_data.csv \
+    $folder/vae/$subfolder/test_data.csv \
     -n vae pca non
 
     for file in results/cluster_analysis/*; do 

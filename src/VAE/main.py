@@ -18,6 +18,8 @@ import tensorflow as tf
 
 
 class VAutoEncoder:
+    data_set = pd.DataFrame()
+    markers = pd.Series()
     data: Data
 
     # The defined encoder
@@ -39,6 +41,7 @@ class VAutoEncoder:
     r2_scores = pd.DataFrame(columns=["Marker", "Score"])
     encoded_data = pd.DataFrame()
     reconstructed_data = pd.DataFrame()
+
     args = None
     results_folder = Path("results", "vae")
 
@@ -66,7 +69,10 @@ class VAutoEncoder:
         data = min_max_scaler.fit_transform(data)
         return data
 
-    def load_data(self):
+    def load_data_set(self):
+        """
+        Loads the data set given by the cli args
+        """
         print("Loading data...")
 
         if self.args.file:
@@ -81,11 +87,25 @@ class VAutoEncoder:
             print("Please specify a directory or a file")
             sys.exit()
 
-        self.data = Data(np.array(inputs), markers, self.normalize)
+        self.data_set = inputs
+        self.markers = markers
+
+    def load_data(self, train, test):
+        """
+        Loads the data for a given run, with the given test and train split provided by the kfold
+        """
+
+        self.data = Data(train, test, self.markers, self.normalize)
+
+
+    def reset(self):
+        self.r2_scores = pd.DataFrame()
+
 
     def build_auto_encoder(self):
         # Build the encoder
-        inputs_dim = self.data.inputs.shape[1]
+
+        inputs_dim = self.data.inputs_dim
         activity_regularizer = regularizers.l1_l2(10e-5)
         activation = tf.keras.layers.LeakyReLU()
 
@@ -219,7 +239,7 @@ class VAutoEncoder:
         self.reconstructed_data = pd.DataFrame(columns=self.data.markers, data=self.decoder.predict(self.encoded_data))
 
     def create_correlation_data(self):
-        inputs = pd.DataFrame(columns=self.data.markers, data=self.data.inputs)
+        inputs = pd.DataFrame(columns=self.data.markers, data=self.data_set)
         corr = inputs.corr()
         corr.to_csv(Path(f'{self.results_folder}/correlation.csv'), index=False)
 
