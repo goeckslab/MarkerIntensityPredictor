@@ -71,7 +71,12 @@ def execute_vae():
     kf = KFold(n_splits=6)
     run = 0
     for train, test in kf.split(vae.data_set):
-        os.mkdir(Path("results", "vae", str(run)))
+        # Cleanup old folders
+        path = Path("results", "vae", str(run))
+        if os.path.isfile(path):
+            os.remove(path)
+        os.mkdir(path)
+
         vae.results_folder = Path("results", "vae", str(run))
         train_set = vae.data_set.iloc[train]
         test_set = vae.data_set.iloc[test]
