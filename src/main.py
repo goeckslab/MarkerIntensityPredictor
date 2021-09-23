@@ -92,7 +92,6 @@ def execute_vae():
         run += 1
 
 
-
 def pca_clustering():
     pca = PCAMode(args)
     pca.load_data()
@@ -110,7 +109,6 @@ def cluster_analysis():
 
 
 if __name__ == "__main__":
-    print("Start")
     args = ArgumentParser.get_args()
 
     Prepare.create_folders(args)
