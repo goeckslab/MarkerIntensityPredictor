@@ -53,12 +53,13 @@ class PCAMode:
             print("Please specify a directory or a file")
             sys.exit()
 
-        self.data = Data(np.array(inputs), markers, self.normalize)
+        self.data = Data(vae=False, inputs=np.array(inputs), markers=markers, normalize=self.normalize)
 
     def reduce_dimensions(self):
         print("Executing pca...")
         n_clusters = 4
         pca = PCA(n_components=n_clusters)
+        self.data.X_test.to_csv(f"{self.results_folder}/test_data.csv", index=False)
         x_test = pd.DataFrame(pca.fit_transform(self.data.X_test))
         x_test.to_csv(f"{self.results_folder}/pca_encoded_data.csv", index=False)
         # Plotting the variances for each PC
@@ -102,3 +103,4 @@ class PCAMode:
 
         plt.scatter(input_umap[:, 0], input_umap[:, 1], c=labels)
         fig.savefig(f"{self.results_folder}/k_means_clusters.png")
+        print("PCA done.")
