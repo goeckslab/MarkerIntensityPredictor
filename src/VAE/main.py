@@ -15,6 +15,10 @@ import pickle
 from sklearn.metrics import r2_score
 import umap
 import tensorflow as tf
+import seaborn as sns
+
+
+# https://towardsdatascience.com/intuitively-understanding-variational-autoencoders-1bfe67eb5daf
 
 
 class VAutoEncoder:
@@ -32,10 +36,16 @@ class VAutoEncoder:
     # the training history of the AE
     history: any
 
+    # the input dimensions
     input_dim: int
+
+    # the latent space dimensions
     encoding_dim: int
 
+    # the umap representation of the input
     input_umap: any
+
+    # the umap representation of the latent space
     latent_umap: any
 
     r2_scores = pd.DataFrame(columns=["Marker", "Score"])
@@ -95,12 +105,10 @@ class VAutoEncoder:
         Loads the data for a given run, with the given test and train split provided by the kfold
         """
 
-        self.data = Data(train, test, self.markers, self.normalize)
-
+        self.data = Data(vae=True, train=train, test=test, markers=self.markers, normalize=self.normalize)
 
     def reset(self):
         self.r2_scores = pd.DataFrame()
-
 
     def build_auto_encoder(self):
         # Build the encoder
@@ -164,8 +172,7 @@ class VAutoEncoder:
 
     def predict(self):
         # Make some predictions
-
-        cell = self.data.X_val[0]
+        cell = self.data.X_test[0]
         cell = cell.reshape(1, cell.shape[0])
         mean, log_var, z = self.encoder.predict(cell)
         encoded_cell = z
@@ -246,6 +253,8 @@ class VAutoEncoder:
     def write_created_data_to_disk(self):
         with open(f'{self.results_folder}/vae_history', 'wb') as file_pi:
             pickle.dump(self.history.history, file_pi)
+
+        self.vae.save(f"{self.results_folder}/model")
 
         X_test = pd.DataFrame(columns=self.data.markers, data=self.data.X_test)
 

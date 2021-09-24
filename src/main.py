@@ -1,6 +1,5 @@
 import os
-
-import pandas as pd
+import shutil
 
 from args_parser import ArgumentParser
 import Plotting.main as plt
@@ -72,12 +71,12 @@ def execute_vae():
     run = 0
     for train, test in kf.split(vae.data_set):
         # Cleanup old folders
-        path = Path("results", "vae", str(run))
-        if os.path.isfile(path):
-            os.remove(path)
+        path = Path("results", "vae", f"Run_{str(run)}")
+        if os.path.isdir(path):
+            shutil.rmtree(path)
         os.mkdir(path)
 
-        vae.results_folder = Path("results", "vae", str(run))
+        vae.results_folder = path
         train_set = vae.data_set.iloc[train]
         test_set = vae.data_set.iloc[test]
         vae.load_data(train_set, test_set)
