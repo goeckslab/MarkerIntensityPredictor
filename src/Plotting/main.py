@@ -63,7 +63,7 @@ def start(args):
         input_data = pd.read_csv(args.files[0], sep=",")
         reconstructed_data = pd.read_csv(args.files[1], sep=",")
         # Create individual heatmap
-        Plots.plot_reconstructed_markers(input_data, reconstructed_data, args.names[0])
+        Plots.plot_reconstructed_markers(input_data, reconstructed_data, args.name)
 
     if args.corr is True:
         print("Generating correlation heatmaps.")
