@@ -1,6 +1,8 @@
 import os
 import shutil
-
+import pandas as pd
+from typing import Tuple
+from Shared.data_loader import DataLoader
 from args_parser import ArgumentParser
 import Plotting.main as plt
 from AE.ae import AutoEncoder
@@ -20,7 +22,7 @@ def execute_linear_regression():
     train_file: Path
     test_file = None
     try:
-        train_file = Path(args.file)
+        train_file = Path(args.file.name)
         if args.validation is not None:
             test_file = Path(args.validation)
         else:
@@ -48,6 +50,7 @@ def execute_auto_encoder():
     ae.create_correlation_data()
     ae.write_created_data_to_disk()
     ae.get_activations()
+    ae.plot_model()
 
 
 def execute_denoising_auto_encoder():
@@ -64,22 +67,36 @@ def execute_denoising_auto_encoder():
 
 
 def execute_vae():
-    vae = VAutoEncoder(args)
-    vae.load_data_set()
+    data_set, markers = load_data_set()
+    if args.folds > 0:
+        kf = KFold(n_splits=6)
+        run = 0
+        for train, test in kf.split(data_set):
+            # Cleanup old folders
+            path = Path("results", "vae", f"Run_{str(run)}")
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            os.mkdir(path)
 
-    kf = KFold(n_splits=6)
-    run = 0
-    for train, test in kf.split(vae.data_set):
-        # Cleanup old folders
-        path = Path("results", "vae", f"Run_{str(run)}")
-        if os.path.isdir(path):
-            shutil.rmtree(path)
-        os.mkdir(path)
+            train_set = data_set.iloc[train]
+            test_set = data_set.iloc[test]
+            # Create new vae object
+            vae = VAutoEncoder(args=args, markers=markers, dataset=data_set, train=train_set, test=test_set,
+                               results_folder=path)
+            vae.build_auto_encoder()
+            vae.predict()
+            vae.calculate_r2_score()
+            vae.create_h5ad_object()
+            vae.create_test_predictions()
+            vae.create_correlation_data()
+            vae.write_created_data_to_disk()
+            vae.get_activations()
+            run += 1
 
-        vae.results_folder = path
-        train_set = vae.data_set.iloc[train]
-        test_set = vae.data_set.iloc[test]
-        vae.load_data(train_set, test_set)
+    else:
+        print("Running vae without folds")
+        vae = VAutoEncoder(args=args, dataset=data_set, markers=markers)
+        vae.check_mean_and_std()
         vae.build_auto_encoder()
         vae.predict()
         vae.calculate_r2_score()
@@ -87,8 +104,7 @@ def execute_vae():
         vae.create_test_predictions()
         vae.create_correlation_data()
         vae.write_created_data_to_disk()
-        vae.reset()
-        run += 1
+        vae.get_activations()
 
 
 def pca_clustering():
@@ -105,6 +121,30 @@ def cluster_analysis():
         cluster.create_mean_score_plots()
     else:
         cluster.create_cluster()
+
+
+def load_data_set() -> Tuple[pd.DataFrame, list]:
+    """
+    Loads the data set given by the cli args
+    """
+    print("Loading data...")
+
+    inputs: pd.DataFrame
+    markers: list
+
+    if args.file:
+        inputs, markers = DataLoader.get_data(
+            args.file, args.morph)
+
+    elif args.dir:
+        inputs, markers = DataLoader.load_folder_data(
+            args.dir, args.morph)
+
+    else:
+        print("Please specify a directory or a file")
+        sys.exit()
+
+    return inputs, markers
 
 
 if __name__ == "__main__":

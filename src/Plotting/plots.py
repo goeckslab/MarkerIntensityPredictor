@@ -93,6 +93,13 @@ class Plots:
         plt.close()
 
     @staticmethod
+    def plot_corr_scatter_plot(correlation_df, data_origin:str):
+
+        print(correlation_df)
+        input()
+        sns.scatterplot(data=correlation_df, x="total_bill", y="tip", hue="time")
+
+    @staticmethod
     def plot_combined_corr_plot(df):
 
         if len(df["File"].unique()) == 1:

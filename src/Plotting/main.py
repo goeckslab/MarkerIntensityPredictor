@@ -10,7 +10,7 @@ def start(args):
     plots = Path("results", "plots")
     plots.mkdir(parents=True, exist_ok=True)
 
-    if args.r2score is True:
+    if args.r2score:
         logging.info("Creating r2 score plots")
         frames = []
 
@@ -58,14 +58,14 @@ def start(args):
         r2_scores = pd.concat(frames)
         Plots.r2_scores_combined(r2_scores, args.name)
 
-    if args.reconstructed is True:
+    if args.reconstruction:
         print("Generating reconstructed markers plots.")
         input_data = pd.read_csv(args.files[0], sep=",")
         reconstructed_data = pd.read_csv(args.files[1], sep=",")
         # Create individual heatmap
         Plots.plot_reconstructed_markers(input_data, reconstructed_data, args.name)
 
-    if args.corr is True:
+    if args.correlation:
         print("Generating correlation heatmaps.")
         frames = []
         for i in range(len(args.files)):
@@ -79,7 +79,7 @@ def start(args):
         combined_correlations = pd.concat(frames)
         Plots.plot_combined_corr_plot(combined_correlations)
 
-    if args.cluster is True:
+    if args.cluster:
         print("Generation cluster plots")
         input_data = pd.read_csv(args.files[0], sep=",")
         encoded_data = pd.read_csv(args.files[1], sep=",")

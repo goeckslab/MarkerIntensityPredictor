@@ -1,9 +1,8 @@
 from keras import layers, regularizers
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from Shared.data_loader import DataLoader
 from Shared.data import Data
 import numpy as np
-import sys
+from random import randrange
 import pandas as pd
 from pathlib import Path
 import keras
@@ -15,15 +14,17 @@ import pickle
 from sklearn.metrics import r2_score
 import umap
 import tensorflow as tf
-import seaborn as sns
-
+import keract as kt
 
 # https://towardsdatascience.com/intuitively-understanding-variational-autoencoders-1bfe67eb5daf
 
 
 class VAutoEncoder:
+    # The whole data set
     data_set = pd.DataFrame()
+    # Markers contained in the data set
     markers = pd.Series()
+    # The split data
     data: Data
 
     # The defined encoder
@@ -53,84 +54,93 @@ class VAutoEncoder:
     reconstructed_data = pd.DataFrame()
 
     args = None
+    # The default results folder, where all experiment data is being stored. Can be overriden by the constructor
     results_folder = Path("results", "vae")
 
-    def __init__(self, args, folder: str = None):
+    def __init__(self, args, dataset: pd.DataFrame, markers: list, results_folder: Path = None,
+                 train: pd.DataFrame = None, test: pd.DataFrame = None):
         self.encoding_dim = 5
         self.args = args
-        if folder is not None:
-            self.results_folder = Path(self.results_folder, folder)
+        self.markers = markers
+        self.data_set = dataset
 
-    def normalize(self, data):
+        if results_folder is not None:
+            self.results_folder = results_folder
+
+        # Generate data object with given data
+        if train is not None and test is not None:
+            self.data = Data(train=train, test=test, markers=self.markers, normalize=self.normalize)
+        else:
+            self.data = Data(inputs=np.array(self.data_set), markers=self.markers, normalize=self.normalize)
+
+    def normalize(self, inputs: np.ndarray):
         # Input data contains some zeros which results in NaN (or Inf)
         # values when their log10 is computed. NaN (or Inf) are problematic
         # values for downstream analysis. Therefore, zeros are replaced by
         # a small value; see the following thread for related discussion.
         # https://www.researchgate.net/post/Log_transformation_of_values_that_include_0_zero_for_statistical_analyses2
 
-        data[data == 0] = 1e-32
-        data = np.log10(data)
+        inputs[inputs == 0] = 1e-32
+        inputs = np.log10(inputs)
 
         standard_scaler = StandardScaler()
-        data = standard_scaler.fit_transform(data)
-        data = data.clip(min=-5, max=5)
+        inputs = standard_scaler.fit_transform(inputs)
+        inputs = inputs.clip(min=-5, max=5)
 
-        min_max_scaler = MinMaxScaler(feature_range=(0, 1))
-        data = min_max_scaler.fit_transform(data)
-        return data
+        # min_max_scaler = MinMaxScaler(feature_range=(-1, 1))
+        # inputs = min_max_scaler.fit_transform(inputs)
 
-    def load_data_set(self):
-        """
-        Loads the data set given by the cli args
-        """
-        print("Loading data...")
+        return inputs
 
-        if self.args.file:
-            inputs, markers = DataLoader.get_data(
-                self.args.file, self.args.morph)
+    def check_mean_and_std(self):
+        rnd = randrange(0, self.data.inputs.shape[1])
+        # Mean should be zero and standard deviation
+        # should be 1. However, due to some challenges
+        # relationg to floating point positions and rounding,
+        # the values should be very close to these numbers.
+        # For details, see:
+        # https://stackoverflow.com/a/40405912/947889
+        # Hence, we assert the rounded values.
+        print(self.data.inputs)
+        print(self.data.inputs[:, rnd])
 
-        elif self.args.dir:
-            inputs, markers = DataLoader.load_folder_data(
-                self.args.dir, self.args.morph)
-
-        else:
-            print("Please specify a directory or a file")
-            sys.exit()
-
-        self.data_set = inputs
-        self.markers = markers
-
-    def load_data(self, train, test):
-        """
-        Loads the data for a given run, with the given test and train split provided by the kfold
-        """
-
-        self.data = Data(vae=True, train=train, test=test, markers=self.markers, normalize=self.normalize)
-
-    def reset(self):
-        self.r2_scores = pd.DataFrame()
+        print(f"Std: {self.data.inputs[:, rnd].std()}")
+        print(f"Mean: {self.data.inputs[:, rnd].mean()}")
 
     def build_auto_encoder(self):
         # Build the encoder
 
         inputs_dim = self.data.inputs_dim
-        activity_regularizer = regularizers.l1_l2(10e-5)
-        activation = tf.keras.layers.LeakyReLU()
+        r = regularizers.l1_l2(10e-5)
+        activation = tf.keras.layers.ReLU()
 
-        encoder_inputs = keras.Input(shape=(inputs_dim,))
-        h1 = layers.Dense(inputs_dim, activation=activation, activity_regularizer=activity_regularizer)(encoder_inputs)
-        h2 = layers.BatchNormalization()(h1)
-        h3 = layers.Dropout(0.5)(h2)
-        h4 = layers.Dense(inputs_dim / 2, activation=activation, activity_regularizer=activity_regularizer)(h3)
-        h5 = layers.BatchNormalization()(h4)
-        h6 = layers.Dropout(0.5)(h5)
-        h7 = layers.Dense(inputs_dim / 3, activation=activation, activity_regularizer=activity_regularizer)(h6)
-        h8 = layers.Dropout(0.5)(h7)
-        h9 = layers.BatchNormalization()(h8)
+        # encoder_inputs = keras.Input(shape=(inputs_dim,))
+        # h1 = layers.Dense(inputs_dim, activation=activation, activity_regularizer=activity_regularizer)(encoder_inputs)
+        # h2 = layers.BatchNormalization()(h1)
+        # h3 = layers.Dropout(0.2)(h2)
+        # h4 = layers.Dense(inputs_dim / 2, activation=activation, activity_regularizer=activity_regularizer)(h3)
+        # h5 = layers.BatchNormalization()(h4)
+        # h6 = layers.Dropout(0.2)(h5)
+        # h7 = layers.Dense(inputs_dim / 3, activation=activation, activity_regularizer=activity_regularizer)(h6)
+        # h8 = layers.Dropout(0.2)(h7)
+        # h9 = layers.BatchNormalization()(h8)
 
         # The following variables are for the convenience of building the decoder.
         # last layer before flatten
-        lbf = h9
+        # lbf = h9
+        # shape before flatten.
+        # sbf = keras.backend.int_shape(lbf)[1:]
+        # neurons count before latent dim
+        # nbl = np.prod(sbf)
+
+        encoder_inputs = keras.Input(shape=(inputs_dim))
+        h1 = layers.Dense(inputs_dim, activation=activation, activity_regularizer=r)(encoder_inputs)
+        h2 = layers.Dense(inputs_dim / 2, activation=activation, activity_regularizer=r)(h1)
+        h3 = layers.Dense(inputs_dim / 3, activation=activation, activity_regularizer=r)(h2)
+
+        # The following variables are for the convenience of building the decoder.
+        # last layer before flatten
+        lbf = h3
         # shape before flatten.
         sbf = keras.backend.int_shape(lbf)[1:]
         # neurons count before latent dim
@@ -146,8 +156,8 @@ class VAutoEncoder:
         decoder_inputs = keras.Input(shape=(self.encoding_dim,))
         h1 = layers.Dense(nbl, activation=activation)(decoder_inputs)
         h2 = layers.Dense(inputs_dim / 2, activation=activation)(h1)
-        decoder_outputs = layers.Dense(inputs_dim)(h2)
 
+        decoder_outputs = layers.Dense(inputs_dim)(h2)
         self.decoder = keras.Model(decoder_inputs, decoder_outputs, name="decoder")
         self.decoder.summary()
 
@@ -161,7 +171,8 @@ class VAutoEncoder:
                                                     mode="min", patience=5,
                                                     restore_best_weights=True)
         self.vae = VAE(self.encoder, self.decoder)
-        self.vae.compile(optimizer="adam")
+        self.vae.compile(optimizer=tf.keras.optimizers.Adam(lr=0.0005))
+
         self.history = self.vae.fit(self.data.X_train,
                                     validation_data=(self.data.X_val, self.data.X_val),
                                     epochs=500,
@@ -258,7 +269,16 @@ class VAutoEncoder:
 
         X_test = pd.DataFrame(columns=self.data.markers, data=self.data.X_test)
 
+        pd.DataFrame(columns=["names"], data=self.data.markers).to_csv(Path(f'{self.results_folder}/markers.csv'),
+                                                                       index=False)
         X_test.to_csv(Path(f'{self.results_folder}/test_data.csv'), index=False)
         self.encoded_data.to_csv(Path(f'{self.results_folder}/vae_encoded_data.csv'), index=False)
         self.reconstructed_data.to_csv(Path(f'{self.results_folder}/reconstructed_data.csv'), index=False)
         self.r2_scores.to_csv(Path(f'{self.results_folder}/r2_scores.csv'), index=False)
+
+    def get_activations(self):
+        cell = self.data.X_test[0]
+        cell = cell.reshape(1, cell.shape[0])
+        # activations = kt.get_activations(self.encoder, self.data.X_val)
+        activations = kt.get_activations(self.vae, cell)
+        fig = kt.display_activations(activations, cmap="summer", directory=f'{self.results_folder}', save=True)

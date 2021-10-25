@@ -40,6 +40,8 @@ class AutoEncoder:
     args = None
     results_folder = Path("results", "ae")
 
+    model = None
+
     def __init__(self, args):
         self.encoding_dim = 5
         self.args = args
@@ -67,37 +69,38 @@ class AutoEncoder:
 
         if self.args.file:
             inputs, markers = DataLoader.get_data(
-                self.args.file)
+                self.args.file, True)
 
         elif self.args.dir:
             inputs, markers = DataLoader.load_folder_data(
-                self.args.dir)
+                self.args.dir, True)
 
         else:
             print("Please specify a directory or a file")
             sys.exit()
 
-        self.data = Data(np.array(inputs), markers, self.normalize)
+        self.data = Data(inputs=np.array(inputs), markers=markers, normalize=self.normalize)
 
     def build_auto_encoder(self):
         activation = tf.keras.layers.LeakyReLU()
         activity_regularizer = regularizers.l1_l2(10e-5)
-        input_layer = keras.Input(shape=(self.data.inputs_dim,))
+        input_layer = keras.Input(shape=(self.data.inputs_dim,), name=f"input_layers_{self.data.inputs_dim}")
 
         # Encoder
         encoded = layers.Dense(self.data.inputs_dim / 2, activation=activation,
-                               activity_regularizer=activity_regularizer)(input_layer)
+                               activity_regularizer=activity_regularizer, name="encoded_2")(input_layer)
         encoded = layers.Dense(self.data.inputs_dim / 3, activation=activation,
-                               activity_regularizer=activity_regularizer)(encoded)
+                               activity_regularizer=activity_regularizer, name="encoded_3")(encoded)
         # encoded = layers.Dropout(0.2)(encoded)
-        encoded = layers.Dense(self.encoding_dim, activation=activation, activity_regularizer=activity_regularizer)(
+        encoded = layers.Dense(self.encoding_dim, activation=activation, activity_regularizer=activity_regularizer,
+                               name=f"latent_space_{self.encoding_dim}")(
             encoded)
         # encoded = layers.Dropout(0.3)(encoded)
 
         # Decoder
-        decoded = layers.Dense(self.data.inputs_dim / 3, activation=activation)(encoded)
-        decoded = layers.Dense(self.data.inputs_dim / 2, activation=activation)(decoded)
-        decoded = layers.Dense(self.data.inputs_dim, activation=activation)(decoded)
+        decoded = layers.Dense(self.data.inputs_dim / 3, activation=activation, name="decoded_3")(encoded)
+        decoded = layers.Dense(self.data.inputs_dim / 2, activation=activation, name="decoded_2")(decoded)
+        decoded = layers.Dense(self.data.inputs_dim, activation=activation, name="output_layer")(decoded)
 
         # Auto encoder
         self.ae = keras.Model(input_layer, decoded, name="AE")
@@ -117,7 +120,8 @@ class AutoEncoder:
         self.decoder.summary()
 
         # Compile ae
-        self.ae.compile(optimizer="adam", loss=keras.losses.MeanSquaredError(), metrics=['acc', 'mean_squared_error'])
+        self.ae.compile(optimizer="adam", loss=keras.losses.MeanSquaredError(),
+                        metrics=['acc', 'mean_squared_error'])
 
         callback = tf.keras.callbacks.EarlyStopping(monitor="val_loss",
                                                     mode="min", patience=5,
@@ -212,3 +216,7 @@ class AutoEncoder:
         # activations = kt.get_activations(self.encoder, self.data.X_val)
         activations = kt.get_activations(self.ae, cell)
         fig = kt.display_activations(activations, cmap="summer", directory=f'{self.results_folder}', save=True)
+        kt.display_heatmaps(activations, fig, directory=f'{self.results_folder}', save=True)
+
+    def plot_model(self):
+        tf.keras.utils.plot_model(self.ae, to_file=Path(f'{self.results_folder}/model.png', show_shapes=True))

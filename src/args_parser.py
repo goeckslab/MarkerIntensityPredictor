@@ -43,11 +43,14 @@ class ArgumentParser:
         The args parser for the variational auto encoder
         """
         vae_parser = subparsers.add_parser("vae")
-        vae_parser.add_argument("-f", "--file", type=str, required=False, action="store",
+        vae_parser.add_argument("--file", type=str, required=False, action="store",
                                 help="The file to load and use")
-        vae_parser.add_argument("-d", "--dir", type=str, required=False, action="store",
+        vae_parser.add_argument("--dir", type=str, required=False, action="store",
                                 help="The directory to use for loading the data")
-        vae_parser.add_argument("-m", "--morph", action="store_true", help="Include morphological data", default=False)
+        vae_parser.add_argument("--morph", action="store_true", help="Include morphological data", default=False)
+        vae_parser.add_argument("--folds", action="store",
+                                help="How many folds should be used. This will generate models in the same amount.",
+                                default=0)
 
         return
 
@@ -110,8 +113,8 @@ class ArgumentParser:
 
         # Modes
 
-        plotting_parser.add_argument("-r2", "--r2score", action="store_true", help="Generates the r2 score plots")
-        plotting_parser.add_argument("-r", "--reconstructed", action="store_true",
+        plotting_parser.add_argument("--r2score", action="store_true", help="Generates the r2 score plots")
+        plotting_parser.add_argument("--reconstruction", action="store_true",
                                      help="Generates the ae reconstructing plots")
-        plotting_parser.add_argument("-corr", "--corr", action="store_true", help="Generates the correlation heatmap")
+        plotting_parser.add_argument("--correlation", action="store_true", help="Generates the correlation heatmap")
         plotting_parser.add_argument("-cluster", "--cluster", action="store_true", help="Generates a umap cluster plot")

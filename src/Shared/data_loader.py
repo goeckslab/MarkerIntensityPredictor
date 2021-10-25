@@ -2,6 +2,7 @@ import pandas as pd
 from pathlib import Path
 import re
 import os
+from typing import Tuple
 
 
 class DataLoader:
@@ -49,11 +50,14 @@ class DataLoader:
         markers = cells.columns
         markers = [re.sub("_nucleiMasks", "", x) for x in markers]
 
+        if 'ERK1_1' in markers:
+            assert 'ERK1_2' not in markers, 'ERK1_2 should not be in markers'
+
         # return cells, markers
         return cells.iloc[:, :], markers
 
     @staticmethod
-    def load_folder_data(path: str, keep_morph: bool):
+    def load_folder_data(path: str, keep_morph: bool) -> Tuple[pd.DataFrame, list]:
         merged_data = pd.DataFrame()
         markers = list
         for subdir, dirs, files in os.walk(path):

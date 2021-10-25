@@ -175,7 +175,7 @@ class ClusterAnalysis:
     def __create_k_means_cluster(self, data, name) -> (int, int):
         print("Creating kmeans clusters ...")
 
-        model = KMeans(n_clusters=3)
+        model = KMeans(n_clusters=3, max_iter=100, random_state=1)
         model.fit(data)
         clusters = model.predict(data)
 

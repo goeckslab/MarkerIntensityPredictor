@@ -14,8 +14,8 @@ class LinearMarkerIntensity:
     test_file: str
     train_file_name: str
     test_file_name: str
-    train_data: Data
-    test_data: Data
+    train_data: Data = None
+    test_data: Data = None
 
     coefficients = pd.DataFrame()
     r2scores = pd.DataFrame(columns=["Marker", "Score", "Model"])
@@ -50,23 +50,27 @@ class LinearMarkerIntensity:
     def load(self):
         # Multi file
         if self.args.multi:
-            inputs, markers = DataLoader.get_data(self.test_file)
-            self.test_data = Data(inputs, markers, self.normalize)
+            inputs, markers = DataLoader.get_data(self.test_file,  True)
+            self.test_data = Data(inputs=inputs, markers=markers, normalize=self.normalize)
 
             inputs, markers = DataLoader.merge_files(self.test_file)
-            self.train_data = Data(inputs, markers, self.normalize)
+            self.train_data = Data(inputs=inputs, markers=markers, normalize=self.normalize)
 
         # Validation file
         elif self.args.validation is not None:
-            inputs, markers = DataLoader.get_data(self.train_file)
-            self.train_data = Data(inputs, markers, self.normalize)
-            inputs, markers = DataLoader.get_data(self.test_file)
-            self.test_data = Data(inputs, markers, self.normalize)
+            inputs, markers = DataLoader.get_data(self.train_file, True)
+            self.train_data = Data(inputs=inputs, markers=markers, normalize=self.normalize)
+            inputs, markers = DataLoader.get_data(self.test_file, True)
+            self.test_data = Data(inputs=inputs, markers=markers, normalize=self.normalize)
 
         # Single File
         else:
-            inputs, markers = DataLoader.get_data(self.train_file)
-            self.train_data = Data(inputs, markers, self.normalize)
+            inputs, markers = DataLoader.get_data(self.train_file, True)
+            self.train_data = Data(inputs=inputs, markers=markers, normalize=self.normalize)
+
+        print(self.train_data.markers)
+        print(self.test_data)
+        input()
 
     def train_predict(self):
         self.coefficients = pd.DataFrame(columns=self.train_data.markers)
@@ -81,11 +85,11 @@ class LinearMarkerIntensity:
             else:
                 test_copy = pd.DataFrame(columns=self.train_data.markers, data=self.train_data.X_test.copy())
 
-            if marker == "ERK1_1":
+            if marker == "ERK1_1" and 'ERK1_2' in self.train_data.markers:
                 del train_copy["ERK1_2"]
                 del test_copy["ERK1_2"]
 
-            if marker == "ERK1_2":
+            if marker == "ERK1_2" and 'ERK1_1' in self.train_data.markers:
                 del train_copy["ERK1_1"]
                 del test_copy["ERK1_1"]
 

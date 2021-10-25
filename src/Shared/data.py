@@ -17,8 +17,9 @@ class Data:
     X_test: pd.DataFrame()
     X_val: pd.DataFrame()
 
-    def __init__(self, vae: bool, normalize, inputs=None, train: np.array = None, test: np.array = None, markers=None):
-        if vae:
+    def __init__(self, normalize, inputs=None, train: np.array = None, test: np.array = None, markers=None):
+        # Train and Test data splits were provided
+        if train is not None and test is not None:
             self.init_markers = markers
             # Split train set into train and validation set
             X_train, X_val = train_test_split(train, test_size=0.05, random_state=1, shuffle=True)
@@ -29,12 +30,12 @@ class Data:
 
             # Store the normalized data
             self.markers = self.init_markers
-
             self.X_train = normalize(X_train.copy())
             self.X_test = normalize(test.copy())
             self.X_val = normalize(X_val.copy())
             self.inputs_dim = train.shape[1]
 
+        # Do a normal split on the given input data set
         else:
             self.init_inputs = inputs
             self.init_markers = markers
@@ -47,7 +48,7 @@ class Data:
 
             # Store the normalized data
             self.markers = self.init_markers
-            self.inputs = np.array(inputs)
+            self.inputs = normalize(np.array(inputs))
             self.X_train = normalize(X_train)
             self.X_test = normalize(X_test)
             self.X_val = normalize(X_val)
