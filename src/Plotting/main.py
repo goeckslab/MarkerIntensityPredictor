@@ -70,10 +70,15 @@ def start(args):
         frames = []
         for i in range(len(args.files)):
             input_data = pd.read_csv(args.files[i], sep=",")
+            input_data.rename(columns={'Unnamed: 0': 'Markers'}, inplace=True)
             # Create individual heatmap
-            Plots.plot_corr_heatmap(input_data, f"{args.names[i]}")
 
-            input_data["File"] = args.names[i]
+            for model in input_data["Model"].unique():
+                data = input_data[input_data["Model"] == model]
+                Plots.plot_corr_scatter_plot(data, f"{args.name}")
+                Plots.plot_corr_heatmap(data, f"{args.name}", model)
+
+            input_data["File"] = args.name[i]
             frames.append(input_data)
 
         combined_correlations = pd.concat(frames)

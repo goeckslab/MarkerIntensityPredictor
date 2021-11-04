@@ -1,3 +1,4 @@
+import pandas as pd
 import seaborn as sns
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -30,7 +31,6 @@ class Plots:
 
         plt.savefig(Path(f"{results_folder}", f"{file_name}.png"))
         plt.close()
-
 
     @staticmethod
     def r2_scores_combined(r2_scores_df, file_name: str = None):
@@ -77,7 +77,14 @@ class Plots:
         plt.close()
 
     @staticmethod
-    def plot_corr_heatmap(correlation_df, data_origin: str):
+    def plot_corr_heatmap(correlation_df, data_origin: str, model: str):
+        """
+        correlation_df: The data frame to use for creating the heatmap
+        data_origin: the file the data originated from
+        model: the model of which the correlations are derived from
+        """
+        del correlation_df["Markers"]
+        del correlation_df["Model"]
         plt.figure(figsize=(20, 16))
         # define the mask to set the values in the upper triangle to True
         mask = np.triu(np.ones_like(correlation_df, dtype=np.bool))
@@ -89,15 +96,35 @@ class Plots:
         for item in heatmap.get_yticklabels():
             item.set_rotation(0)
 
-        plt.savefig(Path(f"{results_folder}/{data_origin}_correlation.png"))
+        plt.savefig(Path(f"{results_folder}/{data_origin}_{model}_correlation.png"))
         plt.close()
 
     @staticmethod
-    def plot_corr_scatter_plot(correlation_df, data_origin:str):
+    def plot_corr_scatter_plot(data, data_origin: str):
+        plt.figure(figsize=(20, 16))
+        correlation_df = data
+        del correlation_df["Model"]
 
-        print(correlation_df)
-        input()
-        sns.scatterplot(data=correlation_df, x="total_bill", y="tip", hue="time")
+        new_df = pd.DataFrame(columns=["Hue", "X", "Y"])
+        for marker in correlation_df.columns.unique():
+            if marker == 'Markers':
+                continue
+
+            temp_data = correlation_df[correlation_df["Markers"] == marker].T
+            temp_data.reset_index(level=0, inplace=True)
+            temp_data.dropna(inplace=True)
+            # del temp_data[f"{marker}"]
+            temp_data = temp_data.iloc[1:, :]
+            temp_data.rename(columns={'index': 'X', temp_data.columns[1]: "Y"}, inplace=True)
+
+            new_df = new_df.append(temp_data, ignore_index=True)
+            new_df = new_df.fillna(marker)
+
+        print(new_df)
+        ax = sns.scatterplot(data=new_df, x="X", y="Y", hue="Hue")
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
+        plt.savefig(Path(f"{results_folder}/correlation_scatter.png"))
+        plt.close()
 
     @staticmethod
     def plot_combined_corr_plot(df):
