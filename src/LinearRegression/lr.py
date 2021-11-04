@@ -50,7 +50,7 @@ class LinearMarkerIntensity:
     def load(self):
         # Multi file
         if self.args.multi:
-            inputs, markers = DataLoader.get_data(self.test_file,  True)
+            inputs, markers = DataLoader.get_data(self.test_file, False)
             self.test_data = Data(inputs=inputs, markers=markers, normalize=self.normalize)
 
             inputs, markers = DataLoader.merge_files(self.test_file)
@@ -58,19 +58,15 @@ class LinearMarkerIntensity:
 
         # Validation file
         elif self.args.validation is not None:
-            inputs, markers = DataLoader.get_data(self.train_file, True)
+            inputs, markers = DataLoader.get_data(self.train_file, False)
             self.train_data = Data(inputs=inputs, markers=markers, normalize=self.normalize)
-            inputs, markers = DataLoader.get_data(self.test_file, True)
+            inputs, markers = DataLoader.get_data(self.test_file, False)
             self.test_data = Data(inputs=inputs, markers=markers, normalize=self.normalize)
 
         # Single File
         else:
-            inputs, markers = DataLoader.get_data(self.train_file, True)
+            inputs, markers = DataLoader.get_data(self.train_file, False)
             self.train_data = Data(inputs=inputs, markers=markers, normalize=self.normalize)
-
-        print(self.train_data.markers)
-        print(self.test_data)
-        input()
 
     def train_predict(self):
         self.coefficients = pd.DataFrame(columns=self.train_data.markers)
@@ -104,8 +100,8 @@ class LinearMarkerIntensity:
 
             self.__predict("Ridge", Ridge(alpha=10), X_train, y_train, X_test, y_test, marker)
             self.__predict("LR", LinearRegression(), X_train, y_train, X_test, y_test, marker)
-            self.__predict("Lasso", Lasso(alpha=0.5), X_train, y_train, X_test, y_test, marker)
-            self.__predict("EN", ElasticNet(alpha=0.5), X_train, y_train, X_test, y_test, marker)
+            self.__predict("Lasso", Lasso(alpha=0.1), X_train, y_train, X_test, y_test, marker)
+            self.__predict("EN", ElasticNet(alpha=0.1), X_train, y_train, X_test, y_test, marker)
 
         self.r2scores["Marker"] = [re.sub("_nucleiMasks", "", x) for x in self.r2scores["Marker"]]
 
