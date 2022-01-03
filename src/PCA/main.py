@@ -40,10 +40,8 @@ class PCAMode:
 
     def load_data(self):
         print("Loading data...")
-
         if self.args.file:
-            inputs, markers = DataLoader.get_data(
-                self.args.file, self.args.morph)
+            inputs, markers = DataLoader.get_data(input_file=self.args.file, keep_morph=self.args.morph)
 
         elif self.args.dir:
             inputs, markers = DataLoader.load_folder_data(
@@ -53,13 +51,13 @@ class PCAMode:
             print("Please specify a directory or a file")
             sys.exit()
 
-        self.data = Data(vae=False, inputs=np.array(inputs), markers=markers, normalize=self.normalize)
+        self.data = Data(inputs=np.array(inputs), markers=markers, normalize=self.normalize)
 
     def reduce_dimensions(self):
         print("Executing pca...")
         n_clusters = 4
         pca = PCA(n_components=n_clusters)
-        self.data.X_test.to_csv(f"{self.results_folder}/test_data.csv", index=False)
+        #self.data.X_test.to_csv(f"{self.results_folder}/test_data.csv", index=False)
         x_test = pd.DataFrame(pca.fit_transform(self.data.X_test))
         x_test.to_csv(f"{self.results_folder}/pca_encoded_data.csv", index=False)
         # Plotting the variances for each PC

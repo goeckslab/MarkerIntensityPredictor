@@ -280,5 +280,5 @@ class VAutoEncoder:
         cell = self.data.X_test[0]
         cell = cell.reshape(1, cell.shape[0])
         # activations = kt.get_activations(self.encoder, self.data.X_val)
-        activations = kt.get_activations(self.vae, cell)
-        fig = kt.display_activations(activations, cmap="summer", directory=f'{self.results_folder}', save=True)
+        #activations = kt.get_activations(self.vae, cell)
+        #fig = kt.display_activations(activations, cmap="summer", directory=f'{self.results_folder}', save=True)

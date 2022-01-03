@@ -13,6 +13,9 @@ import umap
 import tensorflow as tf
 from sklearn.metrics import r2_score
 import keract as kt
+import phenograph
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 class AutoEncoder:
@@ -64,25 +67,32 @@ class AutoEncoder:
         data = min_max_scaler.fit_transform(data)
         return data
 
-    def load_data(self):
+    def load_data(self, data_frame: pd.DataFrame = None):
         print("Loading data...")
 
-        if self.args.file:
+        if data_frame is not None:
             inputs, markers = DataLoader.get_data(
-                self.args.file, True)
-
-        elif self.args.dir:
-            inputs, markers = DataLoader.load_folder_data(
-                self.args.dir, True)
+                input_dataframe=data_frame, keep_morph=True)
+            Data(inputs=np.array(inputs), markers=markers, normalize=self.normalize)
 
         else:
-            print("Please specify a directory or a file")
-            sys.exit()
+            if self.args.file:
+                inputs, markers = DataLoader.get_data(
+                    input_file=self.args.file, keep_morph=True)
+
+            elif self.args.dir:
+                inputs, markers = DataLoader.load_folder_data(
+                    self.args.dir, True)
+
+            else:
+                print("Please specify a directory or a file")
+                sys.exit()
 
         self.data = Data(inputs=np.array(inputs), markers=markers, normalize=self.normalize)
 
     def build_auto_encoder(self):
-        activation = tf.keras.layers.LeakyReLU()
+        # activation = tf.keras.activations.sigmoid
+        activation = tf.keras.activations.relu
         activity_regularizer = regularizers.l1_l2(10e-5)
         input_layer = keras.Input(shape=(self.data.inputs_dim,), name=f"input_layers_{self.data.inputs_dim}")
 
@@ -168,7 +178,7 @@ class AutoEncoder:
     def create_h5ad_object(self):
         # Input
         fit = umap.UMAP()
-        self.input_umap = input_umap = fit.fit_transform(self.data.X_test)
+        self.input_umap = fit.fit_transform(self.data.X_test)
 
         # latent space
         fit = umap.UMAP()
@@ -177,7 +187,7 @@ class AutoEncoder:
 
         self.__create_h5ad("latent_markers", self.latent_umap, self.data.markers,
                            pd.DataFrame(columns=self.data.markers, data=self.data.X_test))
-        self.__create_h5ad("input", input_umap, self.data.markers,
+        self.__create_h5ad("input", self.input_umap, self.data.markers,
                            pd.DataFrame(columns=self.data.markers, data=self.data.X_test))
         return
 
@@ -193,6 +203,18 @@ class AutoEncoder:
     def create_test_predictions(self):
         self.encoded_data = pd.DataFrame(self.encoder.predict(self.data.X_test))
         self.reconstructed_data = pd.DataFrame(columns=self.data.markers, data=self.decoder.predict(self.encoded_data))
+        # create phenograph clusters
+        communities, graph, Q = phenograph.cluster(self.encoded_data, "leiden", k=30)
+        adata = ad.AnnData()
+        adata.obs['Phenograph_cluster'] = pd.Categorical(communities)
+        adata.obs['Phenograph_Q'] = Q
+        fit = umap.UMAP()
+        print(self.encoded_data)
+        encoded_umap = fit.fit_transform(self.encoded_data)
+        scatter = sns.scatterplot(data=encoded_umap, x=encoded_umap[:, 0], y=encoded_umap[:, 1],
+                                  c=communities)
+        fig = scatter.get_figure()
+        plt.show()
 
     def create_correlation_data(self):
         inputs = pd.DataFrame(columns=self.data.markers, data=self.data.inputs)
@@ -215,6 +237,7 @@ class AutoEncoder:
         cell = cell.reshape(1, cell.shape[0])
         # activations = kt.get_activations(self.encoder, self.data.X_val)
         activations = kt.get_activations(self.ae, cell)
+        print(activations)
         fig = kt.display_activations(activations, cmap="summer", directory=f'{self.results_folder}', save=True)
         kt.display_heatmaps(activations, fig, directory=f'{self.results_folder}', save=True)
 

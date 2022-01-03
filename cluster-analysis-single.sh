@@ -21,7 +21,7 @@ do
     $folder/vae/$subfolder/vae_encoded_data.csv \
     $folder/pca/pca_encoded_data.csv  \
     $folder/vae/$subfolder/test_data.csv \
-    -n vae pca non
+    -n AE PCA Raw
 
     for file in results/cluster_analysis/*; do 
         if [ -f "$file" ]; then 

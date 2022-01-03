@@ -7,7 +7,7 @@ from typing import Tuple
 
 class DataLoader:
     @staticmethod
-    def get_data(input_file: str, keep_morph: bool):
+    def get_data(input_dataframe: pd.DataFrame = None, input_file: str = None, keep_morph: bool = True):
         """
         Load Data
         We load data into RAM since data is small and will fit in memory.
@@ -16,8 +16,11 @@ class DataLoader:
 
         columns_to_remove = ["CellID", "ERK1_2_nucleiMasks"]
 
-        path = Path(f"{os.path.split(os.environ['VIRTUAL_ENV'])[0]}/{input_file}")
-        cells = pd.read_csv(path, header=0)
+        if input_file is not None:
+            path = Path(f"{os.path.split(os.environ['VIRTUAL_ENV'])[0]}/{input_file}")
+            cells = pd.read_csv(path, header=0)
+        else:
+            cells = input_dataframe
 
         # Keeps only the 'interesting' columns with morphological features
         if keep_morph:

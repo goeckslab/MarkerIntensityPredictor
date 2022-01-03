@@ -69,8 +69,9 @@ def execute_denoising_auto_encoder():
 def execute_vae():
     data_set, markers = load_data_set()
     if args.folds > 0:
-        kf = KFold(n_splits=6)
+        kf = KFold(n_splits=5)
         run = 0
+        # Correct this: https://towardsdatascience.com/5-reasons-why-you-should-use-cross-validation-in-your-data-science-project-8163311a1e79
         for train, test in kf.split(data_set):
             # Cleanup old folders
             path = Path("results", "vae", f"Run_{str(run)}")
@@ -134,7 +135,7 @@ def load_data_set() -> Tuple[pd.DataFrame, list]:
 
     if args.file:
         inputs, markers = DataLoader.get_data(
-            args.file, args.morph)
+            input_file=args.file, keep_morph=args.morph)
 
     elif args.dir:
         inputs, markers = DataLoader.load_folder_data(
