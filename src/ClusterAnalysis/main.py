@@ -286,7 +286,7 @@ class ClusterAnalysis:
             clusters)
 
     def __create_optics_cluster(self, data, name) -> (int, int):
-        optics = OPTICS(min_samples=2).fit(data)
+        optics = OPTICS(min_samples=5).fit(data)
         clusters = optics.fit_predict(data)
         fig = plt.figure(figsize=(10, 5))
 

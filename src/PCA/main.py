@@ -55,7 +55,7 @@ class PCAMode:
 
     def reduce_dimensions(self):
         print("Executing pca...")
-        n_clusters = 4
+        n_clusters = 10
         pca = PCA(n_components=n_clusters)
         #self.data.X_test.to_csv(f"{self.results_folder}/test_data.csv", index=False)
         x_test = pd.DataFrame(pca.fit_transform(self.data.X_test))

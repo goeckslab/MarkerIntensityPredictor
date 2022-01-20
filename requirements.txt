@@ -2,7 +2,7 @@ ipykernel
 notebook
 numpy~=1.19.2
 pandas
-tensorflow
+tensorflow==2.7
 keras
 matplotlib
 pydot
@@ -18,3 +18,4 @@ PyYAML
 cellxgene
 Phenograph
 keract
+tensorflow-probability==0.15.0
