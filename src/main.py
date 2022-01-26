@@ -7,7 +7,7 @@ from args_parser import ArgumentParser
 import Plotting.main as plt
 from AE.ae import AutoEncoder
 from DAE.dae import DenoisingAutoEncoder
-from VAE.main import VAutoEncoder
+from src.model import VAutoEncoder
 from pathlib import Path
 import sys
 import logging
