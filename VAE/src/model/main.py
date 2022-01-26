@@ -147,7 +147,7 @@ class VAutoEncoder:
                                     shuffle=True,
                                     verbose=1)
 
-        save_path = Path(f"VAE/{self.results_folder}/model")
+        save_path = Path("VAE", self.results_folder, "model")
         mlflow.keras.save_model(self.vae, save_path)
         mlflow.log_artifact(save_path)
 
@@ -185,7 +185,18 @@ class VAutoEncoder:
             )
         # self.plot_label_clusters(self.data.X_test, self.data.X_test)
 
-    def create_test_predictions(self):
+    def encode_decode_test_data(self):
+        """
+        Encodes and decodes the remaining test dataset. Is then further used for evaluation of performance
+        """
         mean, log_var, z = self.encoder.predict(self.data.X_test)
         self.encoded_data = pd.DataFrame(z)
         self.reconstructed_data = pd.DataFrame(columns=self.data.markers, data=self.decoder.predict(self.encoded_data))
+
+        encoded_data_save_path = Path("VAE", self.results_folder, "encoded_data.csv")
+        self.encoded_data.to_csv(encoded_data_save_path, index=False)
+        mlflow.log_artifact(encoded_data_save_path)
+
+        reconstructed_data_save_path = Path("VAE", self.results_folder, "reconstructed_data.csv")
+        self.encoded_data.to_csv(reconstructed_data_save_path, index=False)
+        mlflow.log_artifact(reconstructed_data_save_path)

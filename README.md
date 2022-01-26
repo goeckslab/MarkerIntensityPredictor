@@ -20,52 +20,25 @@ $ jupyter-lab
 ```
 
 
-## Scripts
+## Variational Auto Encoder
+
+### Setup & Configuration
+
+1. Create a virtual environment
+2. `pip install -r requirements.txt` will install all required packages
 
 
-#### VAE
+### ML Flow Integration
 
-Example: 
-```python3 src/main.py vae -f data/HTA9-2_Bx1_HMS_Tumor_quant.csv ```
-
-Will perform the following tasks.
-1. Trains a model using a setup vae
-2. Decode the data
-3. Encode the data
-4. Writes the resulting dataset to disk
-
-
-#### PCA
-
-Example: 
-```python3 src/main.py pca -f data/HTA9-2_Bx1_HMS_Tumor_quant.csv ```
-
-Will perform the following tasks.
-1. Trains a model using pca
-2. Decode the data
-3. Encode the data
-4. Writes the resulting dataset to disk
+[MLFlow](https://www.mlflow.org) is being used for experiment tracking.  
+Although a results folder is being used locally, all data is being stored using the backend of MLFlow.  
+**Do NOT rely on the local results folder, it is only temporary.**  
 
 
 
+### Usage
 
-### Cluster Analysis
-
-Example: ```python3 src/main.py cl -f results/vae/vae_encoded_data.csv results/vae/test_data.csv results/pca/pca_encoded_data.csv -n vae non pca ```
-
-Will perform a cluster analysis using kmeans and phenograph.
-
-
-
-#### Clustering
-
-
-Supported arguments:
-
-| Short   |  Long  |  Description  | Multiple args  |
-|---|---|---|---|
-| -f  | --file  | Specifies the files to use for the algorithm  | x  |
-| -n | --names  | Specify the names of the groups associated to the files  | x  |
+`python VAE/main.py model --file data/HTA9-3_Bx2_HMS_Tumor_quant.csv`
 
 
 

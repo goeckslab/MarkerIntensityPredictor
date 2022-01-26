@@ -5,9 +5,20 @@ from src.data.data_loader import DataLoader
 import logging
 import mlflow
 from src.plots.plots import Plotting
+from pathlib import Path
+import pandas as pd
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
+
+
+def save_initial_data(cells, markers):
+    cell_save_path = Path("VAE", "results", "cells.csv")
+    markers_save_path = Path("VAE", "results", "markers.csv")
+    cells.to_csv(cell_save_path, index=False)
+    pd.DataFrame(markers).to_csv(markers_save_path, index=False)
+    mlflow.log_artifact(cell_save_path)
+    mlflow.log_artifact(markers_save_path)
 
 
 def handle_model_training(args):
@@ -16,11 +27,11 @@ def handle_model_training(args):
         mlflow.log_param("file", args.file)
         mlflow.log_param("morphological_data", args.morph)
         cells, markers = DataLoader.load_data(file_name=args.file)
-        print(cells, markers)
-
+        save_initial_data(cells, markers)
         vae = VAutoEncoder(args, cells, markers)
         vae.build_auto_encoder()
-        Plotting.plot_model_performance(vae.history, "Model performance")
+        vae.encode_decode_test_data()
+        Plotting.plot_model_performance(vae.history, "model_performance")
 
 
 if __name__ == "__main__":
