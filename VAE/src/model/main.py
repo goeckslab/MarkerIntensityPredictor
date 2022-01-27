@@ -183,7 +183,10 @@ class VAutoEncoder:
                     "Score": r2_score(input_marker, var_marker)
                 }, ignore_index=True
             )
-        # self.plot_label_clusters(self.data.X_test, self.data.X_test)
+
+        save_path = Path("VAE", self.results_folder, "r2_scores.csv")
+        self.r2_scores.to_csv(save_path, index=False)
+        mlflow.log_artifact(str(save_path))
 
     def encode_decode_test_data(self):
         """

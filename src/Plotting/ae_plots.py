@@ -134,7 +134,7 @@ class Plots:
         ax1.set_xlabel("Latent Variables")
         ax1.set_ylabel("Values")
 
-        ax2.set_title("Latent variables to explor")
+        ax2.set_title("Latent variables to explore")
         ax2.set_xlabel("Latent Variables")
         ax2.set_ylabel("Values")
 

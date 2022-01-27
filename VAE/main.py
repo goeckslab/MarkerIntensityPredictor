@@ -31,7 +31,11 @@ def handle_model_training(args):
         vae = VAutoEncoder(args, cells, markers)
         vae.build_auto_encoder()
         vae.encode_decode_test_data()
+        vae.calculate_r2_score()
         Plotting.plot_model_performance(vae.history, "model_performance")
+        Plotting.plot_reconstructed_markers(vae.data.X_test, vae.reconstructed_data, vae.data.markers,
+                                            "Initial vs. Reconstructed markers")
+        Plotting.plot_r2_scores(vae.r2_scores, "R^2 Scores")
 
 
 if __name__ == "__main__":
