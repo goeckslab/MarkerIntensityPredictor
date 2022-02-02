@@ -26,6 +26,7 @@ class ArgumentParser:
         model_parser.add_argument("--remove", action="store_true", default=False,
                                   help="If presents the results folder will not be recreated. "
                                        "This is useful for script executions.")
+        model_parser.add_argument("--name", action="store", required=True, help="The name of the experiment being run")
 
         return
 

@@ -5,6 +5,7 @@ from src.data.data_loader import DataLoader
 import logging
 import mlflow
 from src.plots.plots import Plotting
+from src.latentspace.laten_space_exploration import LatentSpaceExplorer
 from pathlib import Path
 import pandas as pd
 
@@ -23,7 +24,7 @@ def save_initial_data(cells, markers):
 
 def handle_model_training(args):
     # Load cells and markers from the given file
-    with mlflow.start_run(run_name='Variational Auto Encoder') as run:
+    with mlflow.start_run(run_name=args.name) as run:
         mlflow.log_param("file", args.file)
         mlflow.log_param("morphological_data", args.morph)
         cells, markers = DataLoader.load_data(file_name=args.file)
@@ -36,6 +37,10 @@ def handle_model_training(args):
         Plotting.plot_reconstructed_markers(vae.data.X_test, vae.reconstructed_data, vae.data.markers,
                                             "Initial vs. Reconstructed markers")
         Plotting.plot_r2_scores(vae.r2_scores, "R^2 Scores")
+
+        latent_space_explorer = LatentSpaceExplorer(vae.encoded_data, vae.data.markers)
+        latent_space_explorer.explore_latent_space(latent_space_dimensions=vae.latent_space_dimensions,
+                                                   cells_to_generate=4000)
 
 
 if __name__ == "__main__":

@@ -99,7 +99,7 @@ class VAutoEncoder:
 
         """
 
-        mlflow.keras.autolog()
+        mlflow.tensorflow.autolog()
 
         inputs_dim = self.data.inputs_dim
 
