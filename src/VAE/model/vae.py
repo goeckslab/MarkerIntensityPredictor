@@ -5,15 +5,11 @@ from random import randrange
 import pandas as pd
 from pathlib import Path
 import keras
-from src.model.sampling import Sampling
-from src.model.vae_model import VAE
-import anndata as ad
-import matplotlib.pyplot as plt
-import pickle
+from VAE.model.sampling import Sampling
+from VAE.model.vae_model import VAE
 from sklearn.metrics import r2_score
-import umap
 import tensorflow as tf
-from src.data.data import Data
+from Shared.data import Data
 import mlflow
 import mlflow.tensorflow
 
@@ -21,7 +17,7 @@ import mlflow.tensorflow
 # https://towardsdatascience.com/intuitively-understanding-variational-autoencoders-1bfe67eb5daf
 
 
-class VAutoEncoder:
+class VAEModel:
     # The split data
     data: Data
     # The defined encoder
@@ -47,17 +43,22 @@ class VAutoEncoder:
     reconstructed_data = pd.DataFrame()
 
     args = None
-    # The default results folder, where all experiment data is being stored. Can be overriden by the constructor
-    results_folder = Path("results")
+    # The default results folder, where all experiment data is being stored.
+    __base_result_path: Path
+    # The sub folder used by mlflow
+    __base_sub_folder = "VAE"
 
-    def __init__(self, args, cells: pd.DataFrame, markers: list, latent_space_dimensions=10, activation="relu"):
+    def __init__(self, args, cells: pd.DataFrame, markers: list, base_results_path: Path, latent_space_dimensions=5,
+                 activation="relu"):
         self.latent_space_dimensions = latent_space_dimensions
         self.args = args
-        self.data = Data(inputs=np.array(cells), markers=markers, normalize=self.normalize)
+        self.data = Data(cells=np.array(cells), markers=markers, normalize=self.normalize)
         self.activation = activation
+        self.__base_result_path = base_results_path
 
         mlflow.log_param("input_dimensions", self.data.inputs_dim)
         mlflow.log_param("activation", self.activation)
+        mlflow.log_param("latent_space_dimension", self.latent_space_dimensions)
 
     @staticmethod
     def normalize(inputs: np.ndarray):
@@ -147,9 +148,9 @@ class VAutoEncoder:
                                     shuffle=True,
                                     verbose=1)
 
-        save_path = Path("VAE", self.results_folder, "model")
+        save_path = Path(self.__base_result_path, "model")
         mlflow.keras.save_model(self.vae, save_path)
-        mlflow.log_artifact(save_path)
+        mlflow.log_artifact(str(save_path), self.__base_sub_folder)
 
     def predict(self):
         # Make some predictions
@@ -184,9 +185,9 @@ class VAutoEncoder:
                 }, ignore_index=True
             )
 
-        save_path = Path("VAE", self.results_folder, "r2_scores.csv")
+        save_path = Path(self.__base_result_path, "r2_scores.csv")
         self.r2_scores.to_csv(save_path, index=False)
-        mlflow.log_artifact(str(save_path))
+        mlflow.log_artifact(str(save_path), self.__base_sub_folder)
 
     def encode_decode_test_data(self):
         """
@@ -196,10 +197,10 @@ class VAutoEncoder:
         self.encoded_data = pd.DataFrame(z)
         self.reconstructed_data = pd.DataFrame(columns=self.data.markers, data=self.decoder.predict(self.encoded_data))
 
-        encoded_data_save_path = Path("VAE", self.results_folder, "encoded_data.csv")
+        encoded_data_save_path = Path(self.__base_result_path, "encoded_data.csv")
         self.encoded_data.to_csv(encoded_data_save_path, index=False)
-        mlflow.log_artifact(encoded_data_save_path)
+        mlflow.log_artifact(str(encoded_data_save_path), self.__base_sub_folder)
 
-        reconstructed_data_save_path = Path("VAE", self.results_folder, "reconstructed_data.csv")
+        reconstructed_data_save_path = Path(self.__base_result_path, "reconstructed_data.csv")
         self.encoded_data.to_csv(reconstructed_data_save_path, index=False)
-        mlflow.log_artifact(reconstructed_data_save_path)
+        mlflow.log_artifact(str(reconstructed_data_save_path), self.__base_sub_folder)

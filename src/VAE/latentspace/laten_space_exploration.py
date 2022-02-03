@@ -27,13 +27,13 @@ class LatentSpaceExplorer:
     generated_cells: pd.DataFrame
     # Whether plots are created
     __create_plots = True
+    __base_results_path = ""
+    __results_sub_folder = "VAE/latent_space"
 
-    __generated_cells_save_path = Path("VAE", "results", "generated_cells.csv")
-    __generated_cells_difference_path = Path("VAE", "results", "generated_cell_expression_differences.csv")
-
-    def __init__(self, encoded_latent_space: pd.DataFrame, markers: list, create_plots=True):
+    def __init__(self, encoded_latent_space: pd.DataFrame, markers: list, base_results_path: Path, create_plots=True):
         self.encoded_latent_space = encoded_latent_space
         self.markers = markers
+        self.__base_results_path = Path(base_results_path, "generated")
         self.generated_cells = pd.DataFrame()
         self.__create_plots = create_plots
 
@@ -49,7 +49,7 @@ class LatentSpaceExplorer:
             not_fixed_dimension = 0
 
         model = keras.models.load_model(
-            Path("VAE", "results", "model", "data", "model"))  # mlflow workaround for the model
+            Path("results", "VAE", "model", "data", "model"))  # mlflow workaround for the model
 
         x_values = np.linspace(self.encoded_latent_space.min(), self.encoded_latent_space.max(), cells_to_generate)
         count: int = 0
@@ -77,8 +77,10 @@ class LatentSpaceExplorer:
 
         print(f"Generated {count} new cells.")
         self.generated_cells.columns = self.markers
-        self.generated_cells.to_csv(self.__generated_cells_save_path, index=False)
-        mlflow.log_artifact(self.__generated_cells_save_path)
+
+        save_path = Path(self.__base_results_path, "generated_cells.csv")
+        self.generated_cells.to_csv(save_path, index=False)
+        mlflow.log_artifact(str(save_path), self.__results_sub_folder)
 
         if self.__create_plots:
             self.__plot_generated_cells()
@@ -94,15 +96,16 @@ class LatentSpaceExplorer:
         plt.ylabel("Cell")
         plt.tight_layout()
 
-        save_path = Path("VAE", "results", "generated_cells.png")
+        save_path = Path(self.__base_results_path, "generated_cells.png")
         fig.savefig(save_path)
-        mlflow.log_artifact(save_path)
+        mlflow.log_artifact(str(save_path), self.__results_sub_folder)
         plt.close('all')
 
     def __plot_generated_cells_differences(self):
         difference = self.generated_cells.diff(axis=0)
-        difference.to_csv(self.__generated_cells_difference_path, index=False)
-        mlflow.log_artifact(self.__generated_cells_difference_path)
+        save_path = Path(self.__base_results_path, "generated_cell_expression_differences.csv")
+        difference.to_csv(save_path, index=False)
+        mlflow.log_artifact(str(save_path), self.__results_sub_folder)
 
         plt.figure(figsize=(20, 9))
         ax = sns.heatmap(difference, vmin=difference.min().min(), vmax=difference.max().max())
@@ -111,9 +114,9 @@ class LatentSpaceExplorer:
         plt.ylabel("Cell")
         ax.set_yticklabels(ax.get_yticklabels(), rotation=90)
         plt.tight_layout()
-        save_path = Path("VAE", "results", "generated_cell_expression_differences.png")
+        save_path = Path(self.__base_results_path, "generated_cell_expression_differences.png")
         fig.savefig(save_path)
-        mlflow.log_artifact(save_path)
+        mlflow.log_artifact(str(save_path), self.__results_sub_folder)
         plt.close('all')
 
     def __umap_mapping_of_generated_cells(self):
@@ -123,7 +126,7 @@ class LatentSpaceExplorer:
         plot = sns.scatterplot(data=mapping, x=mapping[:, 0], y=mapping[:, 1],
                                hue=pd.Series(self.generated_cells.index))
         fig = plot.get_figure()
-        save_path = Path("VAE", "results", "generated_cells_umap.png")
+        save_path = Path(self.__base_results_path, "generated_cells_umap.png")
         fig.savefig(save_path)
-        mlflow.log_artifact(save_path)
+        mlflow.log_artifact(str(save_path), self.__results_sub_folder)
         plt.close('all')

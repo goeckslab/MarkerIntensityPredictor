@@ -7,20 +7,24 @@ from typing import Tuple
 
 class DataLoader:
     @staticmethod
-    def get_data(input_dataframe: pd.DataFrame = None, input_file: str = None, keep_morph: bool = True):
+    def load_data(source_df: pd.DataFrame = None, file_name: str = None, keep_morph: bool = True):
         """
-        Load Data
-        We load data into RAM since data is small and will fit in memory.
-        :return:
+        Loads the data, given the provided information
+        @param source_df: An initial source dataframe already stored in memory
+        @param file_name: The file name to load from the os
+        @param keep_morph: Keep morphological features or sort them out? Default to true
+        @return:
         """
-
         columns_to_remove = ["CellID", "ERK1_2_nucleiMasks"]
 
-        if input_file is not None:
-            path = Path(f"{os.path.split(os.environ['VIRTUAL_ENV'])[0]}/{input_file}")
+        if file_name is None and source_df is None:
+            raise "Please provide either an input file or an source_df"
+
+        if file_name is not None:
+            path = Path(file_name)
             cells = pd.read_csv(path, header=0)
         else:
-            cells = input_dataframe
+            cells = source_df
 
         # Keeps only the 'interesting' columns with morphological features
         if keep_morph:
@@ -53,46 +57,8 @@ class DataLoader:
         markers = cells.columns
         markers = [re.sub("_nucleiMasks", "", x) for x in markers]
 
-        if 'ERK1_1' in markers:
-            assert 'ERK1_2' not in markers, 'ERK1_2 should not be in markers'
+        assert 'ERK1_2' not in markers, 'ERK1_2 should not be in markers'
+        assert 'CellId' not in markers, 'CellId should not be in markers'
 
         # return cells, markers
         return cells.iloc[:, :], markers
-
-    @staticmethod
-    def load_folder_data(path: str, keep_morph: bool) -> Tuple[pd.DataFrame, list]:
-        merged_data = pd.DataFrame()
-        markers = list
-        for subdir, dirs, files in os.walk(path):
-            for file in files:
-                if not file.endswith(".csv"):
-                    continue
-
-                cells, markers = DataLoader.get_data(os.path.join(subdir, file), keep_morph)
-                merged_data = merged_data.append(cells)
-
-        return merged_data, markers
-
-    @staticmethod
-    def merge_files(exclude_file: str):
-        """
-        Combines all remaining files in the folder to create a big train set
-        :param exclude_file:
-        :return:
-        """
-
-        path: Path = Path("./data")
-        merged_data = pd.DataFrame()
-        markers = list
-        for subdir, dirs, files in os.walk(path):
-            for file in files:
-                if not file.endswith(".csv"):
-                    continue
-
-                if file in str(exclude_file):
-                    continue
-
-                cells, markers = DataLoader.get_data(os.path.join(subdir, file), True)
-                merged_data = merged_data.append(cells)
-
-        return merged_data, markers
