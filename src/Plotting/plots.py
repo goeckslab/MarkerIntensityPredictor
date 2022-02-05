@@ -1,71 +1,38 @@
+import logging
+import matplotlib.pyplot as plt
+from pathlib import Path
+import mlflow
 import pandas as pd
 import seaborn as sns
-from pathlib import Path
-import matplotlib.pyplot as plt
-import os
-import logging
-import numpy as np
 
-sns.set_theme(style="darkgrid")
-results_folder = Path("results", "plots")
+logging.basicConfig(level=logging.WARN)
+logger = logging.getLogger(__name__)
 
 
-class Plots:
+class Plotting:
+    # The base path such as AE or VAE. This is the path where the files will be stored
+    __base_path: Path
 
-    @staticmethod
-    def latent_space_cluster(input_umap, latent_umap, file_name: str):
-        logging.info("Plotting latent space clusters")
+    def __init__(self, base_path: Path):
+        self.__base_path = base_path
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), dpi=150)
-        plt.subplots_adjust(wspace=0.2)
+    def plot_model_performance(self, history, sub_directory: str, file_name: str):
+        logger.info("Plotting model performance")
+        plt.figure(num=None, figsize=(6, 4), dpi=90)
+        for key in history.history:
+            plt.plot(history.history[key], label=key)
+        plt.xlabel("Epoch")
+        plt.ylabel("Value")
+        plt.legend()
+        plt.tight_layout()
 
-        ax1.scatter(x=-input_umap[:, 0], y=-input_umap[:, 1], s=.1)
-        ax1.set_title("UMAP Embedding/Projection of Input")
-        ax1.set_xlabel("umap1")
-        ax1.set_ylabel("umap2")
-
-        ax2.scatter(x=-latent_umap[:, 0], y=-latent_umap[:, 1], s=.1)
-        ax2.set_title("UMAP Embedding/Projection of Latent Space")
-        ax2.set_xlabel("umap1")
-        ax2.set_ylabel("umap2")
-
-        plt.savefig(Path(f"{results_folder}", f"{file_name}.png"))
+        save_path = Path(self.__base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+        mlflow.log_artifact(str(save_path), sub_directory)
         plt.close()
 
-    @staticmethod
-    def r2_scores_combined(r2_scores_df, file_name: str = None):
-        g = sns.catplot(
-            data=r2_scores_df, kind="bar",
-            x="Score", y="Marker", hue="Model",
-            ci="sd", palette="dark", alpha=.6,
-            height=20, aspect=1
-        )
-        g.despine(left=True)
-        g.set_axis_labels("R2 Score", "Marker")
-        g.set(xlim=(0, 1))
-
-        plt.title("R2 Scores", y=1.02)
-        g.legend.set_title("Legend")
-
-        # extract the matplotlib axes_subplot objects from the FacetGrid
-        # ax = g.facet_axis(0, 0)
-
-        # iterate through the axes containers
-        # for c in ax.containers:
-        #    labels = [f'{(v.get_width() / 1000):.1f}' for v in c]
-        #    ax.bar_label(c, labels=labels, label_type='edge')
-
-        if file_name is None:
-            g.savefig(Path(f"{results_folder}/r2_scores.png"))
-        else:
-            g.savefig(Path(f"{results_folder}/{file_name}.png"))
-
-        plt.close()
-
-    @staticmethod
-    def plot_reconstructed_markers(X, X_pred, data_origin):
+    def plot_reconstructed_markers(self, X, X_pred, markers, sub_directory: str, file_name: str):
         logging.info("Plotting reconstructed intensities")
-        markers = X.columns
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 10), dpi=300, sharex=True)
         sns.heatmap(X, ax=ax1, xticklabels=markers)
         sns.heatmap(X_pred, ax=ax2, xticklabels=markers)
@@ -73,108 +40,60 @@ class Plots:
         ax1.set_title("X Test")
         ax2.set_title("Reconstructed X Test")
         fig.tight_layout()
-        plt.savefig(Path(f"{results_folder}/{data_origin}_reconstructed.png"))
+
+        save_path = Path(self.__base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+        mlflow.log_artifact(str(save_path), sub_directory)
         plt.close()
 
-    @staticmethod
-    def plot_corr_heatmap(correlation_df, data_origin: str, model: str):
-        """
-        correlation_df: The data frame to use for creating the heatmap
-        data_origin: the file the data originated from
-        model: the model of which the correlations are derived from
-        """
-        del correlation_df["Markers"]
-        del correlation_df["Model"]
-        plt.figure(figsize=(20, 16))
-        # define the mask to set the values in the upper triangle to True
-        mask = np.triu(np.ones_like(correlation_df, dtype=np.bool))
-        heatmap = sns.heatmap(correlation_df, mask=mask, vmin=-1, vmax=.6, annot=True, cmap='BrBG')
-        heatmap.set_title('Correlation Heatmap of Markers', fontdict={'fontsize': 18}, pad=16)
-
-        heatmap.set_yticklabels(correlation_df.columns)
-
-        for item in heatmap.get_yticklabels():
-            item.set_rotation(0)
-
-        plt.savefig(Path(f"{results_folder}/{data_origin}_{model}_correlation.png"))
-        plt.close()
-
-    @staticmethod
-    def plot_corr_scatter_plot(data, data_origin: str):
-        plt.figure(figsize=(20, 16))
-        correlation_df = data
-        del correlation_df["Model"]
-
-        new_df = pd.DataFrame(columns=["Hue", "X", "Y"])
-        for marker in correlation_df.columns.unique():
-            if marker == 'Markers':
-                continue
-
-            temp_data = correlation_df[correlation_df["Markers"] == marker].T
-            temp_data.reset_index(level=0, inplace=True)
-            temp_data.dropna(inplace=True)
-            # del temp_data[f"{marker}"]
-            temp_data = temp_data.iloc[1:, :]
-            temp_data.rename(columns={'index': 'X', temp_data.columns[1]: "Y"}, inplace=True)
-
-            new_df = new_df.append(temp_data, ignore_index=True)
-            new_df = new_df.fillna(marker)
-
-        print(new_df)
-        ax = sns.scatterplot(data=new_df, x="X", y="Y", hue="Hue")
+    def plot_r2_scores(self, r2_scores: pd.DataFrame, sub_directory: str, file_name: str):
+        ax = sns.barplot(x="Marker", y="Score", data=r2_scores)
         ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
-        plt.savefig(Path(f"{results_folder}/correlation_scatter.png"))
+        fig = ax.get_figure()
+        fig.tight_layout()
+        save_path = Path(self.__base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+        mlflow.log_artifact(str(save_path), sub_directory)
         plt.close()
 
-    @staticmethod
-    def plot_combined_corr_plot(df):
+    def plot_markers(self, X_train, X_test, X_val, markers, sub_directory: str, file_name: str):
+        logging.info("Plotting markers")
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(9, 10), dpi=300, sharex=True)
+        sns.heatmap(X_train, ax=ax1, xticklabels=markers)
+        sns.heatmap(X_test, ax=ax2, xticklabels=markers)
+        sns.heatmap(X_val, ax=ax3, xticklabels=markers)
 
-        if len(df["File"].unique()) == 1:
-            return
+        ax1.set_title("X Train")
+        ax2.set_title("X Test")
+        ax3.set_title("X Validation")
+        fig.tight_layout()
 
-        fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(40, 30), dpi=300)
-
-        column = 0
-        row = 0
-
-        for file in df["File"].unique():
-            correlation_df = df[df["File"] == file]
-            del correlation_df["File"]
-
-            mask = np.triu(np.ones_like(correlation_df, dtype=np.bool))
-            heatmap = sns.heatmap(correlation_df, ax=axes[row, column], mask=mask, vmin=-1, vmax=.6, annot=True,
-                                  cmap='BrBG')
-            # heatmap.set_title('Correlation Heatmap of Markers', fontdict={'fontsize': 18}, pad=16)
-            axes[row, column].set_title(file)
-            heatmap.set_yticklabels(correlation_df.columns)
-
-            for item in heatmap.get_yticklabels():
-                item.set_rotation(0)
-
-            column += 1
-            # Reset column and increase row by 1
-            if column == 2:
-                column = 0
-                row += 1
-
-        plt.savefig(Path(f"{results_folder}/combined_correlation.png"))
+        save_path = Path(self.__base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+        mlflow.log_artifact(str(save_path), sub_directory)
         plt.close()
 
-    @staticmethod
-    def __create_linear_coefficients_heatmap_plot(self):
-        """
-        Creates a heatmap for the coefficients
-        """
+    def plot_r2_scores_comparison(self, ae_r2_scores: pd.DataFrame, vae_r2_scores: pd.DataFrame):
+        fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, figsize=(19, 20), dpi=300, sharex=False)
+        sns.barplot(x='Marker', y='Score', data=ae_r2_scores, ax=ax1)
+        sns.barplot(x='Marker', y='Score', data=vae_r2_scores, ax=ax2)
 
-        for model in self.coefficients["Model"].unique():
-            df = self.coefficients[self.coefficients["Model"] == model].copy()
+        differences = pd.DataFrame()
+        differences['Vae'] = vae_r2_scores['Score']
+        differences['Ae'] = ae_r2_scores['Score']
+        differences['Marker'] = vae_r2_scores['Marker']
+        differences['Difference'] = differences["Vae"] - differences["Ae"]
+        sns.barplot(x="Marker", y="Difference", data=differences, ax=ax3)
 
-            del df["Model"]
-            df.fillna(-1, inplace=True)
-            # df[(df < 0.001) | (df > 0.6)] = None
-            fig, ax = plt.subplots(figsize=(20, 20))  # Sample figsize in inches
-            ax = sns.heatmap(df, linewidths=1, vmin=0, vmax=0.6, cmap="YlGnBu", ax=ax)
-            ax.set_title(model)
-            fig = ax.get_figure()
-            fig.savefig(Path(f"{self.results_folder}/{model}_coef_heatmap.png"), bbox_inches='tight')
-            plt.close()
+        ax1.set_title("AE R2 Scores")
+        ax2.set_title("VAE R2 Scores")
+        ax3.set_title("Difference VAE to AE")
+        ax1.set_xticklabels(ax1.get_xticklabels(), rotation=90)
+        ax2.set_xticklabels(ax2.get_xticklabels(), rotation=90)
+        ax3.set_xticklabels(ax3.get_xticklabels(), rotation=90)
+
+        fig.tight_layout()
+        save_path = Path(self.__base_path, "r2_comparison.png")
+        plt.savefig(save_path)
+        mlflow.log_artifact(str(save_path))
+        plt.close()

@@ -10,7 +10,8 @@ from keras.losses import MeanAbsoluteError, MeanSquaredError
 
 
 class AutoEncoderModel:
-    data: Data
+    # The data used to train and evaluate the model
+    __data: Data
 
     # The defined encoder
     encoder: any
@@ -46,11 +47,11 @@ class AutoEncoderModel:
                  activation='relu'):
         self.__base_result_path = base_result_path
         self.latent_space_dimensions = latent_space_dimensions
-        self.data = data
+        self.__data = data
         self.args = args
         self.activation = activation
 
-        mlflow.log_param("input_dimensions", self.data.inputs_dim)
+        mlflow.log_param("input_dimensions", self.__data.inputs_dim)
         mlflow.log_param("activation", self.activation)
         mlflow.log_param("latent_space_dimension", self.latent_space_dimensions)
 
@@ -60,16 +61,16 @@ class AutoEncoderModel:
 
         activity_regularizer = regularizers.l1_l2(10e-5)
         # Build encoder
-        input_layers = keras.Input(shape=(self.data.inputs_dim,))
-        encoded = layers.Dense(self.data.inputs_dim, activation=self.activation)(input_layers)
-        encoded = layers.Dense(self.data.inputs_dim / 2, activation=self.activation)(encoded)
-        encoded = layers.Dense(self.data.inputs_dim / 3, activation=self.activation)(encoded)
+        input_layers = keras.Input(shape=(self.__data.inputs_dim,))
+        encoded = layers.Dense(self.__data.inputs_dim, activation=self.activation)(input_layers)
+        encoded = layers.Dense(self.__data.inputs_dim / 2, activation=self.activation)(encoded)
+        encoded = layers.Dense(self.__data.inputs_dim / 3, activation=self.activation)(encoded)
         encoded = layers.Dense(self.latent_space_dimensions, activation=self.activation)(encoded)
 
         # Build decoder.
-        decoded = layers.Dense(self.data.inputs_dim / 3, activation=self.activation)(encoded)
-        decoded = layers.Dense(self.data.inputs_dim / 2, activation=self.activation)(decoded)
-        decoded = layers.Dense(self.data.inputs_dim)(decoded)
+        decoded = layers.Dense(self.__data.inputs_dim / 3, activation=self.activation)(encoded)
+        decoded = layers.Dense(self.__data.inputs_dim / 2, activation=self.activation)(decoded)
+        decoded = layers.Dense(self.__data.inputs_dim)(decoded)
 
         # Auto encoder
         self.ae = keras.Model(input_layers, decoded, name="AE")
@@ -94,20 +95,20 @@ class AutoEncoderModel:
         callback = tf.keras.callbacks.EarlyStopping(monitor="val_loss",
                                                     mode="min", patience=5,
                                                     restore_best_weights=True)
-        self.history = self.ae.fit(self.data.X_train, self.data.X_train,
+        self.history = self.ae.fit(self.__data.X_train, self.__data.X_train,
                                    epochs=100,
                                    batch_size=256,
                                    shuffle=True,
                                    callbacks=[callback],
-                                   validation_data=(self.data.X_val, self.data.X_val))
+                                   validation_data=(self.__data.X_val, self.__data.X_val))
 
     def encode_decode_test_data(self):
         """
         Encodes and decodes the remaining test dataset. Is then further used for evaluation of performance
         """
-        encoded = self.encoder.predict(self.data.X_test)
+        encoded = self.encoder.predict(self.__data.X_test)
         self.encoded_data = pd.DataFrame(encoded)
-        self.reconstructed_data = pd.DataFrame(columns=self.data.markers, data=self.decoder.predict(self.encoded_data))
+        self.reconstructed_data = pd.DataFrame(columns=self.__data.markers, data=self.decoder.predict(self.encoded_data))
 
         encoded_data_save_path = Path(self.__base_result_path, "encoded_data.csv")
         self.encoded_data.to_csv(encoded_data_save_path, index=False)

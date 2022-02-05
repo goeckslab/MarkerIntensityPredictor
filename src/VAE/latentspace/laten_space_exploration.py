@@ -112,7 +112,6 @@ class LatentSpaceExplorer:
         fig = ax.get_figure()
         plt.xlabel("Difference")
         plt.ylabel("Cell")
-        ax.set_yticklabels(ax.get_yticklabels(), rotation=90)
         plt.tight_layout()
         save_path = Path(self.__base_results_path, "generated_cell_expression_differences.png")
         fig.savefig(save_path)

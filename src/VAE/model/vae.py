@@ -33,7 +33,6 @@ class VAEModel:
     # the latent space dimensions
     latent_space_dimensions: int
 
-    r2_scores = pd.DataFrame(columns=["Marker", "Score"])
     rmse = pd.DataFrame()
 
     # Latent space encoded data
@@ -48,52 +47,17 @@ class VAEModel:
     # The sub folder used by mlflow
     __base_sub_folder = "VAE"
 
-    def __init__(self, args, cells: pd.DataFrame, markers: list, base_results_path: Path, latent_space_dimensions=5,
+    def __init__(self, args, data: Data, base_results_path: Path, latent_space_dimensions=5,
                  activation="relu"):
         self.latent_space_dimensions = latent_space_dimensions
         self.args = args
-        self.data = Data(cells=np.array(cells), markers=markers, normalize=self.normalize)
+        self.data = data
         self.activation = activation
         self.__base_result_path = base_results_path
 
         mlflow.log_param("input_dimensions", self.data.inputs_dim)
         mlflow.log_param("activation", self.activation)
         mlflow.log_param("latent_space_dimension", self.latent_space_dimensions)
-
-    @staticmethod
-    def normalize(inputs: np.ndarray):
-        # Input data contains some zeros which results in NaN (or Inf)
-        # values when their log10 is computed. NaN (or Inf) are problematic
-        # values for downstream analysis. Therefore, zeros are replaced by
-        # a small value; see the following thread for related discussion.
-        # https://www.researchgate.net/post/Log_transformation_of_values_that_include_0_zero_for_statistical_analyses2
-
-        inputs[inputs == 0] = 1e-32
-        inputs = np.log10(inputs)
-
-        standard_scaler = StandardScaler()
-        inputs = standard_scaler.fit_transform(inputs)
-        inputs = inputs.clip(min=-5, max=5)
-
-        # min_max_scaler = MinMaxScaler(feature_range=(-1, 1))
-        # inputs = min_max_scaler.fit_transform(inputs)
-
-        return inputs
-
-    def check_mean_and_std(self):
-        rnd = randrange(0, self.data.inputs.shape[1])
-        # Mean should be zero and standard deviation
-        # should be 1. However, due to some challenges
-        # relationg to floating point positions and rounding,
-        # the values should be very close to these numbers.
-        # For details, see:
-        # https://stackoverflow.com/a/40405912/947889
-        # Hence, we assert the rounded values.
-        print(self.data.inputs)
-        print(self.data.inputs[:, rnd])
-
-        print(f"Std: {self.data.inputs[:, rnd].std()}")
-        print(f"Mean: {self.data.inputs[:, rnd].mean()}")
 
     def build_auto_encoder(self):
         """
@@ -142,51 +106,14 @@ class VAEModel:
 
         self.history = self.vae.fit(self.data.X_train,
                                     validation_data=(self.data.X_val, self.data.X_val),
-                                    epochs=30,
+                                    epochs=100,
                                     callbacks=callback,
-                                    batch_size=32,
+                                    batch_size=256,
                                     shuffle=True,
                                     verbose=1)
 
         save_path = Path(self.__base_result_path, "model")
         mlflow.keras.save_model(self.vae, save_path)
-        mlflow.log_artifact(str(save_path), self.__base_sub_folder)
-
-    def predict(self):
-        # Make some predictions
-        cell = self.data.X_test[0]
-        cell = cell.reshape(1, cell.shape[0])
-        mean, log_var, z = self.encoder.predict(cell)
-        encoded_cell = z
-        decoded_cell = self.decoder.predict(encoded_cell)
-        var_cell = self.vae.predict(cell)
-        print(f"Input shape:\t{cell.shape}")
-        print(f"Encoded shape:\t{encoded_cell.shape}")
-        print(f"Decoded shape:\t{decoded_cell.shape}")
-        print(f"\nInput:\n{cell[0]}")
-        print(f"\nEncoded:\n{encoded_cell[0]}")
-        print(f"\nDecoded:\n{decoded_cell[0]}")
-
-    def calculate_r2_score(self):
-        recon_test = self.vae.predict(self.data.X_test)
-        recon_test = pd.DataFrame(data=recon_test, columns=self.data.markers)
-        input_data = pd.DataFrame(data=self.data.X_test, columns=self.data.markers)
-
-        # self.plot_clusters(input_data, range(len(self.data.markers)))
-
-        for marker in self.data.markers:
-            input_marker = input_data[f"{marker}"]
-            var_marker = recon_test[f"{marker}"]
-
-            self.r2_scores = self.r2_scores.append(
-                {
-                    "Marker": marker,
-                    "Score": r2_score(input_marker, var_marker)
-                }, ignore_index=True
-            )
-
-        save_path = Path(self.__base_result_path, "r2_scores.csv")
-        self.r2_scores.to_csv(save_path, index=False)
         mlflow.log_artifact(str(save_path), self.__base_sub_folder)
 
     def encode_decode_test_data(self):

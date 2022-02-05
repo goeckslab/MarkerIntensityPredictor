@@ -51,3 +51,11 @@ class FolderManagement:
             logging.info("Could not create path. Aborting!")
             print(ex)
             sys.exit(20)
+
+    @staticmethod
+    def create_directory(path: Path, remove_if_exists=True) -> Path:
+        if remove_if_exists and path.exists():
+            shutil.rmtree(path)
+
+        path.mkdir(parents=True, exist_ok=True)
+        return path
