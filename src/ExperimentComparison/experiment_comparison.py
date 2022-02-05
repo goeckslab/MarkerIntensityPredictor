@@ -20,6 +20,8 @@ class ExperimentComparer:
     def __init__(self, search_tag: str = None):
         self.base_path = FolderManagement.create_directory(self.base_path)
         with mlflow.start_run(run_name="ae_vae_experiment_comparison") as run:
+            mlflow.log_param("Group", search_tag)
+            # Collect all experiments based on the search tag
             self.__get_experiments(search_tag)
             data_manager = DataManagement(self.base_path)
             data_manager.download_artifacts(self.experiments)
@@ -49,6 +51,9 @@ class ExperimentComparer:
                 experiments_found += 1
 
         print(f"Found {experiments_found} experiments.")
+        mlflow.log_param("Included Experiments", experiments_found)
+        mlflow.log_param("Used Experiment Ids",
+                         [x.info.run_id for x in self.experiments if 'mlflow.parentRunId' not in x.data.tags])
 
 
 if __name__ == "__main__":

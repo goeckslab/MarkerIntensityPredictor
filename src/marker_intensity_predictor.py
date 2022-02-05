@@ -36,6 +36,7 @@ if __name__ == "__main__":
             # Start experiment which compares AE and VAE
             with mlflow.start_run(run_name="Comparison", nested=True) as comparison:
                 print("Comparing vae with ae.")
+                mlflow.set_tag("Group", args.group)
                 plotter = Plotting(comparison_base_results_path)
                 plotter.plot_r2_scores_comparison(ae_r2_scores=ae.evaluation.r2_scores,
                                                   vae_r2_scores=vae.evaluation.r2_scores)
