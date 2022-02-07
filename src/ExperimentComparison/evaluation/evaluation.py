@@ -20,10 +20,12 @@ class Evaluation:
         fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, figsize=(19, 20), dpi=300, sharex=False)
         sns.barplot(x='Marker', y='Score', data=ae_scores, ax=ax1)
         sns.barplot(x='Marker', y='Score', data=vae_scores, ax=ax2)
+
         # Create difference dataframe
-        differences = pd.DataFrame(columns=["Marker", "Difference"], data={"Marker": ae_scores.columns,
-                                                                           "Score": vae_scores["Score"] - ae_scores[
-                                                                               "Score"]})
+        differences = pd.DataFrame(columns=["Marker", "Difference"], data={"Marker": ae_scores["Marker"].values,
+                                                                           "Difference": vae_scores["Score"] -
+                                                                                         ae_scores[
+                                                                                             "Score"]})
         sns.barplot(x="Marker", y="Difference", data=differences, ax=ax3)
 
         ax1.set_title("AE R2 Scores")
