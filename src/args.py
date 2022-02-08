@@ -9,11 +9,15 @@ class ArgumentParser:
         Load all provided cli args
         """
         parser = argparse.ArgumentParser()
-        parser.add_argument("--experiment", "-exp", action="store", required=True,
-                            help="The name of the experiment being run",
+        parser.add_argument("--run", "-r", action="store", required=True,
+                            help="The name of the run being run",
                             type=str)
         parser.add_argument("--group", "-g", action="store", required=False,
                             help="Adds a tag to the experiment indicating to which group it belongs too.",
+                            type=str)
+        parser.add_argument("--experiment", "-e", action="store", required=False,
+                            help="Assigns the run to a particular experiment. "
+                                 "If the experiment does not exists it will create a new one.",
                             type=str)
         parser.add_argument("--file", action="store", required=True, help="The file used for training the model")
         parser.add_argument("--morph", action="store_true", help="Include morphological data", default=True)

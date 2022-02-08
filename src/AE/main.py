@@ -27,14 +27,17 @@ class AutoEncoder:
     # Contains all evaluation metrics
     evaluation: Evaluation
 
+    # The associated experiment id
+    __experiment_id: str
 
-    def __init__(self, args, base_results_path: Path):
+    def __init__(self, args, base_results_path: Path, experiment_id: str):
         self.args = args
         self.__base_path = base_results_path
+        self.__experiment_id = experiment_id
         self.__start_experiment()
 
     def __start_experiment(self):
-        with mlflow.start_run(run_name="AE", nested=True) as run:
+        with mlflow.start_run(run_name="AE", nested=True, experiment_id=self.__experiment_id) as run:
             mlflow.log_param("file", self.args.file)
             mlflow.log_param("morphological_data", self.args.morph)
             mlflow.set_tag("Group", self.args.group)
@@ -45,7 +48,7 @@ class AutoEncoder:
             self.data = Data(cells, markers, normalize)
             self.save_initial_data(cells, markers)
 
-            #Create model
+            # Create model
             self.model = AutoEncoderModel(args=self.args, data=self.data, base_result_path=self.__base_path)
             self.model.build_auto_encoder()
             self.model.encode_decode_test_data()

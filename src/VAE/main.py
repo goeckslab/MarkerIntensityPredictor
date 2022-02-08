@@ -25,16 +25,19 @@ class VAE:
     # Contains all evaluation metrics
     evaluation: Evaluation
 
+    # The base results path
     __base_path: Path
+    __experiment_id: str
 
-    def __init__(self, args, base_result_path: Path):
+    def __init__(self, args, base_result_path: Path, experiment_id: str):
         self.__base_path = base_result_path
+        self.__experiment_id = experiment_id
         self.args = args
         self.__start_experiment()
 
     def __start_experiment(self):
         # Load cells and markers from the given file
-        with mlflow.start_run(run_name="VAE", nested=True) as run:
+        with mlflow.start_run(run_name="VAE", nested=True, experiment_id=self.__experiment_id) as run:
             mlflow.log_param("file", self.args.file)
             mlflow.log_param("morphological_data", self.args.morph)
             mlflow.set_tag("Group", self.args.group)

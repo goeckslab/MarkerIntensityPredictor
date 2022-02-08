@@ -6,35 +6,44 @@ from VAE.main import VAE
 from AE.main import AutoEncoder
 from pathlib import Path
 from Plotting.plots import Plotting
+from Shared.experiment_handler import ExperimentHandler
 
 vae_base_result_path = Path("results", "VAE")
 ae_base_result_path = Path("results", "AE")
 comparison_base_results_path = Path("results")
+client = mlflow.tracking.MlflowClient()
 
 if __name__ == "__main__":
     args = ArgumentParser.get_args()
+    # The id of the associated
+    associated_experiment_id = 0
+
+    experiment_name = args.experiment
+    if experiment_name is not None:
+        associated_experiment_id = ExperimentHandler.get_experiment_id_by_name(experiment_name=experiment_name)
 
     FolderManagement.create_folders(vae_base_path=vae_base_result_path, ae_base_path=ae_base_result_path)
     # Start initial experiment
-    with mlflow.start_run(run_name=args.experiment, nested=True) as run:
+    with mlflow.start_run(run_name=args.run, nested=True, experiment_id=associated_experiment_id) as run:
         mlflow.log_param("Included Morphological Data", args.morph)
         mlflow.log_param("File", args.file)
         mlflow.log_param("Mode", args.mode)
         mlflow.set_tag("Group", args.group)
 
         if args.mode == "none":
-            vae = VAE(args=args, base_result_path=vae_base_result_path)
-            ae = AutoEncoder(args=args, base_results_path=ae_base_result_path)
+            vae = VAE(args=args, base_result_path=vae_base_result_path, experiment_id=associated_experiment_id)
+            ae = AutoEncoder(args=args, base_results_path=ae_base_result_path, experiment_id=associated_experiment_id)
 
         elif args.mode == "vae":
-            vae = VAE(args=args, base_result_path=vae_base_result_path)
+            vae = VAE(args=args, base_result_path=vae_base_result_path, experiment_id=associated_experiment_id)
 
         elif args.mode == "ae":
-            ae = AutoEncoder(args=args, base_results_path=ae_base_result_path)
+            ae = AutoEncoder(args=args, base_results_path=ae_base_result_path, experiment_id=associated_experiment_id)
 
         if args.mode == "none":
             # Start experiment which compares AE and VAE
-            with mlflow.start_run(run_name="Comparison", nested=True) as comparison:
+            with mlflow.start_run(run_name="Comparison", nested=True,
+                                  experiment_id=associated_experiment_id) as comparison:
                 print("Comparing vae with ae.")
                 mlflow.set_tag("Group", args.group)
                 plotter = Plotting(comparison_base_results_path)
