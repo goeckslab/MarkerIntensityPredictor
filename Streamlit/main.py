@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 from preprocessing.preprocessing import Preprocessing
-from vae_model.model import VariationalAutoEncoder
-from entities.data import Data
 import numpy as np
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import seaborn as sns
