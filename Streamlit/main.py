@@ -1,43 +1,74 @@
 import streamlit as st
 import pandas as pd
 import mlflow
-from experiment import Experiment
-from time import sleep
-import numpy as np
+from mlflow.entities import Experiment, Run
+from experiment_handler.experiment_handler import ExperimentHandler
 
 st.title('VAE latent space explorer')
 dataframe = pd.DataFrame()
+client = mlflow.tracking.MlflowClient()
 
 
 def check_session_state():
     if 'experiment' not in st.session_state:
         st.session_state.experiment = None
 
+    if "experiments" not in st.session_state:
+        st.session_state.experiments = []
 
-def load_experiment() -> Experiment:
-    return st.session_state.experiment
-
-
-def create_experiment(experiment_name: str):
-    st.session_state.experiment = Experiment(experiment_name=experiment_name)
+    if "selected_experiment" not in st.session_state:
+        st.session_state.selected_experiment = ""
 
 
-def clear_experiment():
+def load_experiments() -> list:
+    return st.session_state.experiments
+
+
+def disconnect():
     st.session_state.experiment = None
+    st.session_state.experiments = None
+
+
+def fetch_experiments(server_url: str):
+    """
+    Fetches experiments from the tracking server
+    @param server_url:
+    @return:
+    """
+    if tracking_server_url is not None:
+        mlflow.set_tracking_uri = server_url
+
+    st.session_state.experiments = client.list_experiments()
 
 
 if __name__ == "__main__":
     check_session_state()
-    experiment: Experiment = load_experiment()
-    if experiment is not None:
-        st.header(f"{experiment.name}")
+    experiments: list = load_experiments()
+    if experiments is not None and len(experiments) != 0:
+        st.sidebar.button("Disconnect", on_click=disconnect)
 
-        st.sidebar.button("Finish experiment", on_click=clear_experiment)
+        exp_names = []
+        exp: Experiment
+        for exp in experiments:
+            exp_names.append(exp.name)
+
+        selected_experiment = st.sidebar.selectbox(
+            'Select an experiment of your choice',
+            exp_names, key="selected_experiment")
+
+        if st.session_state.selected_experiment != "":
+            runs = ExperimentHandler.get_runs()
+            run: Run
+            run_names: list = []
+            for run in runs:
+                st.write(run)
+                # run_names.append(run.data)
+
 
 
     else:
-        name: str = st.sidebar.text_input("Experiment Name")
-        if name is None:
-            st.sidebar.write("Please provide a valid name")
+        tracking_server_url: str = st.sidebar.text_input("Tracking server url", value="")
+        if tracking_server_url is None:
+            st.sidebar.write("Please provide a valid url")
 
-        st.sidebar.button("Search", on_click=create_experiment, args=(name,))
+        st.sidebar.button("Connect", on_click=fetch_experiments, args=(tracking_server_url,))

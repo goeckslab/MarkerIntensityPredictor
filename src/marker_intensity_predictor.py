@@ -14,6 +14,9 @@ comparison_base_results_path = Path("results")
 client = mlflow.tracking.MlflowClient()
 
 if __name__ == "__main__":
+    # set tracking url
+    mlflow.set_tracking_uri("http://10.96.11.103:5000")
+
     args = ArgumentParser.get_args()
     # The id of the associated
     associated_experiment_id = 0

@@ -12,7 +12,7 @@ class DataManagement:
     def __init__(self, root_path: Path):
         self.__base_path = Path(root_path)
 
-    def download_artifacts(self, experiments: []):
+    def download_artifacts(self, runs: []):
         """
         Downloads all artifacts of the found experiments
         @return:
@@ -23,27 +23,27 @@ class DataManagement:
         ae_directory = FolderManagement.create_directory(Path(download_directory, "ae"))
         vae_directory = FolderManagement.create_directory(Path(download_directory, "vae"))
 
-        for experiment in experiments:
+        for run in runs:
 
             try:
-                parent_id_tag = experiment.data.tags.get('mlflow.parentRunId')
+                parent_id_tag = run.data.tags.get('mlflow.parentRunId')
 
-                if "Model" not in experiment.data.tags and parent_id_tag is None:
+                if "Model" not in run.data.tags and parent_id_tag is None:
                     continue
 
-                model = experiment.data.tags.get("Model")
+                model = run.data.tags.get("Model")
 
                 if model == "AE":
-                    run_directory = FolderManagement.create_directory(Path(ae_directory, experiment.info.run_id))
+                    run_directory = FolderManagement.create_directory(Path(ae_directory, run.info.run_id))
 
                 elif model == "VAE":
-                    run_directory = FolderManagement.create_directory(Path(vae_directory, experiment.info.run_id))
+                    run_directory = FolderManagement.create_directory(Path(vae_directory, run.info.run_id))
 
                 else:
                     print(f"Model {model} is not implemented. Skipping... ")
                     continue
 
-                DataManagement.client.download_artifacts(experiment.info.run_id, "Evaluation",
+                DataManagement.client.download_artifacts(run.info.run_id, "Evaluation",
                                                          str(Path(run_directory)))
             except BaseException as ex:
                 print(ex)
