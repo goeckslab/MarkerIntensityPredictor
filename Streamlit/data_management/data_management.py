@@ -11,43 +11,26 @@ class DataManagement:
 
     def __init__(self, root_path: Path):
         self.__base_path = Path(root_path)
+        # Create path if it does not exist
+        if not self.__base_path.exists():
+            Path.mkdir(self.__base_path)
 
-    def download_artifacts(self, experiments: []):
+    def __del(self):
+        # Remove temp folder after use
+        if self.__base_path.exists():
+            Path.unlink(self.__base_path)
+
+    def download_artifacts_for_run(self, run_id: str):
         """
         Downloads all artifacts of the found experiments
         @return:
         """
         # Create temp directory
-
-        download_directory = FolderManagement.create_directory(Path(self.__base_path, "runs"))
-        ae_directory = FolderManagement.create_directory(Path(download_directory, "ae"))
-        vae_directory = FolderManagement.create_directory(Path(download_directory, "vae"))
-
-        for experiment in experiments:
-
-            try:
-                parent_id_tag = experiment.data.tags.get('mlflow.parentRunId')
-
-                if "Model" not in experiment.data.tags and parent_id_tag is None:
-                    continue
-
-                model = experiment.data.tags.get("Model")
-
-                if model == "AE":
-                    run_directory = FolderManagement.create_directory(Path(ae_directory, experiment.info.run_id))
-
-                elif model == "VAE":
-                    run_directory = FolderManagement.create_directory(Path(vae_directory, experiment.info.run_id))
-
-                else:
-                    print(f"Model {model} is not implemented. Skipping... ")
-                    continue
-
-                DataManagement.client.download_artifacts(experiment.info.run_id, "Evaluation",
-                                                         str(Path(run_directory)))
-            except BaseException as ex:
-                print(ex)
-                continue
+        try:
+            DataManagement.client.download_artifacts(run_id, "base", str(self.__base_path))
+            DataManagement.client.download_artifacts(run_id, "VAE", str(self.__base_path))
+        except BaseException as ex:
+            print(ex)
 
     def load_r2_scores_for_model(self, model: str) -> pd.DataFrame:
         """

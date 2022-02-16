@@ -22,7 +22,12 @@ class ExperimentHandler:
         return found_experiment_id
 
     @staticmethod
-    def get_runs(experiment_id: str) -> list:
+    def get_vae_runs(experiment_id: str) -> list:
+        """
+        Returns all runs associated to a vae
+        @param experiment_id:
+        @return:
+        """
         found_runs = []
 
         all_run_infos = reversed(ExperimentHandler.client.list_run_infos(experiment_id))
@@ -30,7 +35,7 @@ class ExperimentHandler:
             full_run = ExperimentHandler.client.get_run(run_info.run_id)
             if "Model" in full_run.data.tags:
                 model = full_run.data.tags.get("Model")
-                if model == "VAE" or model == "AE":
+                if model == "VAE":
                     found_runs.append(full_run)
 
         return found_runs
