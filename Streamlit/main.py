@@ -5,6 +5,8 @@ from mlflow.entities import Experiment, Run
 from experiment_handler.experiment_handler import ExperimentHandler
 from data_management.data_management import DataManagement
 from pathlib import Path
+from ui.ui import UIHandler
+from laten_space_exploration import LatentSpaceExplorer
 
 client = mlflow.tracking.MlflowClient()
 temp_storage_folder = "latent_space_exploration_temp"
@@ -42,6 +44,9 @@ def check_session_state():
     if "new_run_name" not in st.session_state:
         st.session_state.new_run_name = None
 
+    if "new_run_completed" not in st.session_state:
+        st.session_state.new_run_completed = False
+
 
 def load_experiments() -> list:
     return st.session_state.experiments
@@ -64,33 +69,30 @@ def fetch_experiments(server_url: str):
     st.session_state.experiments = client.list_experiments()
 
 
+def execute_latent_space():
+    pass
+
+
 if __name__ == "__main__":
     check_session_state()
     experiments: list = load_experiments()
     if experiments is not None and len(experiments) != 0:
         st.sidebar.button("Disconnect", on_click=disconnect)
 
-        exp_names = []
-        exp: Experiment
-        for exp in experiments:
-            exp_names.append(exp.name)
-
         st.sidebar.selectbox(
             'Select an experiment of your choice',
-            exp_names, key="selected_experiment_name")
+            UIHandler.get_all_experiments_names(experiments), key="selected_experiment_name")
 
         for exp in experiments:
             if exp.name == st.session_state.selected_experiment_name:
                 st.session_state.selected_experiment_id = exp.experiment_id
 
-        if st.session_state.selected_experiment_id is not None:
-            st.session_state.runs = ExperimentHandler.get_vae_runs(st.session_state.selected_experiment_id)
-            run: Run
-            run_names: list = []
-            for run in st.session_state.runs:
-                run_names.append(f"{run.data.tags.get('mlflow.runName')}")
+        if st.session_state.selected_experiment_id is None:
+            st.stop()
 
-            st.sidebar.selectbox("Select a run of your choice", run_names, key="selected_run_name")
+        st.session_state.runs = ExperimentHandler.get_vae_runs(st.session_state.selected_experiment_id)
+        st.sidebar.selectbox("Select a run of your choice", UIHandler.get_all_run_names(st.session_state.runs), index=0,
+                             key="selected_run_name")
 
         if st.session_state.selected_run_name is None:
             st.stop()
@@ -104,16 +106,8 @@ if __name__ == "__main__":
             st.write(f"Could not find a run matching the name: {st.session_state.selected_run_name}")
             st.stop()
 
-        # shortcut
-        selected_run = st.session_state.selected_run
-
-        st.header(selected_run.data.tags.get('mlflow.runName'))
-        st.sidebar.subheader("Run Information:")
-        st.sidebar.write(f"File: {selected_run.data.params.get('file')}")
-        st.sidebar.write(f"Epochs: {selected_run.data.params.get('epochs')}")
-        st.sidebar.write(f"Input Dimensions: {selected_run.data.params.get('input_dimensions')}")
-        st.sidebar.write(f"Latent Space: {selected_run.data.params.get('latent_space_dimension')}")
-        st.sidebar.write(f"Morph: {selected_run.data.params.get('morphological_data')}")
+        # Show sidebar run information
+        UIHandler.show_selected_run_information(st.session_state.selected_run)
 
         data_manager: DataManagement = DataManagement(Path(temp_storage_folder))
         # Download required artifacts
@@ -130,25 +124,47 @@ if __name__ == "__main__":
         # Latent space exploration
         st.subheader("Latent space")
 
-        cell_number_col, run_name_col = st.columns(2)
+        cell_number_col, run_name_col, fixed_dimension_col = st.columns(3)
         cell_number_col.number_input("How many cells should be generated?", min_value=100, key="cells_to_generate")
+
+        # Stop execution if one pass fails
+        stop_execution: bool = False
 
         if st.session_state.cells_to_generate == 0:
             cell_number_col.write("Please provide value greater 100")
+            stop_execution = True
 
         run_name_col.text_input("Please provide a name for the new run", key="new_run_name")
 
         if st.session_state.new_run_name is None:
             run_name_col.write("Please provide a valid run name.")
+            st.session_state.new_run_completed = False
+            stop_execution = True
 
         if ExperimentHandler.run_exists(st.session_state.selected_experiment_id, st.session_state.new_run_name):
             st.write("This run does already exist. Please specify a different run name")
+            stop_execution = True
 
-        if st.button("Generate cells!"):
+        if stop_execution:
+            st.stop()
+
+        if st.button("Generate cells", disabled=st.session_state.new_run_completed,
+                     on_click=execute_latent_space):  # TODO: Add on click handler
             with mlflow.start_run(experiment_id=st.session_state.selected_experiment_id,
                                   run_name=st.session_state.new_run_name) as new_run:
                 mlflow.log_param("cells_to_generate", st.session_state.cells_to_generate)
 
+                latent_space_explorer: LatentSpaceExplorer = LatentSpaceExplorer(embeddings=embeddings, markers=markers,
+                                                                                 base_results_path=Path(
+                                                                                     temp_storage_folder))
+                latent_space_explorer.generate_new_cells(st.session_state.cells_to_generate)
+                latent_space_explorer.plot_generated_cells()
+                latent_space_explorer.plot_generated_cells_differences()
+                latent_space_explorer.umap_mapping_of_generated_cells()
+
+                st.write("Latent space exploration done.")
+                # Needs to be always at last position
+                st.session_state.new_run_completed = True
 
 
 
