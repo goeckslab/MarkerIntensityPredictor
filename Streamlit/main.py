@@ -7,77 +7,45 @@ from data_management.data_management import DataManagement
 from pathlib import Path
 from ui.ui import UIHandler
 from laten_space_exploration import LatentSpaceExplorer
+from sessions.session_state import SessionState
 
-client = mlflow.tracking.MlflowClient()
 temp_storage_folder = "latent_space_exploration_temp"
 
 
-def check_session_state():
-    """
-    Initialize session state at startup
-    @return:
-    """
-    if 'experiment' not in st.session_state:
-        st.session_state.experiment = None
-
-    if "experiments" not in st.session_state:
-        st.session_state.experiments = []
-
-    if "selected_experiment_name" not in st.session_state:
-        st.session_state.selected_experiment_name = ""
-
-    if "selected_experiment_id" not in st.session_state:
-        st.session_state.selected_experiment_id = None
-
-    if "selected_run_name" not in st.session_state:
-        st.session_state.selected_run_name = None
-
-    if "selected_run" not in st.session_state:
-        st.session_state.selected_run = None
-
-    if "runs" not in st.session_state:
-        st.session_state.runs = []
-
-    if "cells_to_generate" not in st.session_state:
-        st.session_state.cells_to_generate = 0
-
-    if "new_run_name" not in st.session_state:
-        st.session_state.new_run_name = None
-
-    if "new_run_completed" not in st.session_state:
-        st.session_state.new_run_completed = False
+def ml_client():
+    return mlflow.tracking.MlflowClient(tracking_uri=st.session_state.tracking_server_url)
 
 
 def load_experiments() -> list:
     return st.session_state.experiments
 
 
-def disconnect():
-    st.session_state.experiment = None
-    st.session_state.experiments = None
+def connected():
+    st.session_state.connected = True
 
 
-def fetch_experiments(server_url: str):
-    """
-    Fetches experiments from the tracking server
-    @param server_url:
-    @return:
-    """
-    if tracking_server_url is not None:
-        mlflow.set_tracking_uri = server_url
+def execute_latent_space_exploration():
+    with mlflow.start_run(experiment_id=st.session_state.selected_experiment_id,
+                          run_name=st.session_state.new_run_name) as new_run:
+        mlflow.log_param("cells_to_generate", st.session_state.cells_to_generate)
 
-    st.session_state.experiments = client.list_experiments()
-
-
-def execute_latent_space():
-    pass
+        latent_space_explorer: LatentSpaceExplorer = LatentSpaceExplorer(embeddings=embeddings, markers=markers,
+                                                                         base_results_path=Path(
+                                                                             temp_storage_folder))
+        latent_space_explorer.generate_new_cells(st.session_state.cells_to_generate)
+        latent_space_explorer.plot_generated_cells()
+        latent_space_explorer.plot_generated_cells_differences()
+        latent_space_explorer.umap_mapping_of_generated_cells()
 
 
 if __name__ == "__main__":
-    check_session_state()
-    experiments: list = load_experiments()
-    if experiments is not None and len(experiments) != 0:
-        st.sidebar.button("Disconnect", on_click=disconnect)
+    SessionState.initialize_session_state()
+
+    if st.session_state.connected:
+        experiment_handler = ExperimentHandler()
+        experiments: list = experiment_handler.fetch_experiments()
+        st.sidebar.button("Disconnect", on_click=SessionState.reset_session_state)
+        st.write(st.session_state.tracking_server_url)
 
         st.sidebar.selectbox(
             'Select an experiment of your choice',
@@ -90,7 +58,7 @@ if __name__ == "__main__":
         if st.session_state.selected_experiment_id is None:
             st.stop()
 
-        st.session_state.runs = ExperimentHandler.get_vae_runs(st.session_state.selected_experiment_id)
+        st.session_state.runs = experiment_handler.get_vae_runs(st.session_state.selected_experiment_id)
         st.sidebar.selectbox("Select a run of your choice", UIHandler.get_all_run_names(st.session_state.runs), index=0,
                              key="selected_run_name")
 
@@ -141,37 +109,20 @@ if __name__ == "__main__":
             st.session_state.new_run_completed = False
             stop_execution = True
 
-        if ExperimentHandler.run_exists(st.session_state.selected_experiment_id, st.session_state.new_run_name):
+        if experiment_handler.run_exists(st.session_state.selected_experiment_id, st.session_state.new_run_name):
             st.write("This run does already exist. Please specify a different run name")
             stop_execution = True
 
         if stop_execution:
             st.stop()
 
+        st.session_state.new_run_completed = False
+
         if st.button("Generate cells", disabled=st.session_state.new_run_completed,
-                     on_click=execute_latent_space):  # TODO: Add on click handler
-            with mlflow.start_run(experiment_id=st.session_state.selected_experiment_id,
-                                  run_name=st.session_state.new_run_name) as new_run:
-                mlflow.log_param("cells_to_generate", st.session_state.cells_to_generate)
-
-                latent_space_explorer: LatentSpaceExplorer = LatentSpaceExplorer(embeddings=embeddings, markers=markers,
-                                                                                 base_results_path=Path(
-                                                                                     temp_storage_folder))
-                latent_space_explorer.generate_new_cells(st.session_state.cells_to_generate)
-                latent_space_explorer.plot_generated_cells()
-                latent_space_explorer.plot_generated_cells_differences()
-                latent_space_explorer.umap_mapping_of_generated_cells()
-
-                st.write("Latent space exploration done.")
-                # Needs to be always at last position
-                st.session_state.new_run_completed = True
-
-
-
-
-
-
-
+                     on_click=execute_latent_space_exploration):  # TODO: Add on click handler
+            st.write("Latent space exploration done.")
+            # Needs to be always at last position
+            st.session_state.new_run_completed = True
 
 
 
@@ -180,10 +131,14 @@ if __name__ == "__main__":
         st.write("Please enter a tracking url to connect to a mlflow server.")
 
         st.header("How to use?")
-        tracking_server_url: str = st.sidebar.text_input("Tracking server url", value="",
-                                                         help="Enter a valid tracking server url to connect. Leave blank for localhost connection")
 
-        if tracking_server_url is None:
+        st.sidebar.text_input("Tracking server url", value="", placeholder="http://127.0.0.1:5000",
+                              help="Enter a valid tracking server url to connect. Leave blank for localhost connection",
+                              key="tracking_server_url")
+
+        if st.session_state.tracking_server_url == "":
             st.sidebar.write("Please provide a valid url")
+            st.stop()
 
-        st.sidebar.button("Connect", on_click=fetch_experiments, args=(tracking_server_url,))
+        # experiment_handler: ExperimentHandler = ExperimentHandler()
+        st.sidebar.button("Connect", on_click=connected)

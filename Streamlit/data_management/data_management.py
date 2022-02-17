@@ -1,15 +1,15 @@
 import pandas as pd
-
-from folder_management.folder_management import FolderManagement
+import streamlit as st
 from pathlib import Path
 import mlflow
 
 
 class DataManagement:
-    client = mlflow.tracking.MlflowClient()
+    client = None
     __base_path: Path
 
     def __init__(self, root_path: Path):
+        self.client = mlflow.tracking.MlflowClient(tracking_uri=st.session_state.tracking_server_url)
         self.__base_path = Path(root_path)
         # Create path if it does not exist
         if not self.__base_path.exists():
@@ -27,8 +27,8 @@ class DataManagement:
         """
         # Create temp directory
         try:
-            DataManagement.client.download_artifacts(run_id, "base", str(self.__base_path))
-            DataManagement.client.download_artifacts(run_id, "VAE", str(self.__base_path))
+            self.client.download_artifacts(run_id, "base", str(self.__base_path))
+            self.client.download_artifacts(run_id, "VAE", str(self.__base_path))
         except BaseException as ex:
             print(ex)
 
