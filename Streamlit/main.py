@@ -9,6 +9,7 @@ from pathlib import Path
 client = mlflow.tracking.MlflowClient()
 temp_storage_folder = "latent_space_exploration_temp"
 
+
 def check_session_state():
     """
     Initialize session state at startup
@@ -20,8 +21,8 @@ def check_session_state():
     if "experiments" not in st.session_state:
         st.session_state.experiments = []
 
-    if "selected_experiment" not in st.session_state:
-        st.session_state.selected_experiment = ""
+    if "selected_experiment_name" not in st.session_state:
+        st.session_state.selected_experiment_name = ""
 
     if "selected_experiment_id" not in st.session_state:
         st.session_state.selected_experiment_id = None
@@ -34,6 +35,12 @@ def check_session_state():
 
     if "runs" not in st.session_state:
         st.session_state.runs = []
+
+    if "cells_to_generate" not in st.session_state:
+        st.session_state.cells_to_generate = 0
+
+    if "new_run_name" not in st.session_state:
+        st.session_state.new_run_name = None
 
 
 def load_experiments() -> list:
@@ -68,12 +75,12 @@ if __name__ == "__main__":
         for exp in experiments:
             exp_names.append(exp.name)
 
-        selected_experiment = st.sidebar.selectbox(
+        st.sidebar.selectbox(
             'Select an experiment of your choice',
-            exp_names, key="selected_experiment")
+            exp_names, key="selected_experiment_name")
 
         for exp in experiments:
-            if exp.name == st.session_state.selected_experiment:
+            if exp.name == st.session_state.selected_experiment_name:
                 st.session_state.selected_experiment_id = exp.experiment_id
 
         if st.session_state.selected_experiment_id is not None:
@@ -115,6 +122,42 @@ if __name__ == "__main__":
         markers = pd.read_csv(Path(temp_storage_folder, "Base", "markers.csv"))['0'].to_list()
         with st.expander("Markers"):
             st.write(markers)
+
+        embeddings = pd.read_csv(Path(temp_storage_folder, "VAE", "encoded_data.csv"))
+        with st.expander("Embeddings"):
+            st.write(embeddings)
+
+        # Latent space exploration
+        st.subheader("Latent space")
+
+        cell_number_col, run_name_col = st.columns(2)
+        cell_number_col.number_input("How many cells should be generated?", min_value=100, key="cells_to_generate")
+
+        if st.session_state.cells_to_generate == 0:
+            cell_number_col.write("Please provide value greater 100")
+
+        run_name_col.text_input("Please provide a name for the new run", key="new_run_name")
+
+        if st.session_state.new_run_name is None:
+            run_name_col.write("Please provide a valid run name.")
+
+        if ExperimentHandler.run_exists(st.session_state.selected_experiment_id, st.session_state.new_run_name):
+            st.write("This run does already exist. Please specify a different run name")
+
+        if st.button("Generate cells!"):
+            with mlflow.start_run(experiment_id=st.session_state.selected_experiment_id,
+                                  run_name=st.session_state.new_run_name) as new_run:
+                mlflow.log_param("cells_to_generate", st.session_state.cells_to_generate)
+
+
+
+
+
+
+
+
+
+
 
     else:
         st.title("Latent space exploration tool")

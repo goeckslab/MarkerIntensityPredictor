@@ -39,3 +39,13 @@ class ExperimentHandler:
                     found_runs.append(full_run)
 
         return found_runs
+
+    @staticmethod
+    def run_exists(experiment_id: str, run_name: str) -> bool:
+        all_run_infos = reversed(ExperimentHandler.client.list_run_infos(experiment_id))
+        for run_info in all_run_infos:
+            full_run = ExperimentHandler.client.get_run(run_info.run_id)
+            if full_run.data.tags.get('mlflow.runName') == run_name:
+                return True
+
+        return False
