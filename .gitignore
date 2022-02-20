@@ -1,7 +1,7 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 mlruns/*
-latent_space_exploration_temp/
+LatentSpaceExplorer/tmp/*
 src/VAE/results/*
 *.py[cod]
 *$py.class

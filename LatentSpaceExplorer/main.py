@@ -9,7 +9,7 @@ from ui.ui import UIHandler
 from laten_space_exploration import LatentSpaceExplorer
 from sessions.session_state import SessionState
 
-temp_storage_folder = "latent_space_exploration_temp"
+temp_storage_folder = Path("LatentSpaceExplorer", "tmp")
 
 
 def ml_client():
@@ -24,6 +24,10 @@ def connected():
     st.session_state.connected = True
 
 
+def run_name_changed():
+    st.session_state.new_run_completed = False
+
+
 def execute_latent_space_exploration():
     with mlflow.start_run(experiment_id=st.session_state.selected_experiment_id,
                           run_name=st.session_state.new_run_name) as new_run:
@@ -36,6 +40,7 @@ def execute_latent_space_exploration():
         latent_space_explorer.plot_generated_cells()
         latent_space_explorer.plot_generated_cells_differences()
         latent_space_explorer.umap_mapping_of_generated_cells()
+        st.session_state.new_run_completed = True
 
 
 if __name__ == "__main__":
@@ -102,27 +107,32 @@ if __name__ == "__main__":
             cell_number_col.write("Please provide value greater 100")
             stop_execution = True
 
-        run_name_col.text_input("Please provide a name for the new run", key="new_run_name")
+        run_name_col.text_input("Please provide a name for the new run", key="new_run_name", on_change=run_name_changed)
 
-        if st.session_state.new_run_name is None:
-            run_name_col.write("Please provide a valid run name.")
-            st.session_state.new_run_completed = False
-            stop_execution = True
+        if not st.session_state.new_run_completed:
+            if st.session_state.new_run_name is None:
+                run_name_col.write("Please provide a valid run name.")
+                stop_execution = True
 
-        if experiment_handler.run_exists(st.session_state.selected_experiment_id, st.session_state.new_run_name):
-            st.write("This run does already exist. Please specify a different run name")
-            stop_execution = True
+            if experiment_handler.run_exists(st.session_state.selected_experiment_id, st.session_state.new_run_name):
+                st.write("This run does already exist. Please specify a different run name")
+                stop_execution = True
 
-        if stop_execution:
+            if stop_execution:
+                st.stop()
+
+            st.button("Generate cells", disabled=st.session_state.new_run_completed,
+                      on_click=execute_latent_space_exploration)
             st.stop()
 
-        st.session_state.new_run_completed = False
+        st.header("Results")
+        generated_cells: pd.DataFrame = pd.read_csv(Path(temp_storage_folder, "generated", "generated_cells.csv"))
+        with st.expander("Encoded data"):
+            st.write(generated_cells)
 
-        if st.button("Generate cells", disabled=st.session_state.new_run_completed,
-                     on_click=execute_latent_space_exploration):  # TODO: Add on click handler
-            st.write("Latent space exploration done.")
-            # Needs to be always at last position
-            st.session_state.new_run_completed = True
+        
+
+
 
 
 

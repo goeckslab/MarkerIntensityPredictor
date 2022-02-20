@@ -37,10 +37,6 @@ class LatentSpaceExplorer:
         if not self.__base_results_path.exists():
             Path.mkdir(self.__base_results_path)
 
-    def __del__(self):
-        if self.__base_results_path.exists():
-            Path.unlink(self.__base_results_path)
-
     def generate_new_cells(self, cells_to_generate: int, not_fixed_dimension: int = 0):
         """
         Explore the latent space
@@ -81,7 +77,7 @@ class LatentSpaceExplorer:
 
         self.generated_cells.columns = self.markers
 
-        save_path = Path(self.__base_results_path, "generated_cells.csv")
+        save_path = Path(self.__base_results_path, "generated", "generated_cells.csv")
         self.generated_cells.to_csv(save_path, index=False)
         mlflow.log_artifact(str(save_path))
 
@@ -94,7 +90,7 @@ class LatentSpaceExplorer:
         plt.ylabel("Cell")
         plt.tight_layout()
 
-        save_path = Path(self.__base_results_path, "generated_cells.png")
+        save_path = Path(self.__base_results_path, "generated", "generated_cells.png")
         fig.savefig(save_path)
         mlflow.log_artifact(str(save_path))
         plt.close('all')
@@ -111,7 +107,7 @@ class LatentSpaceExplorer:
         plt.xlabel("Difference")
         plt.ylabel("Cell")
         plt.tight_layout()
-        save_path = Path(self.__base_results_path, "generated_cell_expression_differences.png")
+        save_path = Path(self.__base_results_path, "generated", "generated_cell_expression_differences.png")
         fig.savefig(save_path)
         mlflow.log_artifact(str(save_path))
         plt.close('all')
@@ -123,7 +119,7 @@ class LatentSpaceExplorer:
         plot = sns.scatterplot(data=mapping, x=mapping[:, 0], y=mapping[:, 1],
                                hue=pd.Series(self.generated_cells.index))
         fig = plot.get_figure()
-        save_path = Path(self.__base_results_path, "generated_cells_umap.png")
+        save_path = Path(self.__base_results_path, "generated", "generated_cells_umap.png")
         fig.savefig(save_path)
         mlflow.log_artifact(str(save_path))
         plt.close('all')
