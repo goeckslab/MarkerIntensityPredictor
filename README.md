@@ -19,7 +19,7 @@ $ jupyter labextension install jupyterlab-plotly@4.14.2
 $ jupyter-lab
 ```
 
-## Variational Auto Encoder
+## Deep learning model training
 
 ### Setup & Configuration
 
@@ -38,11 +38,19 @@ Although a results folder is being used locally, all data is being stored using 
 
 #### Available Arguments
 
-| Long           | Short | Description                                                                                                                                     | Required |   
-|----------------|-------|-------------------------------------------------------------------------------------------------------------------------------------------------|----------|
-| --file         | x     | The file to use for training the models                                                                                                         | ✓        |
-| --run          | -r    | The name of the run                                                                                                                             | ✓        |
-| --experiment   | -e    | The name of the associated experiment. <br/>If no experiment with this name exists and new one will be created                                  |          |
-| --morph        | x     | Should morphological features be included for training and evaluation? Default: true                                                            |          |
-| --mode         | x     | Possible values: none, ae, vae. Default: none. If ae or vae is selected only the respective model is being trained. No comparison will be done. |          |
-| --tracking_url | -t    | The tracking url for the mlflow tracking server. Points to localhost as default. Please specify a valid url. E.g http:127.0.0.1:5000            |          |
+| Long           | Short | Description                                                                                                                                          | Required |   
+|----------------|-------|------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
+| --file         | x     | The file to use for training the models                                                                                                              | ✓        |
+| --run          | -r    | The name of the run                                                                                                                                  | ✓        |
+| --experiment   | -e    | The name of the associated experiment. <br/>If no experiment with this name exists and new one will be created. <br/> Default: Default experiment    |          |
+| --morph        | x     | Should morphological features be included for training and evaluation? Default: true                                                                 |          |
+| --mode         | x     | Possible values: none, ae, vae. If ae or vae is selected only the respective model is being trained. No comparison will be done. <br/>Default: none. |          |
+| --tracking_url | -t    | The tracking url for the mlflow tracking server. Points to localhost as default. Please specify a valid url. <br/> Example: http:127.0.0.1:5000      |          |
+
+
+
+
+## Latent space exploration
+
+A tool to explore the latent space of a VAE is included.   
+The tool is using Streamlit and MLFlow to provide interactive as well as tracking functionalities.
