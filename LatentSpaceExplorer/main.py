@@ -66,9 +66,9 @@ if __name__ == "__main__":
             st.stop()
 
         run: Run
-        for run in st.session_state.runs:
-            if run.data.tags.get("mlflow.runName") == st.session_state.selected_run_name:
-                st.session_state.selected_run = run
+        for parent_run, vae_run in st.session_state.runs.items():
+            if parent_run == st.session_state.selected_run_name:
+                st.session_state.selected_run = vae_run
 
         if st.session_state.selected_run is None:
             st.write(f"Could not find a run matching the name: {st.session_state.selected_run_name}")

@@ -1,6 +1,7 @@
 import mlflow
 import streamlit as st
 from mlflow import exceptions
+from mlflow.entities import Run
 
 
 class ExperimentHandler:
@@ -19,10 +20,10 @@ class ExperimentHandler:
             return st.session_state.experiments
         except exceptions.MlflowException as mlex:
             st.write(mlex)
-            return None
+            return []
 
         except BaseException as ex:
-            return None
+            return []
 
     def get_experiment_id_by_name(self, experiment_name: str) -> str:
         """
@@ -40,13 +41,13 @@ class ExperimentHandler:
 
         return found_experiment_id
 
-    def get_vae_runs(self, experiment_id: str) -> list:
+    def get_vae_runs(self, experiment_id: str) -> dict:
         """
         Returns all runs associated to a vae
         @param experiment_id:
         @return:
         """
-        found_runs = []
+        found_runs = {}
 
         all_run_infos = reversed(self.client.list_run_infos(experiment_id))
         for run_info in all_run_infos:
@@ -54,7 +55,8 @@ class ExperimentHandler:
             if "Model" in full_run.data.tags:
                 model = full_run.data.tags.get("Model")
                 if model == "VAE":
-                    found_runs.append(full_run)
+                    parent_run = self.get_run_by_id(full_run.data.tags.get('mlflow.parentRunId'))
+                    found_runs[parent_run.data.tags.get('mlflow.runName')] = full_run
 
         return found_runs
 
@@ -66,3 +68,6 @@ class ExperimentHandler:
                 return True
 
         return False
+
+    def get_run_by_id(self, run_id: str) -> Run:
+        return self.client.get_run(run_id)

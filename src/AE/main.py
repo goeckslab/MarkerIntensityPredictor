@@ -40,7 +40,6 @@ class AutoEncoder:
         with mlflow.start_run(run_name="AE", nested=True, experiment_id=self.__experiment_id) as run:
             mlflow.log_param("file", self.args.file)
             mlflow.log_param("morphological_data", self.args.morph)
-            mlflow.set_tag("Group", self.args.group)
             mlflow.set_tag("Model", "AE")
 
             # Load data
@@ -56,7 +55,7 @@ class AutoEncoder:
             self.evaluation = Evaluation(self.__base_path, model=self.model.ae, data=self.data)
             self.evaluation.calculate_r2_score()
 
-            plotter = Plotting(self.__base_path)
+            plotter = Plotting(self.__base_path, self.args)
             plotter.plot_model_performance(self.model.history, "AE", "Model performance")
             plotter.plot_reconstructed_markers(self.data.cells, self.model.reconstructed_data, self.data.markers,
                                                "Evaluation", "Input v Reconstructed")

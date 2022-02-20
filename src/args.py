@@ -12,9 +12,8 @@ class ArgumentParser:
         parser.add_argument("--run", "-r", action="store", required=True,
                             help="The name of the run being run",
                             type=str)
-        parser.add_argument("--group", "-g", action="store", required=False,
-                            help="Adds a tag to the experiment indicating to which group it belongs too.",
-                            type=str)
+        parser.add_argument("--tracking_url", "-t", action="store", required=False,
+                            help="The tracking url for the mlflow tracking server", type=str)
         parser.add_argument("--experiment", "-e", action="store", required=False,
                             help="Assigns the run to a particular experiment. "
                                  "If the experiment does not exists it will create a new one.",

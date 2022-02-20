@@ -1,5 +1,4 @@
 from VAE.model.vae import VAEModel
-import logging
 import mlflow
 from Plotting.plots import Plotting
 from VAE.latentspace.laten_space_exploration import LatentSpaceExplorer
@@ -10,7 +9,6 @@ from Shared.data import Data
 from VAE.preprocessing.preprocessing import normalize
 from random import randrange
 from VAE.evaluation.evaluation import Evaluation
-from ClusterAnalysis.main import ClusterAnalysis
 
 
 class VAE:
@@ -40,7 +38,6 @@ class VAE:
         with mlflow.start_run(run_name="VAE", nested=True, experiment_id=self.__experiment_id) as run:
             mlflow.log_param("file", self.args.file)
             mlflow.log_param("morphological_data", self.args.morph)
-            mlflow.set_tag("Group", self.args.group)
             mlflow.set_tag("Model", "VAE")
 
             # Load data
@@ -56,7 +53,7 @@ class VAE:
             self.evaluation = Evaluation(self.__base_path, self.model.vae, self.data)
             self.evaluation.calculate_r2_score()
 
-            plotter = Plotting(self.__base_path)
+            plotter = Plotting(self.__base_path, self.args)
             plotter.plot_model_performance(self.model.history, "VAE", "model_performance")
             plotter.plot_reconstructed_markers(X=self.model.data.X_test, X_pred=self.model.reconstructed_data,
                                                markers=self.model.data.markers, sub_directory="Evaluation",

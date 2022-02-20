@@ -11,13 +11,21 @@ from Shared.experiment_handler import ExperimentHandler
 vae_base_result_path = Path("results", "VAE")
 ae_base_result_path = Path("results", "AE")
 comparison_base_results_path = Path("results")
-client = mlflow.tracking.MlflowClient()
+
+
+def get_mlflow_client():
+    if args.tracking_url is None:
+        return mlflow.tracking.MlflowClient()
+    else:
+        mlflow.set_tracking_uri(args.tracking_url)
+        return mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
+
 
 if __name__ == "__main__":
     # set tracking url
-    mlflow.set_tracking_uri("http://10.96.11.103:5000")
 
     args = ArgumentParser.get_args()
+    get_mlflow_client()
     # The id of the associated
     associated_experiment_id = 0
 
@@ -31,24 +39,21 @@ if __name__ == "__main__":
         mlflow.log_param("Included Morphological Data", args.morph)
         mlflow.log_param("File", args.file)
         mlflow.log_param("Mode", args.mode)
-        mlflow.set_tag("Group", args.group)
 
-        if args.mode == "none":
-            vae = VAE(args=args, base_result_path=vae_base_result_path, experiment_id=associated_experiment_id)
-            ae = AutoEncoder(args=args, base_results_path=ae_base_result_path, experiment_id=associated_experiment_id)
-
-        elif args.mode == "vae":
+        if args.mode == "vae":
             vae = VAE(args=args, base_result_path=vae_base_result_path, experiment_id=associated_experiment_id)
 
         elif args.mode == "ae":
             ae = AutoEncoder(args=args, base_results_path=ae_base_result_path, experiment_id=associated_experiment_id)
 
-        if args.mode == "none":
+        else:
+            vae = VAE(args=args, base_result_path=vae_base_result_path, experiment_id=associated_experiment_id)
+            ae = AutoEncoder(args=args, base_results_path=ae_base_result_path, experiment_id=associated_experiment_id)
+
             # Start experiment which compares AE and VAE
             with mlflow.start_run(run_name="Comparison", nested=True,
                                   experiment_id=associated_experiment_id) as comparison:
                 print("Comparing vae with ae.")
-                mlflow.set_tag("Group", args.group)
-                plotter = Plotting(comparison_base_results_path)
+                plotter = Plotting(comparison_base_results_path, args)
                 plotter.plot_r2_scores_comparison(ae_r2_scores=ae.evaluation.r2_scores,
                                                   vae_r2_scores=vae.evaluation.r2_scores)

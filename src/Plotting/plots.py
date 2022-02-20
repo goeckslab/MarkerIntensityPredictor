@@ -13,8 +13,10 @@ class Plotting:
     # The base path such as AE or VAE. This is the path where the files will be stored
     __base_path: Path
 
-    def __init__(self, base_path: Path):
+    def __init__(self, base_path: Path, args):
         self.__base_path = base_path
+        if args.tracking_url is not None:
+            mlflow.set_tracking_uri = args.tracking_url
 
     def plot_model_performance(self, history, sub_directory: str, file_name: str):
         logger.info("Plotting model performance")

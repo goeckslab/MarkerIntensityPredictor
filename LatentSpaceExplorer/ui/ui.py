@@ -14,11 +14,11 @@ class UIHandler:
         st.sidebar.write(f"Morph: {selected_run.data.params.get('morphological_data')}")
 
     @staticmethod
-    def get_all_run_names(runs: list) -> list:
+    def get_all_run_names(runs: dict) -> list:
         run: Run
         run_names: list = [None]
-        for run in runs:
-            run_names.append(f"{run.data.tags.get('mlflow.runName')}")
+        for key, value in runs.items():
+            run_names.append(key)
 
         return run_names
 
