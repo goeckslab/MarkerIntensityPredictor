@@ -6,6 +6,7 @@ from tensorflow import keras
 import pandas as pd
 import numpy as np
 import umap
+import streamlit as st
 
 sns.set_theme()
 
@@ -37,38 +38,41 @@ class LatentSpaceExplorer:
         if not self.__base_results_path.exists():
             Path.mkdir(self.__base_results_path)
 
-    def generate_new_cells(self, cells_to_generate: int, not_fixed_dimension: int = 0):
+    def generate_new_cells(self, amount_of_cells_to_generate: int, fixed_dimension: int = None):
         """
         Explore the latent space
         """
-        mlflow.log_param("cells_to_generate", cells_to_generate)
-        mlflow.log_param("not_fixed_dimension", not_fixed_dimension)
+        mlflow.log_param("amount_of_cells_to_generate", amount_of_cells_to_generate)
+        mlflow.log_param("fixed_dimension", fixed_dimension)
 
-        if not_fixed_dimension > self.embeddings.shape[1]:
-            print("Dimension which should not be fixed is greater than available dimensions. Reset to 0.")
-            not_fixed_dimension = 0
+        if fixed_dimension is not None and fixed_dimension > self.embeddings.shape[1]:
+            print("Dimension which should not be fixed is greater than available dimensions. Not fixing a dimension.")
+            fixed_dimension = None
 
         model = keras.models.load_model(
             Path(self.__base_results_path, "VAE", "model", "data", "model"))  # mlflow workaround for the model
 
-        x_values = np.linspace(self.embeddings.min(), self.embeddings.max(), cells_to_generate)
+        x_values = np.linspace(self.embeddings.min(), self.embeddings.max(), amount_of_cells_to_generate)
         count: int = 0
 
         for ix, x in enumerate(x_values):
             # Extract first dimension of latent space
 
             # Create latent point without fixed dimension
-            if not_fixed_dimension == 0:
-                latent_point = np.array(x)
+            if fixed_dimension is None:
+                latent_point = x
 
             else:
                 # Fix dimension
-                mean = np.mean(x[[1, 2, 3, 4, 5, 6, 7, 8, 9]])
-                first_dim = (x[[0][0]])
-                latent_point = np.array([first_dim, mean, mean, mean, mean, mean, mean, mean, mean, mean])
+                mean = np.mean(x)
+                latent_point = x
+                print(latent_point)
+                np.put(latent_point, fixed_dimension, mean)
+                print(latent_point)
 
             # input()
             latent_point = latent_point.reshape(1, latent_point.shape[0])
+            st.session_state.data.latent_points.append(latent_point)
             # Generate new cell
             generated_cell = model.decoder.predict(latent_point)
             self.generated_cells = self.generated_cells.append(pd.Series(generated_cell[0]), ignore_index=True)
@@ -80,6 +84,7 @@ class LatentSpaceExplorer:
         save_path = Path(self.__base_results_path, "generated", "generated_cells.csv")
         self.generated_cells.to_csv(save_path, index=False)
         mlflow.log_artifact(str(save_path))
+        st.session_state.data.generated_cells = self.generated_cells
 
     def plot_generated_cells(self):
         plt.figure(figsize=(20, 9))

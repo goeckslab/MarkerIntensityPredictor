@@ -1,4 +1,6 @@
 import streamlit as st
+from pathlib import Path
+from entities.data import Data
 
 
 class SessionState:
@@ -17,6 +19,8 @@ class SessionState:
         st.session_state.new_run_completed = False
         st.session_state.tracking_server_url = ""
         st.session_state.connected = False
+        st.session_state.data = Data()
+        Path.unlink(Path("LatentSpaceExplorer", "tmp"))
 
     @staticmethod
     def initialize_session_state():
@@ -59,3 +63,6 @@ class SessionState:
 
         if "connected" not in st.session_state:
             st.session_state.connected = False
+
+        if "data" not in st.session_state:
+            st.session_state.data = Data()

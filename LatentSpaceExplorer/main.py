@@ -8,6 +8,7 @@ from pathlib import Path
 from ui.ui import UIHandler
 from laten_space_exploration import LatentSpaceExplorer
 from sessions.session_state import SessionState
+from entities.data import Data
 
 temp_storage_folder = Path("LatentSpaceExplorer", "tmp")
 
@@ -31,12 +32,12 @@ def run_name_changed():
 def execute_latent_space_exploration():
     with mlflow.start_run(experiment_id=st.session_state.selected_experiment_id,
                           run_name=st.session_state.new_run_name) as new_run:
-        mlflow.log_param("cells_to_generate", st.session_state.cells_to_generate)
-
+        st.session_state.data = Data()
         latent_space_explorer: LatentSpaceExplorer = LatentSpaceExplorer(embeddings=embeddings, markers=markers,
                                                                          base_results_path=Path(
                                                                              temp_storage_folder))
-        latent_space_explorer.generate_new_cells(st.session_state.cells_to_generate)
+        latent_space_explorer.generate_new_cells(amount_of_cells_to_generate=st.session_state.cells_to_generate,
+                                                 fixed_dimension=st.session_state.dimension_to_fix)
         latent_space_explorer.plot_generated_cells()
         latent_space_explorer.plot_generated_cells_differences()
         latent_space_explorer.umap_mapping_of_generated_cells()
@@ -95,21 +96,26 @@ if __name__ == "__main__":
             st.write(embeddings)
 
         # Latent space exploration
-        st.subheader("Latent space")
+        st.subheader("Latent space exploration")
 
-        cell_number_col, run_name_col, fixed_dimension_col = st.columns(3)
+        cell_number_col, run_name_col = st.columns(2)
         cell_number_col.number_input("How many cells should be generated?", min_value=100, key="cells_to_generate")
-
-        # Stop execution if one pass fails
-        stop_execution: bool = False
-
-        if st.session_state.cells_to_generate == 0:
-            cell_number_col.write("Please provide value greater 100")
-            stop_execution = True
-
         run_name_col.text_input("Please provide a name for the new run", key="new_run_name", on_change=run_name_changed)
 
+        # Fix dimension
+        fixed_dimension_col, test_col = st.columns(2)
+        fixed_dimension_col.checkbox("Fix dimension?", key="fix_dimensions")
+        if st.session_state.fix_dimensions:
+            fixed_dimension_col.selectbox("Dimension to fix", options=range(embeddings.shape[1]),
+                                          key="dimension_to_fix")
+
         if not st.session_state.new_run_completed:
+            # Stop execution if one pass fails
+            stop_execution: bool = False
+            if st.session_state.cells_to_generate == 0:
+                cell_number_col.write("Please provide value greater 100")
+                stop_execution = True
+
             if st.session_state.new_run_name is None:
                 run_name_col.write("Please provide a valid run name.")
                 stop_execution = True
@@ -121,16 +127,21 @@ if __name__ == "__main__":
             if stop_execution:
                 st.stop()
 
+            st.empty()
             st.button("Generate cells", disabled=st.session_state.new_run_completed,
                       on_click=execute_latent_space_exploration)
             st.stop()
 
         st.header("Results")
-        generated_cells: pd.DataFrame = pd.read_csv(Path(temp_storage_folder, "generated", "generated_cells.csv"))
-        with st.expander("Encoded data"):
-            st.write(generated_cells)
 
-        
+        data: Data = st.session_state.data
+        with st.expander("Sampled latent points:"):
+            st.write(data.latent_points)
+
+        with st.expander("Generated cells"):
+            st.write(data.generated_cells)
+
+
 
 
 

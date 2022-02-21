@@ -24,7 +24,7 @@ class UIHandler:
 
     @staticmethod
     def get_all_experiments_names(experiments: list) -> list:
-        exp_names = []
+        exp_names = [None]
         exp: Experiment
         for exp in experiments:
             exp_names.append(exp.name)
