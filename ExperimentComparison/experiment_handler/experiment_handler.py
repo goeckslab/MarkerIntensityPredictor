@@ -28,6 +28,11 @@ class ExperimentHandler:
         all_run_infos = reversed(ExperimentHandler.client.list_run_infos(experiment_id))
         for run_info in all_run_infos:
             full_run = ExperimentHandler.client.get_run(run_info.run_id)
+
+            # Skip unfinished or unsuccessful runs
+            if full_run.info.status != 'FINISHED':
+                continue
+
             if "Model" in full_run.data.tags:
                 model = full_run.data.tags.get("Model")
                 if model == "VAE" or model == "AE":

@@ -1,38 +1,40 @@
 from args import ArgumentParser
 from Shared.folder_management import FolderManagement
-from Shared.data_loader import DataLoader
 import mlflow
 from VAE.main import VAE
 from AE.main import AutoEncoder
 from pathlib import Path
 from Plotting.plots import Plotting
 from Shared.experiment_handler import ExperimentHandler
+import os
 
 vae_base_result_path = Path("results", "VAE")
 ae_base_result_path = Path("results", "AE")
 comparison_base_results_path = Path("results")
 
-
-def get_mlflow_client():
-    if args.tracking_url is None:
-        return mlflow.tracking.MlflowClient()
-    else:
-        mlflow.set_tracking_uri(args.tracking_url)
-        return mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
-
-
 if __name__ == "__main__":
-    # set tracking url
+    os.environ[
+        "AZURE_STORAGE_CONNECTION_STRING"] = \
+        "DefaultEndpointsProtocol=https;AccountName=oamlflow;" \
+        "AccountKey=S4+OeMb7LRawrJP31uTc/hx+WCbvShSBPmZx4WJhFiRFt+edlQXjg2ey4OrtarYA8K40a8SPVGQxPe3mTYrmrA==;" \
+        "EndpointSuffix=core.windows.net"
 
     args = ArgumentParser.get_args()
-    get_mlflow_client()
+    # set tracking url
+    if args.tracking_url is not None:
+        mlflow.set_tracking_uri(args.tracking_url)
+
+    client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
+    experiment_handler: ExperimentHandler = ExperimentHandler(client=client)
+
     # The id of the associated
     associated_experiment_id = 0
 
     experiment_name = args.experiment
     if experiment_name is not None:
-        associated_experiment_id = ExperimentHandler.get_experiment_id_by_name(experiment_name=experiment_name)
+        associated_experiment_id = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name)
 
+    mlflow.set_experiment(experiment_id=associated_experiment_id)
     FolderManagement.create_folders(vae_base_path=vae_base_result_path, ae_base_path=ae_base_result_path)
     # Start initial experiment
     with mlflow.start_run(run_name=args.run, nested=True, experiment_id=associated_experiment_id) as run:

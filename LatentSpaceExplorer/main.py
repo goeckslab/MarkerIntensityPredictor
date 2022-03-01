@@ -9,6 +9,7 @@ from ui.ui import UIHandler
 from laten_space_exploration import LatentSpaceExplorer
 from sessions.session_state import SessionState
 from entities.data import Data
+import os
 
 temp_storage_folder = Path("LatentSpaceExplorer", "tmp")
 
@@ -23,6 +24,8 @@ def load_experiments() -> list:
 
 def connected():
     st.session_state.connected = True
+    st.session_state.client = mlflow.tracking.MlflowClient(tracking_uri=st.session_state.tracking_server_url)
+    os.environ["MLFLOW_TRACKING_URI"] = st.session_state.tracking_server_url
 
 
 def run_name_changed():
@@ -32,6 +35,7 @@ def run_name_changed():
 def execute_latent_space_exploration():
     with mlflow.start_run(experiment_id=st.session_state.selected_experiment_id,
                           run_name=st.session_state.new_run_name) as new_run:
+        mlflow.set_tracking_uri = st.session_state.tracking_server_url
         st.session_state.data = Data()
         latent_space_explorer: LatentSpaceExplorer = LatentSpaceExplorer(embeddings=embeddings, markers=markers,
                                                                          base_results_path=Path(
@@ -45,13 +49,16 @@ def execute_latent_space_exploration():
 
 
 if __name__ == "__main__":
-    SessionState.initialize_session_state()
 
+    if len(st.session_state.items()) == 0:
+        SessionState.initialize_session_state()
+
+    st.write(st.session_state)
     if st.session_state.connected:
         experiment_handler = ExperimentHandler()
         experiments: list = experiment_handler.fetch_experiments()
+        st.sidebar.text(f"Connected to: {st.session_state.tracking_server_url}")
         st.sidebar.button("Disconnect", on_click=SessionState.reset_session_state)
-        st.write(st.session_state.tracking_server_url)
 
         st.sidebar.selectbox(
             'Select an experiment of your choice',
@@ -141,21 +148,15 @@ if __name__ == "__main__":
         with st.expander("Generated cells"):
             st.write(data.generated_cells)
 
-
-
-
-
-
-
     else:
         st.title("Latent space exploration tool")
         st.write("Please enter a tracking url to connect to a mlflow server.")
 
         st.header("How to use?")
 
-        st.sidebar.text_input("Tracking server url", value="", placeholder="http://127.0.0.1:5000",
-                              help="Enter a valid tracking server url to connect. Leave blank for localhost connection",
-                              key="tracking_server_url")
+        tracking_server_url: str = st.sidebar.text_input("Tracking server url",
+                                                         help="Enter a valid tracking server url to connect. Leave blank for localhost connection")
+        st.session_state.tracking_server_url = tracking_server_url
 
         if st.session_state.tracking_server_url == "":
             st.sidebar.write("Please provide a valid url")

@@ -7,20 +7,22 @@ class SessionState:
 
     @staticmethod
     def reset_session_state():
+        print("Reset session state...")
         st.session_state.experiment = None
         st.session_state.experiments = None
         st.session_state.runs = None
-        st.selected_experiment_name = ""
+        st.session_state.selected_experiment_name = ""
         st.session_state.selected_experiment_id = None
         st.session_state.selected_run = None
         st.session_state.selected_run_name = None
         st.session_state.cells_to_generate = 0
         st.session_state.new_run_name = None
         st.session_state.new_run_completed = False
-        st.session_state.tracking_server_url = ""
+        st.session_state.tracking_server_url = "http://127.0.0.1:5000"
         st.session_state.connected = False
         st.session_state.data = Data()
-        Path.unlink(Path("LatentSpaceExplorer", "tmp"))
+        st.session_state.client = None
+        # Path.unlink(Path("LatentSpaceExplorer", "tmp"))
 
     @staticmethod
     def initialize_session_state():
@@ -28,6 +30,10 @@ class SessionState:
         Initialize session state at startup
         @return:
         """
+
+        print("Initialize session state")
+        st.write("Initialize session state")
+
         if 'experiment' not in st.session_state:
             st.session_state.experiment = None
 
@@ -59,10 +65,16 @@ class SessionState:
             st.session_state.new_run_completed = False
 
         if "tracking_server_url" not in st.session_state:
-            st.session_state.tracking_server_url = ""
+            st.session_state.tracking_server_url = "http://127.0.0.1:5000"
 
         if "connected" not in st.session_state:
             st.session_state.connected = False
 
         if "data" not in st.session_state:
             st.session_state.data = Data()
+
+        if "dimension_to_fix" not in st.session_state:
+            st.session_state.dimension_to_fix = None
+
+        if "client" not in st.session_state:
+            st.session_state.client = None

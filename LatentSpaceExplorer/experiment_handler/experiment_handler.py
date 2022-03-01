@@ -8,7 +8,7 @@ class ExperimentHandler:
     client = None
 
     def __init__(self):
-        self.client = mlflow.tracking.MlflowClient(tracking_uri=st.session_state.tracking_server_url)
+        self.client = st.session_state.client
 
     def fetch_experiments(self) -> list:
         """

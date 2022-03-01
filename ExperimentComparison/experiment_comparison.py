@@ -32,6 +32,7 @@ class ExperimentComparer:
             return
 
         self.base_path = FolderManagement.create_directory(self.base_path)
+
         with mlflow.start_run(run_name=args.run, experiment_id=self.experiment_id) as run:
             # Collect all experiments based on the search tag
             self.runs = ExperimentHandler.get_runs(self.experiment_id)
@@ -42,18 +43,22 @@ class ExperimentComparer:
                 self.client.delete_run(run.info.run_id)
                 return
 
-            self.__info_output()
+            print(f"Found {len(self.runs)} runs.")
 
             data_manager = DataManagement(self.base_path)
             data_manager.download_artifacts(self.runs)
             ae_scores: pd.DataFrame = data_manager.load_r2_scores_for_model("AE")
             vae_scores: pd.DataFrame = data_manager.load_r2_scores_for_model("VAE")
 
+            mlflow.log_param("AE_marker_count", ae_scores.shape[0])
+            mlflow.log_param("VAE_marker_count", vae_scores.shape[0])
+
             evaluation = Evaluation(self.base_path)
             evaluation.r2_scores_mean_values(ae_scores=ae_scores, vae_scores=vae_scores)
 
-    def __info_output(self):
-        print(f"Found {len(self.runs)} runs.")
+            self.__log_information()
+
+    def __log_information(self):
         mlflow.log_param("Included Runs", len(self.runs))
         mlflow.log_param("Used Run Ids",
                          [x.info.run_id for x in self.runs])

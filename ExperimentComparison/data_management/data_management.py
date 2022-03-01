@@ -1,5 +1,5 @@
 import pandas as pd
-
+from io import BytesIO
 from folder_management.folder_management import FolderManagement
 from pathlib import Path
 import mlflow
@@ -77,5 +77,18 @@ class DataManagement:
 
         combined_r2_scores.columns = markers
 
-        return pd.DataFrame(columns=["Marker", "Score"],
-                            data={"Marker": combined_r2_scores.columns, "Score": combined_r2_scores.mean().values})
+        save_path = Path(self.__base_path, "runs", f"combined_scores_{model}.csv")
+        # Save combined data
+        combined_r2_scores.to_csv(save_path)
+        mlflow.log_artifact(str(save_path))
+
+        # Save mean values
+        save_path = Path(self.__base_path, "runs", f"mean_scores_{model}.csv")
+        mean_scores = pd.DataFrame(columns=["Marker", "Score"],
+                                   data={"Marker": combined_r2_scores.columns,
+                                         "Score": combined_r2_scores.mean().values})
+        mean_scores.to_csv(save_path, index=False)
+        mlflow.log_artifact(str(save_path))
+
+        # return mean scores
+        return mean_scores
