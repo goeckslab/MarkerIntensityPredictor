@@ -32,6 +32,8 @@ class VAE:
         self.args = args
         self.__start_experiment()
 
+    def __cross_fold(self):
+
     def __start_experiment(self):
         # Load cells and markers from the given file
         with mlflow.start_run(run_name="VAE", nested=True, experiment_id=self.__experiment_id) as run:
@@ -67,9 +69,9 @@ class VAE:
                                  file_name="Marker Expression")
 
             plotter.plot_weights(self.model.vae.get_layer('encoder').get_layer('encoding_h1').get_weights()[0],
-                                 self.data.markers, "Encoding layer")
+                                 self.data.markers, "VAE", "Encoding layer")
             plotter.plot_weights(self.model.vae.get_layer('decoder').get_layer('decoder_output').get_weights()[0],
-                                 self.data.markers, "Decoding layer")
+                                 self.data.markers, "VAE", "Decoding layer")
 
     def save_initial_data(self, cells, markers):
         cell_save_path = Path(self.__base_path, "cells.csv")

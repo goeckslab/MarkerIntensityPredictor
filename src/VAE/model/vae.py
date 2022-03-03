@@ -111,10 +111,6 @@ class VAEModel:
                                     shuffle=True,
                                     verbose=1)
 
-        save_path = Path(self.__base_result_path, "model")
-        mlflow.keras.save_model(self.vae, save_path)
-        mlflow.log_artifact(str(save_path), self.__base_sub_folder)
-
     def log_model_weights(self):
         mlflow.log_param("Encoding H1", self.vae.get_layer('encoder').get_layer('encoding_h1').get_weights()[0])
         mlflow.log_param("Encoding H2", self.vae.get_layer('encoder').get_layer('encoding_h2').get_weights()[0])
