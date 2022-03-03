@@ -30,8 +30,7 @@ class DataLoader:
         if keep_morph:
             print("Including morphological data")
             morph_data = pd.DataFrame(
-                columns=["Area", "MajorAxisLength", "MinorAxisLength", "Eccentricity", "Solidity", "Extent",
-                         "Orientation"])
+                columns=["Area", "MajorAxisLength", "MinorAxisLength", "Eccentricity", "Solidity", "Extent"])
 
             morph_data = cells.loc[:, morph_data.columns]
 
