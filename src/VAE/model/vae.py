@@ -1,17 +1,15 @@
 from keras import layers, regularizers
-from sklearn.preprocessing import StandardScaler
-import numpy as np
-from random import randrange
+import matplotlib.pyplot as plt
 import pandas as pd
 from pathlib import Path
 import keras
 from VAE.model.sampling import Sampling
 from VAE.model.vae_model import VAE
-from sklearn.metrics import r2_score
 import tensorflow as tf
 from Shared.data import Data
 import mlflow
 import mlflow.tensorflow
+from VAE.model.custom_callbacks import CustomCallback, WeightsForBatch, weights_history
 
 
 # https://towardsdatascience.com/intuitively-understanding-variational-autoencoders-1bfe67eb5daf
@@ -61,7 +59,7 @@ class VAEModel:
 
     def build_auto_encoder(self):
         """
-
+        Sets up the vae and trains it
         """
 
         mlflow.tensorflow.autolog()
@@ -72,9 +70,10 @@ class VAEModel:
         mlflow.log_param("regularizer", r)
 
         encoder_inputs = keras.Input(shape=(inputs_dim,))
-        h1 = layers.Dense(inputs_dim, activation=self.activation, activity_regularizer=r)(encoder_inputs)
-        h2 = layers.Dense(inputs_dim / 2, activation=self.activation, activity_regularizer=r)(h1)
-        h3 = layers.Dense(inputs_dim / 3, activation=self.activation, activity_regularizer=r)(h2)
+        h1 = layers.Dense(inputs_dim, activation=self.activation, activity_regularizer=r, name="encoding_h1")(
+            encoder_inputs)
+        h2 = layers.Dense(inputs_dim / 2, activation=self.activation, activity_regularizer=r, name="encoding_h2")(h1)
+        h3 = layers.Dense(inputs_dim / 3, activation=self.activation, activity_regularizer=r, name="encoding_h3")(h2)
 
         z_mean = layers.Dense(self.latent_space_dimensions, name="z_mean")(h3)
         z_log_var = layers.Dense(self.latent_space_dimensions, name="z_log_var")(h3)
@@ -84,10 +83,10 @@ class VAEModel:
 
         # Build the decoder
         decoder_inputs = keras.Input(shape=(self.latent_space_dimensions,))
-        h1 = layers.Dense(inputs_dim / 3, activation=self.activation)(decoder_inputs)
-        h2 = layers.Dense(inputs_dim / 2, activation=self.activation)(h1)
+        h1 = layers.Dense(inputs_dim / 3, activation=self.activation, name="decoding_h1")(decoder_inputs)
+        h2 = layers.Dense(inputs_dim / 2, activation=self.activation, name="decoding_h2")(h1)
 
-        decoder_outputs = layers.Dense(inputs_dim)(h2)
+        decoder_outputs = layers.Dense(inputs_dim, name="decoder_output")(h2)
         self.decoder = keras.Model(decoder_inputs, decoder_outputs, name="decoder")
         self.decoder.summary()
         mlflow.log_param("decoder_summary", self.decoder.summary())
@@ -98,16 +97,16 @@ class VAEModel:
         # Train the VAE
         # Create the VAR, compile, and run.
 
-        callback = tf.keras.callbacks.EarlyStopping(monitor="reconstruction_loss",
-                                                    mode="min", patience=5,
-                                                    restore_best_weights=True)
+        early_stopping = tf.keras.callbacks.EarlyStopping(monitor="reconstruction_loss",
+                                                          mode="min", patience=5,
+                                                          restore_best_weights=True)
         self.vae = VAE(self.encoder, self.decoder)
         self.vae.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3))
 
         self.history = self.vae.fit(self.data.X_train,
                                     validation_data=(self.data.X_val, self.data.X_val),
                                     epochs=100,
-                                    callbacks=callback,
+                                    callbacks=[early_stopping, WeightsForBatch()],
                                     batch_size=256,
                                     shuffle=True,
                                     verbose=1)
@@ -115,6 +114,16 @@ class VAEModel:
         save_path = Path(self.__base_result_path, "model")
         mlflow.keras.save_model(self.vae, save_path)
         mlflow.log_artifact(str(save_path), self.__base_sub_folder)
+
+    def log_model_weights(self):
+        mlflow.log_param("Encoding H1", self.vae.get_layer('encoder').get_layer('encoding_h1').get_weights()[0])
+        mlflow.log_param("Encoding H2", self.vae.get_layer('encoder').get_layer('encoding_h2').get_weights()[0])
+        mlflow.log_param("Encoding H3", self.vae.get_layer('encoder').get_layer('encoding_h3').get_weights()[0])
+
+        mlflow.log_param("Decoding H1", self.vae.get_layer('decoder').get_layer('decoding_h1').get_weights()[0])
+        mlflow.log_param("Decoding H2", self.vae.get_layer('decoder').get_layer('decoding_h2').get_weights()[0])
+
+        # mlflow.log_param("Weight  History", weights_history)
 
     def encode_decode_test_data(self):
         """
@@ -131,3 +140,5 @@ class VAEModel:
         reconstructed_data_save_path = Path(self.__base_result_path, "reconstructed_data.csv")
         self.encoded_data.to_csv(reconstructed_data_save_path, index=False)
         mlflow.log_artifact(str(reconstructed_data_save_path), self.__base_sub_folder)
+
+

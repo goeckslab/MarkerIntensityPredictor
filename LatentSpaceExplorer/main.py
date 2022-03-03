@@ -37,6 +37,10 @@ def execute_latent_space_exploration():
                           run_name=st.session_state.new_run_name) as new_run:
         mlflow.set_tracking_uri = st.session_state.tracking_server_url
         st.session_state.data = Data()
+
+        mlflow.log_param("Selected Run Id", st.session_state.selected_run.id)
+        mlflow.log_param("Selected Experiment Id", st.session_state.selected_experiment_id)
+
         latent_space_explorer: LatentSpaceExplorer = LatentSpaceExplorer(embeddings=embeddings, markers=markers,
                                                                          base_results_path=Path(
                                                                              temp_storage_folder))
@@ -53,7 +57,6 @@ if __name__ == "__main__":
     if len(st.session_state.items()) == 0:
         SessionState.initialize_session_state()
 
-    st.write(st.session_state)
     if st.session_state.connected:
         experiment_handler = ExperimentHandler()
         experiments: list = experiment_handler.fetch_experiments()

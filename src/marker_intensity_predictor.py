@@ -14,10 +14,7 @@ comparison_base_results_path = Path("results")
 
 if __name__ == "__main__":
     os.environ[
-        "AZURE_STORAGE_CONNECTION_STRING"] = \
-        "DefaultEndpointsProtocol=https;AccountName=oamlflow;" \
-        "AccountKey=S4+OeMb7LRawrJP31uTc/hx+WCbvShSBPmZx4WJhFiRFt+edlQXjg2ey4OrtarYA8K40a8SPVGQxPe3mTYrmrA==;" \
-        "EndpointSuffix=core.windows.net"
+        "AZURE_STORAGE_CONNECTION_STRING"] = ""
 
     args = ArgumentParser.get_args()
     # set tracking url

@@ -99,3 +99,21 @@ class Plotting:
         plt.savefig(save_path)
         mlflow.log_artifact(str(save_path))
         plt.close()
+
+    def plot_weights(self, weights, markers: list, fig_name: str):
+        df = pd.DataFrame(weights, columns=markers)
+        ax = sns.heatmap(df)
+        if len(df) == 27:
+            ax.set_yticks(range(len(df)))
+            ax.set_yticklabels(markers)
+            ax.set_xticks(range(len(df)))
+            ax.set_xticklabels(markers)
+
+        ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+
+        fig = ax.get_figure()
+        fig.tight_layout()
+        save_path = Path(self.__base_path, f"{fig_name}.png")
+        plt.savefig(save_path)
+        mlflow.log_artifact(str(save_path))
+        plt.close()

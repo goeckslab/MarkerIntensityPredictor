@@ -1,7 +1,6 @@
 from VAE.model.vae import VAEModel
 import mlflow
 from Plotting.plots import Plotting
-from VAE.latentspace.laten_space_exploration import LatentSpaceExplorer
 from pathlib import Path
 import pandas as pd
 from Shared.data_loader import DataLoader
@@ -48,6 +47,9 @@ class VAE:
             # Create model
             self.model = VAEModel(self.args, data=self.data, base_results_path=self.__base_path)
             self.model.build_auto_encoder()
+            # Log model weights
+            self.model.log_model_weights()
+            # Create full encode decode dataset
             self.model.encode_decode_test_data()
 
             self.evaluation = Evaluation(self.__base_path, self.model.vae, self.data)
@@ -64,10 +66,10 @@ class VAE:
                                  sub_directory="Evaluation",
                                  file_name="Marker Expression")
 
-            latent_space_explorer = LatentSpaceExplorer(self.model.encoded_data, self.model.data.markers,
-                                                        self.__base_path)
-            latent_space_explorer.explore_latent_space(latent_space_dimensions=self.model.latent_space_dimensions,
-                                                       cells_to_generate=4000)
+            plotter.plot_weights(self.model.vae.get_layer('encoder').get_layer('encoding_h1').get_weights()[0],
+                                 self.data.markers, "Encoding layer")
+            plotter.plot_weights(self.model.vae.get_layer('decoder').get_layer('decoder_output').get_weights()[0],
+                                 self.data.markers, "Decoding layer")
 
     def save_initial_data(self, cells, markers):
         cell_save_path = Path(self.__base_path, "cells.csv")

@@ -54,25 +54,21 @@ class LatentSpaceExplorer:
 
         x_values = np.linspace(self.embeddings.min(), self.embeddings.max(), amount_of_cells_to_generate)
         count: int = 0
+        mean = np.mean(x_values)
 
-        for ix, x in enumerate(x_values):
+        for ix, latent_point in enumerate(x_values):
             # Extract first dimension of latent space
 
-            # Create latent point without fixed dimension
-            if fixed_dimension is None:
-                latent_point = x
-
-            else:
-                # Fix dimension
-                mean = np.mean(x)
-                latent_point = x
-                print(latent_point)
+            # Create latent point with fixed dimension
+            if fixed_dimension is not None:
+                mlflow.log_param("Fix dimension", "Y")
                 np.put(latent_point, fixed_dimension, mean)
-                print(latent_point)
 
-            # input()
+            # Reshape
             latent_point = latent_point.reshape(1, latent_point.shape[0])
-            st.session_state.data.latent_points.append(latent_point)
+            st.session_state.data.latent_points = st.session_state.data.latent_points.append(
+                pd.DataFrame(latent_point), ignore_index=True)
+
             # Generate new cell
             generated_cell = model.decoder.predict(latent_point)
             self.generated_cells = self.generated_cells.append(pd.Series(generated_cell[0]), ignore_index=True)
