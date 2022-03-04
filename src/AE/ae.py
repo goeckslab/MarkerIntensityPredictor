@@ -59,18 +59,17 @@ class AutoEncoderModel:
         # activate auto log
         mlflow.tensorflow.autolog()
 
-        activity_regularizer = regularizers.l1_l2(10e-5)
         # Build encoder
         input_layers = keras.Input(shape=(self.__data.inputs_dim,))
-        encoded = layers.Dense(self.__data.inputs_dim, activation=self.activation)(input_layers)
-        encoded = layers.Dense(self.__data.inputs_dim / 2, activation=self.activation)(encoded)
-        encoded = layers.Dense(self.__data.inputs_dim / 3, activation=self.activation)(encoded)
-        encoded = layers.Dense(self.latent_space_dimensions, activation=self.activation)(encoded)
+        encoded = layers.Dense(self.__data.inputs_dim, activation=self.activation, name="encoding_h1")(input_layers)
+        encoded = layers.Dense(self.__data.inputs_dim / 2, activation=self.activation, name="encoding_h2")(encoded)
+        encoded = layers.Dense(self.__data.inputs_dim / 3, activation=self.activation, name="encoding_h3")(encoded)
+        encoded = layers.Dense(self.latent_space_dimensions, activation=self.activation, name="embedding")(encoded)
 
         # Build decoder.
-        decoded = layers.Dense(self.__data.inputs_dim / 3, activation=self.activation)(encoded)
-        decoded = layers.Dense(self.__data.inputs_dim / 2, activation=self.activation)(decoded)
-        decoded = layers.Dense(self.__data.inputs_dim)(decoded)
+        decoded = layers.Dense(self.__data.inputs_dim / 3, activation=self.activation, name="decoding_h1")(encoded)
+        decoded = layers.Dense(self.__data.inputs_dim / 2, activation=self.activation, name="decoding_h2")(decoded)
+        decoded = layers.Dense(self.__data.inputs_dim, name="decoder_output")(decoded)
 
         # Auto encoder
         self.ae = keras.Model(input_layers, decoded, name="AE")
