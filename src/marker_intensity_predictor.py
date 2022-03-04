@@ -25,11 +25,17 @@ if __name__ == "__main__":
     experiment_handler: ExperimentHandler = ExperimentHandler(client=client)
 
     # The id of the associated
-    associated_experiment_id = 0
+    associated_experiment_id = None
 
     experiment_name = args.experiment
     if experiment_name is not None:
-        associated_experiment_id = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name)
+        associated_experiment_id = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name,
+                                                                                experiment_description=args.description)
+
+    # Experiment not found
+    if associated_experiment_id is None:
+        raise f"Experiment {experiment_name} not found!. " \
+              f"Either specify a different name or set create_experiment = True."
 
     mlflow.set_experiment(experiment_id=associated_experiment_id)
     FolderManagement.create_folders(vae_base_path=vae_base_result_path, ae_base_path=ae_base_result_path)
