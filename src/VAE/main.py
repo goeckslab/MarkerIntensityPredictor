@@ -32,8 +32,6 @@ class VAE:
         self.args = args
         self.__start_experiment()
 
-    def __cross_fold(self):
-
     def __start_experiment(self):
         # Load cells and markers from the given file
         with mlflow.start_run(run_name="VAE", nested=True, experiment_id=self.__experiment_id) as run:
