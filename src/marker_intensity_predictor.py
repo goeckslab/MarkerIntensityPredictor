@@ -40,6 +40,7 @@ if __name__ == "__main__":
         mlflow.log_param("Mode", args.mode)
 
         if args.mode == "vae":
+            print("VAE only mode.")
             vae = VAE(args=args, base_result_path=vae_base_result_path, experiment_id=associated_experiment_id)
 
         elif args.mode == "ae":
