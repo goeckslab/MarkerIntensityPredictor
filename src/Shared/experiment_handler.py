@@ -27,7 +27,9 @@ class ExperimentHandler:
             if experiment.name == experiment_name:
                 found_experiment_id = experiment.experiment_id
 
-        if found_experiment_id == 0 and create_experiment:
+        print(found_experiment_id)
+
+        if found_experiment_id is None and create_experiment:
             found_experiment_id = self.create_experiment(name=experiment_name, description=experiment_description)
 
         return found_experiment_id
@@ -40,11 +42,12 @@ class ExperimentHandler:
         @return: The string of the newly created experiment
         """
         try:
-            return self.client.create_experiment(name=name)
-        except RESOURCE_ALREADY_EXISTS as ex:
-            print("Experiment does already exists. Deleting and recreating experiment.")
-            experiment_id = self.client.get_experiment_by_name(name)
-            if experiment_id is not None:
-                self.client.delete_experiment(experiment_id)
+            experiment_id: str = self.client.create_experiment(name=name)
+            self.client.set_experiment_tag(experiment_id, "description", description)
+            return experiment_id
         except BaseException as ex:
+            # print("Experiment does already exists. Deleting and recreating experiment.")
+            # experiment_id = self.client.get_experiment_by_name(name)
+            # if experiment_id is not None:
+            #    self.client.delete_experiment(experiment_id)
             raise

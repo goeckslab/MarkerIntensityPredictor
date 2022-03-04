@@ -8,6 +8,9 @@ from Plotting.plots import Plotting
 from Shared.experiment_handler import ExperimentHandler
 import os
 
+#kfold vs random holdout
+#https://stats.stackexchange.com/questions/283512/how-many-times-should-i-repeat-hold-out-cross-validation
+
 vae_base_result_path = Path("results", "VAE")
 ae_base_result_path = Path("results", "AE")
 comparison_base_results_path = Path("results")
@@ -34,8 +37,8 @@ if __name__ == "__main__":
 
     # Experiment not found
     if associated_experiment_id is None:
-        raise f"Experiment {experiment_name} not found!. " \
-              f"Either specify a different name or set create_experiment = True."
+        raise ValueError(
+            f"Experiment {experiment_name} not found! Either specify a different name or set create_experiment = True.")
 
     mlflow.set_experiment(experiment_id=associated_experiment_id)
     FolderManagement.create_folders(vae_base_path=vae_base_result_path, ae_base_path=ae_base_result_path)
