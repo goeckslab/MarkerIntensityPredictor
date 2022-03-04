@@ -66,9 +66,9 @@ class AutoEncoder:
                                  file_name="Marker Expression")
 
             # Plot weights
-            plotter.plot_weights(self.model.ae.get_layer('encoder').get_layer('encoding_h1').get_weights()[0],
+            plotter.plot_weights(self.model.encoder.get_layer('encoding_h1').get_weights()[0],
                                  self.data.markers, "AE", "Encoding layer")
-            plotter.plot_weights(self.model.ae.get_layer('decoder').get_layer('decoder_output').get_weights()[0],
+            plotter.plot_weights(self.model.decoder.get_layer('decoder_output').get_weights()[0],
                                  self.data.markers, "AE", "Decoding layer")
 
             cluster_analyser = ClusterAnalysis(self.__base_path)
