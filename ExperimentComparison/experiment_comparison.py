@@ -40,7 +40,7 @@ class ExperimentComparer:
             if len(self.runs) == 0:
                 print(f"No runs found.")
                 print("Resources are being cleaned up.")
-                self.client.delete_run(run.info.run_id)
+                # self.client.delete_run(run.info.run_id)
                 return
 
             print(f"Found {len(self.runs)} runs.")

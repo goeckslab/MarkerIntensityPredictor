@@ -13,6 +13,7 @@ class Evaluation:
     __results_path: Path
 
     def __init__(self, base_path: Path):
+        print("Started evaluation...")
         self.__base_path = base_path
         self.__results_path = FolderManagement.create_directory(Path(self.__base_path, "evaluation"))
 

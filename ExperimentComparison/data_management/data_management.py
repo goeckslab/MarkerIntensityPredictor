@@ -17,6 +17,8 @@ class DataManagement:
         Downloads all artifacts of the found experiments
         @return:
         """
+        print("Downloading artifacts...")
+
         # Create temp directory
 
         download_directory = FolderManagement.create_directory(Path(self.__base_path, "runs"))
@@ -45,6 +47,8 @@ class DataManagement:
 
                 DataManagement.client.download_artifacts(run.info.run_id, "Evaluation",
                                                          str(Path(run_directory)))
+
+                print("Downloading finished.")
             except BaseException as ex:
                 print(ex)
                 continue
