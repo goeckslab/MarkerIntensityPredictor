@@ -16,8 +16,7 @@ ae_base_result_path = Path("results", "AE")
 comparison_base_results_path = Path("results")
 
 if __name__ == "__main__":
-    os.environ[
-        "AZURE_STORAGE_CONNECTION_STRING"] = ""
+
 
     args = ArgumentParser.get_args()
     # set tracking url
