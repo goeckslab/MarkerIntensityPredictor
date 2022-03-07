@@ -192,3 +192,7 @@ if __name__ == "__main__":
             plotter = Plotting(comparison_base_results_path, args)
             plotter.plot_r2_scores_comparison(ae_r2_scores=ae_r2_scores,
                                               vae_r2_scores=vae_r2_scores)
+
+    # Cleanup ressources
+    FolderManagement.delete_directory(ae_base_result_path)
+    FolderManagement.delete_directory(vae_base_result_path)
