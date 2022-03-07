@@ -13,9 +13,9 @@ from library.preprocessing.split import create_splits
 from library.evalation.evaluation import Evaluation
 from library.predictions.predictions import Predictions
 
-vae_base_result_path = Path("single_biopsy", "VAE")
-ae_base_result_path = Path("single_biopsy", "AE")
-comparison_base_results_path = Path("single_biopsy")
+vae_base_result_path = Path("multi_biopsy", "VAE")
+ae_base_result_path = Path("multi_biopsy", "AE")
+comparison_base_results_path = Path("multi_biopsy")
 
 
 def get_args():
@@ -37,7 +37,7 @@ def get_args():
                         help="A description for the experiment to give a broad overview. "
                              "This is only used when a new experiment is being created. Ignored if experiment exists",
                         type=str)
-    parser.add_argument("--file", action="store", required=True, help="The file used for training the model")
+    parser.add_argument("--file", action="store", nargs='+', required=True, help="The file used for training the model")
     parser.add_argument("--morph", action="store_true", help="Include morphological data", default=True)
     parser.add_argument("--mode", action="store",
                         help="If used only the given model will be executed and no comparison will take place",
@@ -48,16 +48,28 @@ def get_args():
 
 def start_ae_experiment(args, experiment_id: str):
     with mlflow.start_run(run_name="AE", nested=True, experiment_id=experiment_id) as run:
-        mlflow.log_param("file", args.file)
-        mlflow.log_param("morphological_data", args.morph)
+        train_file = args.file[0]
+        test_file = args.file[1]
+
+        mlflow.log_param("Train File", train_file)
+        mlflow.log_param("Test File", test_file)
+        mlflow.log_param("Morphological Data", args.morph)
         mlflow.set_tag("Model", "AE")
 
         # Load data
-        cells, markers = DataLoader.load_data(file_name=args.file, keep_morph=args.morph)
-        Reporter.report_cells_and_markers(save_path=ae_base_result_path, cells=cells, markers=markers)
+        train_cells, markers = DataLoader.load_data(file_name=train_file, keep_morph=args.morph)
+        test_cells, markers = DataLoader.load_data(file_name=test_file, keep_morph=args.morph)
 
-        normalized_data = Preprocessing.normalize(cells)
-        train_data, val_data, test_data = create_splits(normalized_data)
+        Reporter.report_cells_and_markers(save_path=ae_base_result_path, cells=train_cells, markers=markers,
+                                          prefix="train")
+        Reporter.report_cells_and_markers(save_path=ae_base_result_path, cells=test_cells, markers=markers,
+                                          prefix="test")
+
+        train_cells_normalized = Preprocessing.normalize(train_cells)
+        test_cells_normalized = Preprocessing.normalize(test_cells)
+
+        train_data, val_data, _ = create_splits(train_cells_normalized)
+        _, _, test_data = create_splits(test_cells_normalized)
 
         # Create model
         model, encoder, decoder, history = AutoEncoder.build_auto_encoder(train_data=train_data,
@@ -97,17 +109,28 @@ def start_ae_experiment(args, experiment_id: str):
 def start_vae_experiment(args, experiment_id: str):
     # Load cells and markers from the given file
     with mlflow.start_run(run_name="VAE", nested=True, experiment_id=experiment_id) as run:
-        mlflow.log_param("file", args.file)
-        mlflow.log_param("morphological_data", args.morph)
+        train_file = args.file[0]
+        test_file = args.file[1]
+
+        mlflow.log_param("Train File", train_file)
+        mlflow.log_param("Test File", test_file)
+        mlflow.log_param("Morphological Data", args.morph)
         mlflow.set_tag("Model", "VAE")
 
         # Load data
-        cells, markers = DataLoader.load_data(file_name=args.file, keep_morph=args.morph)
+        train_cells, markers = DataLoader.load_data(file_name=train_file, keep_morph=args.morph)
+        test_cells, markers = DataLoader.load_data(file_name=test_file, keep_morph=args.morph)
 
-        normalized_cells = Preprocessing.normalize(cells)
-        Reporter.report_cells_and_markers(save_path=vae_base_result_path, cells=cells, markers=markers)
+        train_cells_normalized = Preprocessing.normalize(train_cells)
+        test_cells_normalized = Preprocessing.normalize(train_cells)
+        Reporter.report_cells_and_markers(save_path=vae_base_result_path, cells=train_cells, markers=markers,
+                                          prefix="train")
+        Reporter.report_cells_and_markers(save_path=vae_base_result_path, cells=test_cells, markers=markers,
+                                          prefix="test")
 
-        train_data, val_data, test_data = create_splits(normalized_cells)
+        # Create train and val from train cells
+        train_data, val_data, _ = create_splits(train_cells_normalized)
+        _, _, test_data = create_splits(test_cells_normalized)
 
         # Create model
         model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(training_data=train_data,
@@ -149,6 +172,13 @@ def start_vae_experiment(args, experiment_id: str):
 if __name__ == "__main__":
     args = get_args()
 
+    if len(args.file) != 2:
+        raise ValueError(
+            "Please specify only 2 files to process! The first one is the train file the second is the test file")
+
+    train_file = args.file[0]
+    test_file = args.file[1]
+
     # Create working directories
     FolderManagement.create_directory(vae_base_result_path)
     FolderManagement.create_directory(ae_base_result_path)
@@ -179,7 +209,8 @@ if __name__ == "__main__":
     # Start initial experiment
     with mlflow.start_run(run_name=args.run, nested=True, experiment_id=associated_experiment_id) as run:
         mlflow.log_param("Included Morphological Data", args.morph)
-        mlflow.log_param("File", args.file)
+        mlflow.log_param("Train File", train_file)
+        mlflow.log_param("Test File", test_file)
         mlflow.log_param("Mode", args.mode)
 
         vae_r2_scores = start_vae_experiment(args, experiment_id=associated_experiment_id)

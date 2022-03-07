@@ -19,7 +19,7 @@ fi
 
 if [ -z "$file_name" ]
 then
-      echo "Please specify a file to use"
+    echo "Please specify a file to use"
 	  exit 1
 fi
 
@@ -33,5 +33,5 @@ for RUN in {1..15}
 do
 	echo "Starting run ${RUN}"
 	source venv/bin/activate
-	python3 src/marker_intensity_predictor.py -e ${experiment_name} --file ${file_name} -t ${server} -r ${run_name}_"#${RUN}"
+	python3 single_biopsy_marker_prediction.py -e ${experiment_name} --file ${file_name} -r ${run_name}_"#${RUN}"
 done
