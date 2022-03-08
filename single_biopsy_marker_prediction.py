@@ -87,11 +87,18 @@ def start_ae_experiment(args, experiment_id: str):
                              mlflow_directory="Evaluation",
                              file_name="Marker Expression")
 
+        encoding_h1_weights = encoder.get_layer('encoding_h1').get_weights()[0]
+        decoding_output_weights = decoder.get_layer('decoder_output').get_weights()[0]
+
+        Reporter.report_weights(encoding_h1_weights, markers=markers, save_path=ae_base_result_path,
+                                mlflow_folder="AE", file_name="encoding_h1")
+
+        Reporter.report_weights(decoding_output_weights, markers=markers, save_path=ae_base_result_path,
+                                mlflow_folder="AE", file_name="decoding_output")
+
         # Plot weights
-        plotter.plot_weights(encoder.get_layer('encoding_h1').get_weights()[0],
-                             markers, "AE", "Encoding layer")
-        plotter.plot_weights(decoder.get_layer('decoder_output').get_weights()[0],
-                             markers, "AE", "Decoding layer")
+        plotter.plot_weights(encoding_h1_weights, markers, "AE", "Encoding layer")
+        plotter.plot_weights(decoding_output_weights, markers, "AE", "Decoding layer")
 
         return r2_scores
 
@@ -143,10 +150,17 @@ def start_vae_experiment(args, experiment_id: str):
                                   mlflow_directory="Evaluation",
                                   file_name="Marker Expression")
 
-        vae_plotting.plot_weights(encoder.get_layer('encoding_h1').get_weights()[0],
-                                  markers, "VAE", "Encoding layer")
-        vae_plotting.plot_weights(decoder.get_layer('decoder_output').get_weights()[0],
-                                  markers, "VAE", "Decoding layer")
+        encoding_h1_weights = encoder.get_layer('encoding_h1').get_weights()[0]
+        decoding_output_weights = decoder.get_layer('decoder_output').get_weights()[0]
+
+        Reporter.report_weights(encoding_h1_weights, markers=markers, save_path=vae_base_result_path,
+                                mlflow_folder="VAE", file_name="encoding_h1")
+
+        Reporter.report_weights(decoding_output_weights, markers=markers, save_path=vae_base_result_path,
+                                mlflow_folder="VAE", file_name="decoding_output")
+
+        vae_plotting.plot_weights(encoding_h1_weights, markers, "VAE", "Encoding layer")
+        vae_plotting.plot_weights(decoding_output_weights, markers, "VAE", "Decoding layer")
 
         return r2_scores
 
