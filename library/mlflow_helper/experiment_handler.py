@@ -104,40 +104,6 @@ class ExperimentHandler:
 
         print("Downloading finished.")
 
-    @staticmethod
-    def load_r2_scores_for_model(save_path: Path) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        """
-        Loads all r2scores for the given model and combines them in a dataset
-        @param save_path:
-        @return:
-        """
-        combined_r2_scores = pd.DataFrame()
-        markers = []
-
-        for p in save_path.rglob("*"):
-            if p.name == "r2_score.csv":
-                df = pd.read_csv(p.absolute(), header=0)
-
-                # Get markers
-                markers = df["Marker"].to_list()
-
-                # Transponse
-                df = df.T
-                # Drop markers row
-                df.drop(index=df.index[0],
-                        axis=0,
-                        inplace=True)
-
-                combined_r2_scores = combined_r2_scores.append(df, ignore_index=True)
-
-        combined_r2_scores.columns = markers
-
-        mean_scores = pd.DataFrame(columns=["Marker", "Score"],
-                                   data={"Marker": combined_r2_scores.columns,
-                                         "Score": combined_r2_scores.mean().values})
-
-        # return mean scores
-        return mean_scores, combined_r2_scores
 
     def __get_run_by_id(self, run_id: str) -> Run:
         run: Run

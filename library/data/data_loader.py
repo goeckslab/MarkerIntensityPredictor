@@ -53,3 +53,59 @@ class DataLoader:
 
         # return cells, markers
         return cells.iloc[:, :], markers
+
+    @staticmethod
+    def load_r2_scores_for_model(load_path: Path) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Loads all r2scores for the given model and combines them in a dataset
+        @param load_path: The path from where to load the data
+        @return:
+        """
+        combined_r2_scores = pd.DataFrame()
+        markers = []
+
+        for p in load_path.rglob("*"):
+            if p.name == "r2_score.csv":
+                df = pd.read_csv(p.absolute(), header=0)
+
+                # Get markers
+                markers = df["Marker"].to_list()
+
+                # Transponse
+                df = df.T
+                # Drop markers row
+                df.drop(index=df.index[0],
+                        axis=0,
+                        inplace=True)
+
+                combined_r2_scores = combined_r2_scores.append(df, ignore_index=True)
+
+        combined_r2_scores.columns = markers
+
+        mean_scores = pd.DataFrame(columns=["Marker", "Score"],
+                                   data={"Marker": combined_r2_scores.columns,
+                                         "Score": combined_r2_scores.mean().values})
+
+        # return mean scores
+        return mean_scores, combined_r2_scores
+
+    @staticmethod
+    def load_layer_weights(load_path: Path, file_name: str) -> pd.DataFrame:
+        """
+        Loads all files matching the file name from the load path
+        @param load_path: The path where files are being searched
+        @param file_name: The file name pattern to match
+        @return: A list of found dataframes
+        """
+
+        combined_weights = pd.DataFrame()
+
+        for p in load_path.rglob("*"):
+            if p.name != file_name:
+                continue
+
+            df = pd.read_csv(p.absolute(), header=0)
+
+            combined_weights = combined_weights.append(df, ignore_index=True)
+
+        return combined_weights

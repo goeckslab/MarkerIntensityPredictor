@@ -1,11 +1,15 @@
 import mlflow
 import logging
 from pathlib import Path
+
+import pandas as pd
+
 from library.data.folder_management import FolderManagement
 import argparse
 from library.mlflow_helper.experiment_handler import ExperimentHandler
 from library.mlflow_helper.reporter import Reporter
 from library.plotting.plots import Plotting
+from library.data.data_loader import DataLoader
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
@@ -16,12 +20,11 @@ def get_args():
     Load all provided cli args
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--experiment", "-e", action="store", required=True,
+    parser.add_argument("--experiment", "-e", action="store", required=False,
                         help="The name of the experiment which should be evaluated",
-                        type=str)
+                        default="Default", type=str)
     parser.add_argument("--run", "-r", action="store", required=True,
-                        help="The name of the run being run",
-                        type=str)
+                        help="The name of the run being run", type=str)
     parser.add_argument("--tracking_url", "-t", action="store", required=False,
                         help="The tracking url for the mlflow tracking server", type=str,
                         default="http://127.0.0.1:5000")
@@ -90,11 +93,10 @@ class ExperimentComparer:
             # Download all artifacts
             self.__download_artifacts(ae_runs=ae_runs, vae_runs=vae_runs)
 
-            ae_mean_scores, ae_combined_scores = self.experiment_handler.load_r2_scores_for_model(
-                self.ae_directory)
-            vae_mean_scores, vae_combined_scores = self.experiment_handler.load_r2_scores_for_model(
-                self.vae_directory)
-
+            ae_mean_scores, ae_combined_scores = DataLoader.load_r2_scores_for_model(self.ae_directory)
+            vae_mean_scores, vae_combined_scores = DataLoader.load_r2_scores_for_model(self.vae_directory)
+            mlflow.log_param("AE_marker_count", ae_mean_scores.shape[0])
+            mlflow.log_param("VAE_marker_count", vae_mean_scores.shape[0])
             self.__report_r2_scores({
                 "ae_mean": ae_mean_scores,
                 "ae_combined": ae_combined_scores,
@@ -102,11 +104,20 @@ class ExperimentComparer:
                 "vae_combined": vae_combined_scores
             })
 
-            mlflow.log_param("AE_marker_count", ae_mean_scores.shape[0])
-            mlflow.log_param("VAE_marker_count", vae_mean_scores.shape[0])
+            encoding_layer_weights: pd.DataFrame = DataLoader.load_layer_weights(self.ae_directory,
+                                                                                 "layer_encoding_h1_weights.csv")
+            decoding_layer_weights: pd.DataFrame = DataLoader.load_layer_weights(self.ae_directory,
+                                                                                 "layer_decoding_output_weights.csv")
 
             plotter = Plotting(self.base_path, args=args)
             plotter.r2_scores_mean_values(ae_scores=ae_mean_scores, vae_scores=vae_mean_scores)
+            plotter.plot_weights_distribution(encoding_layer_weights, "encoding")
+            plotter.plot_weights_distribution(decoding_layer_weights, "decoding")
+            #plotter.plot_weights(weights=encoding_layer_weights.mean().T,
+            #                     markers=list(encoding_layer_weights.columns.values),
+            #                     mlflow_directory="", fig_name="layer_encoding_h1_weights")
+            #plotter.plot_weights(decoding_layer_weights.mean().T, markers=list(encoding_layer_weights.columns.values),
+            #                     mlflow_directory="", fig_name="layer_decoding_weights")
 
             self.__log_information()
 

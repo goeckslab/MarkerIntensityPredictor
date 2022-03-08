@@ -111,7 +111,7 @@ class Plotting:
         mlflow.log_artifact(str(save_path))
         plt.close()
 
-    def plot_weights(self, weights, markers: list, sub_directory: str, fig_name: str):
+    def plot_weights(self, weights, markers: list, mlflow_directory: str, fig_name: str):
         df = pd.DataFrame(weights, columns=markers)
         ax = sns.heatmap(df)
 
@@ -128,7 +128,7 @@ class Plotting:
         fig.tight_layout()
         save_path = Path(self.__base_path, f"{fig_name}.png")
         plt.savefig(save_path)
-        mlflow.log_artifact(str(save_path), sub_directory)
+        mlflow.log_artifact(str(save_path), mlflow_directory)
         plt.close()
 
     def r2_scores_mean_values(self, ae_scores: pd.DataFrame, vae_scores: pd.DataFrame):
@@ -158,6 +158,25 @@ class Plotting:
 
         fig.tight_layout()
         save_path = Path(self.__base_path, "mean_r2_comparison.png")
+        plt.savefig(save_path)
+        mlflow.log_artifact(str(save_path))
+        plt.close()
+
+    def plot_weights_distribution(self, weights: pd.DataFrame, layer: str):
+
+        fig, ax1 = plt.subplots(ncols=1, figsize=(28, 20), dpi=300, sharex=False)
+        df = pd.DataFrame(columns=["Weights", "Markers"])
+        for column, weights in weights.iteritems():
+            for weight in weights.values:
+                df = df.append({
+                    "Markers": column,
+                    "Weights": weight
+                }, ignore_index=True)
+
+        sns.displot(df, x="Weights", hue="Markers", legend=True)
+        fig.tight_layout()
+        plt.legend(loc='lower center')
+        save_path = Path(self.__base_path, f"{layer}_weights_distribution.png")
         plt.savefig(save_path)
         mlflow.log_artifact(str(save_path))
         plt.close()
