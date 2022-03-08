@@ -59,10 +59,11 @@ class AutoEncoder:
                                                           mode="min", patience=5,
                                                           restore_best_weights=True)
         history = ae.fit(train_data, train_data,
-                         epochs=100,
+                         epochs=500,
                          batch_size=256,
                          shuffle=True,
                          callbacks=[early_stopping],
-                         validation_data=(validation_data, validation_data))
+                         validation_data=(validation_data, validation_data),
+                         verbose=0)
 
         return ae, encoder, decoder, history

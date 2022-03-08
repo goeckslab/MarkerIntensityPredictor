@@ -55,10 +55,10 @@ class MarkerPredictionVAE:
 
         history = vae.fit(training_data,
                           validation_data=(validation_data, validation_data),
-                          epochs=100,
+                          epochs=500,
                           callbacks=[early_stopping, WeightsForBatch()],
                           batch_size=256,
                           shuffle=True,
-                          verbose=1)
+                          verbose=0)
 
         return vae, encoder, decoder, history
