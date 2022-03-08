@@ -32,7 +32,7 @@ def get_args():
     parser.add_argument("--experiment", "-e", action="store", required=False,
                         help="Assigns the run to a particular experiment. "
                              "If the experiment does not exists it will create a new one.",
-                        type=str)
+                        default="Default", type=str)
     parser.add_argument("--description", "-d", action="store", required=False,
                         help="A description for the experiment to give a broad overview. "
                              "This is only used when a new experiment is being created. Ignored if experiment exists",
