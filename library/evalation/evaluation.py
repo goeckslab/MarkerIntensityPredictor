@@ -8,8 +8,7 @@ class Evaluation:
     # R2 scores
 
     @staticmethod
-    def calculate_r2_score(test_data: pd.DataFrame, reconstructed_data: pd.DataFrame, markers: list,
-                           save_path: Path, mlflow_folder: str) -> pd.DataFrame:
+    def calculate_r2_score(test_data: pd.DataFrame, reconstructed_data: pd.DataFrame, markers: list) -> pd.DataFrame:
         """
         Calculates the r2 scores for the given parameters
         @param test_data: The input data to evaluate
@@ -35,8 +34,6 @@ class Evaluation:
                 }, ignore_index=True
             )
 
-        save_path = Path(save_path, "r2_score.csv")
-        r2_scores.to_csv(save_path, index=False)
-        mlflow.log_artifact(str(save_path), mlflow_folder)
+
 
         return r2_scores
