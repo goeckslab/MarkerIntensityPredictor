@@ -1,32 +1,52 @@
 import mlflow
-from mlflow.tracking.fluent import _get_experiment_id
 import logging
-from data_management.data_management import DataManagement
 import pandas as pd
 from pathlib import Path
 from evaluation.evaluation import Evaluation
 from folder_management.folder_management import FolderManagement
-from args import ArgumentParser
-from experiment_handler.experiment_handler import ExperimentHandler
+import argparse
+from library.mlflow_helper.experiment_handler import ExperimentHandler
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
+
+
+def get_args():
+    """
+    Load all provided cli args
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--experiment", "-e", action="store", required=True,
+                        help="The name of the experiment which should be evaluated",
+                        type=str)
+    parser.add_argument("--run", "-r", action="store", required=True,
+                        help="The name of the run being run",
+                        type=str)
+
+    return parser.parse_args()
 
 
 class ExperimentComparer:
     # All runs to compare
     runs: list = []
     client = mlflow.tracking.MlflowClient()
-    base_path = Path("tmp")
+    base_path = Path("LatentSpaceExplorer/tmp")
     # The user given experiment name
     experiment_name: str
     # The experiment id
     experiment_id: str
+    experiment_handler: ExperimentHandler
 
     def __init__(self, experiment_name: str):
-        self.experiment_name = experiment_name
-        self.experiment_id = ExperimentHandler.get_experiment_id_by_name(self.experiment_name)
+        # Create mlflow tracking client
+        client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
+        self.experiment_handler: ExperimentHandler = ExperimentHandler(client=client)
 
+        self.experiment_name = experiment_name
+        self.experiment_id = self.experiment_handler.get_experiment_id_by_name(experiment_name=self.experiment_name,
+                                                                               experiment_description="")
+
+    def start_comparison(self):
         if self.experiment_id is None:
             print(f"Could not find an experiment with the given name: {self.experiment_name}")
             return
@@ -45,10 +65,9 @@ class ExperimentComparer:
 
             print(f"Found {len(self.runs)} runs.")
 
-            data_manager = DataManagement(self.base_path)
-            data_manager.download_artifacts(self.runs)
-            ae_scores: pd.DataFrame = data_manager.load_r2_scores_for_model("AE")
-            vae_scores: pd.DataFrame = data_manager.load_r2_scores_for_model("VAE")
+            self.experiment_handler.download_artifacts(self.base_path, self.runs)
+            ae_scores: pd.DataFrame = self.experiment_handler.load_r2_scores_for_model(self.base_path, "AE")
+            vae_scores: pd.DataFrame = self.experiment_handler.load_r2_scores_for_model(self.base_path, "VAE")
 
             mlflow.log_param("AE_marker_count", ae_scores.shape[0])
             mlflow.log_param("VAE_marker_count", vae_scores.shape[0])
@@ -65,7 +84,7 @@ class ExperimentComparer:
 
 
 if __name__ == "__main__":
-    args = ArgumentParser.get_args()
+    args = get_args()
     comparer = ExperimentComparer(args.experiment)
 else:
     raise "Tool is meant to be executed as standalone"
