@@ -27,4 +27,4 @@ def create_folds(data_to_split: pd.DataFrame, splits: int = 5) -> Tuple:
     kf.get_n_splits(data_to_split)
 
     for train_index, test_index in kf.split(data_to_split):
-        yield data_to_split.iloc[train_index], data_to_split.iloc[test_index]
+        yield data_to_split[train_index], data_to_split[test_index]
