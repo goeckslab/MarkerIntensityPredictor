@@ -34,8 +34,6 @@ class ExperimentHandler:
             if experiment.name == experiment_name:
                 found_experiment_id = experiment.experiment_id
 
-        print(found_experiment_id)
-
         if found_experiment_id is None and create_experiment:
             found_experiment_id = self.create_experiment(name=experiment_name, description=experiment_description)
 
