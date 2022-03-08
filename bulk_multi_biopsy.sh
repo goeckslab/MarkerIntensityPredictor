@@ -16,15 +16,14 @@ fi
 
 for filename in ./data/*.csv;
 do
-  if [[ "$filename" == "SARDANA.csv" ]]
+  if [[ "$filename" == *"SARDANA.csv"* ]]
   then
     continue
   fi
 
   for comparefile in ./data/*csv;
   do
-
-    if [[ "$comparefile" == "SARDANA.csv" ]]
+    if [[ "$comparefile" == *"SARDANA.csv"* ]]
     then
       continue
     fi

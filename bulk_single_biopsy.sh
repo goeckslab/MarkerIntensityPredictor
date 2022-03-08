@@ -19,7 +19,7 @@ fi
 for filename in ./data/*.csv;
 do
   echo "$filename"
-  if [[ "$filename" == "SARDANA.csv" ]]
+  if [[ "$filename" == *"SARDANA.csv"* ]]
   then
     continue
   fi
