@@ -71,9 +71,11 @@ def start_ae_experiment(args, experiment_id: str):
                                                                                 mlflow_directory="AE")
 
         r2_scores = Evaluation.calculate_r2_score(test_data=test_data, reconstructed_data=reconstructed_data,
-                                                  markers=markers,
-                                                  save_path=Path(ae_base_result_path),
-                                                  mlflow_folder="Evaluation")
+                                                  markers=markers)
+
+        # Report r2 score
+        Reporter.report_r2_scores(r2_scores=r2_scores, save_path=vae_base_result_path,
+                                  mlflow_folder="Evaluation")
 
         plotter = Plotting(ae_base_result_path, args)
         plotter.plot_model_performance(history, "AE", "Model performance")
@@ -124,8 +126,11 @@ def start_vae_experiment(args, experiment_id: str):
         # Evaluate
         evaluation = Evaluation()
         r2_scores = evaluation.calculate_r2_score(test_data=test_data, reconstructed_data=reconstructed_data,
-                                                  markers=markers, save_path=vae_base_result_path,
-                                                  mlflow_folder="Evaluation")
+                                                  markers=markers)
+
+        # Report r2 score
+        Reporter.report_r2_scores(r2_scores=r2_scores, save_path=vae_base_result_path,
+                                  mlflow_folder="Evaluation")
 
         vae_plotting = Plotting(vae_base_result_path, args)
         vae_plotting.plot_model_performance(model.history, "VAE", "model_performance")
