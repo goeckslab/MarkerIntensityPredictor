@@ -59,16 +59,26 @@ class Plotting:
         mlflow.log_artifact(str(save_path), mlflow_directory)
         plt.close()
 
-    def plot_markers(self, train_data, test_data, val_data, markers, mlflow_directory: str, file_name: str):
+    def plot_markers(self, train_data, test_data, markers, mlflow_directory: str, file_name: str, val_data=None):
         logging.info("Plotting markers")
-        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(9, 10), dpi=300, sharex=True)
+
+        if val_data is not None:
+            fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(9, 10), dpi=300, sharex=True)
+        else:
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 10), dpi=300, sharex=True)
+
         sns.heatmap(train_data, ax=ax1, xticklabels=markers)
         sns.heatmap(test_data, ax=ax2, xticklabels=markers)
-        sns.heatmap(val_data, ax=ax3, xticklabels=markers)
+
+        if val_data is not None:
+            sns.heatmap(val_data, ax=ax3, xticklabels=markers)
 
         ax1.set_title("X Train")
         ax2.set_title("X Test")
-        ax3.set_title("X Validation")
+
+        if val_data is not None:
+            ax3.set_title("X Validation")
+
         fig.tight_layout()
 
         save_path = Path(self.__base_path, f"{file_name}.png")
