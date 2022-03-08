@@ -1,8 +1,6 @@
 
 experiment_name=$1
-run_name=$2
-file_name=$3
-server=$4
+server=$2
 
 if [ -z "$experiment_name" ]
 then
@@ -11,27 +9,26 @@ then
 fi
 
 
-if [ -z "$run_name" ]
-then
-      echo "Please specify a run name"
-	  exit 1
-fi
-
-if [ -z "$file_name" ]
-then
-    echo "Please specify a file to use"
-	  exit 1
-fi
-
 if [ -z "$server" ]
 then
-      echo "Using localhost tracking server"
-	  $server="http://127.0.0.1:5000"
+    echo "Using localhost tracking server"
+	  server="http://127.0.0.1:5000"
 fi
 
-for RUN in {1..15}
+
+for filename in ./data/*.csv;
 do
-	echo "Starting run ${RUN}"
-	source venv/bin/activate
-	python3 single_biopsy_marker_prediction.py -e ${experiment_name} --file ${file_name} -r ${run_name}_"#${RUN}"
+  echo "$filename"
+  if [[ "$filename" == "SARDANA.csv" ]]
+  then
+    continue
+  fi
+
+  for RUN in {1..10}
+  do
+	  echo "Starting run ${RUN}"
+	  source venv/bin/activate
+	  python3 single_biopsy_marker_prediction.py -e "${experiment_name}" --file "${filename}" -r "${filename}_#${RUN}"
+  done
 done
+
