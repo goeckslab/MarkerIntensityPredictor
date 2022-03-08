@@ -32,7 +32,7 @@ def get_args():
     parser.add_argument("--experiment", "-e", action="store", required=False,
                         help="Assigns the run to a particular experiment. "
                              "If the experiment does not exists it will create a new one.",
-                        type=str)
+                        default="default", type=str)
     parser.add_argument("--description", "-d", action="store", required=False,
                         help="A description for the experiment to give a broad overview. "
                              "This is only used when a new experiment is being created. Ignored if experiment exists",
@@ -91,10 +91,10 @@ def start_ae_experiment(args, experiment_id: str):
         decoding_output_weights = decoder.get_layer('decoder_output').get_weights()[0]
 
         Reporter.report_weights(encoding_h1_weights, markers=markers, save_path=ae_base_result_path,
-                                mlflow_folder="AE", file_name="encoding_h1")
+                                mlflow_folder="AE", file_name="layer_encoding_h1")
 
         Reporter.report_weights(decoding_output_weights, markers=markers, save_path=ae_base_result_path,
-                                mlflow_folder="AE", file_name="decoding_output")
+                                mlflow_folder="AE", file_name="layer_decoding_output")
 
         # Plot weights
         plotter.plot_weights(encoding_h1_weights, markers, "AE", "Encoding layer")
@@ -154,10 +154,10 @@ def start_vae_experiment(args, experiment_id: str):
         decoding_output_weights = decoder.get_layer('decoder_output').get_weights()[0]
 
         Reporter.report_weights(encoding_h1_weights, markers=markers, save_path=vae_base_result_path,
-                                mlflow_folder="VAE", file_name="encoding_h1")
+                                mlflow_folder="VAE", file_name="layer_encoding_h1")
 
         Reporter.report_weights(decoding_output_weights, markers=markers, save_path=vae_base_result_path,
-                                mlflow_folder="VAE", file_name="decoding_output")
+                                mlflow_folder="VAE", file_name="layer_decoding_output")
 
         vae_plotting.plot_weights(encoding_h1_weights, markers, "VAE", "Encoding layer")
         vae_plotting.plot_weights(decoding_output_weights, markers, "VAE", "Decoding layer")
