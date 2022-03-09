@@ -180,3 +180,14 @@ class Plotting:
         plt.savefig(save_path)
         mlflow.log_artifact(str(save_path))
         plt.close()
+
+    def plot_r2_score_differences(self, r2_score_difference: pd.DataFrame, prefix: str):
+        ax = sns.barplot(x='Marker', y='Score', data=r2_score_difference)
+        ax.set_title("Mean R2 Score Difference")
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
+        fig = ax.get_figure()
+        fig.tight_layout()
+        save_path = Path(self.__base_path, f"{prefix}_mean_r2_difference.png")
+        plt.savefig(save_path)
+        mlflow.log_artifact(str(save_path))
+        plt.close()

@@ -149,13 +149,12 @@ def start_vae_experiment(args, experiment_id: str):
                                                                                               embedding_dimension=5)
 
         # Predictions
-        encoded_data, reconstructed_data = Predictions.encode_decode_vae_test_data(encoder, decoder, test_data, markers,
-                                                                                   save_path=vae_base_result_path,
-                                                                                   mlflow_directory="VAE")
+        embeddings, reconstructed_data = Predictions.encode_decode_vae_test_data(encoder, decoder, test_data, markers,
+                                                                                 save_path=vae_base_result_path,
+                                                                                 mlflow_directory="VAE")
 
         # Evaluate
-        evaluation = Evaluation()
-        r2_scores = evaluation.calculate_r2_score(test_data=test_data, reconstructed_data=reconstructed_data,
+        r2_scores = Evaluation.calculate_r2_score(test_data=test_data, reconstructed_data=reconstructed_data,
                                                   markers=markers)
 
         Reporter.report_r2_scores(r2_scores=r2_scores, save_path=vae_base_result_path,
@@ -181,10 +180,8 @@ def start_vae_experiment(args, experiment_id: str):
         Reporter.report_weights(decoding_output_weights, markers=markers, save_path=vae_base_result_path,
                                 mlflow_folder="VAE", file_name="layer_decoding_output_weights")
 
-        vae_plotting.plot_weights(encoding_h1_weights,
-                                  markers, "VAE", "Encoding layer")
-        vae_plotting.plot_weights(decoding_output_weights,
-                                  markers, "VAE", "Decoding layer")
+        vae_plotting.plot_weights(encoding_h1_weights, markers, "VAE", "Encoding layer")
+        vae_plotting.plot_weights(decoding_output_weights, markers, "VAE", "Decoding layer")
 
         return r2_scores
 

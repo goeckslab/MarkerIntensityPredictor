@@ -59,7 +59,7 @@ class DataLoader:
         """
         Loads all r2scores for the given model and combines them in a dataset
         @param load_path: The path from where to load the data
-        @return:
+        @return: Returns a tuple of dataframes. First dataframe contains the mean scores, the second contains all combined scores.
         """
         combined_r2_scores = pd.DataFrame()
         markers = []
@@ -71,7 +71,7 @@ class DataLoader:
                 # Get markers
                 markers = df["Marker"].to_list()
 
-                # Transponse
+                # Transpose
                 df = df.T
                 # Drop markers row
                 df.drop(index=df.index[0],
@@ -82,6 +82,8 @@ class DataLoader:
 
         combined_r2_scores.columns = markers
 
+        print(combined_r2_scores.mean())
+        input()
         mean_scores = pd.DataFrame(columns=["Marker", "Score"],
                                    data={"Marker": combined_r2_scores.columns,
                                          "Score": combined_r2_scores.mean().values})

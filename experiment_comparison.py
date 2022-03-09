@@ -1,9 +1,7 @@
 import mlflow
 import logging
 from pathlib import Path
-
 import pandas as pd
-
 from library.data.folder_management import FolderManagement
 import argparse
 from library.mlflow_helper.experiment_handler import ExperimentHandler
@@ -85,8 +83,11 @@ class ExperimentComparer:
 
             print(f"Found {len(self.runs)} runs.")
 
+            # Select all auto encoder runs
             ae_runs = [run for run in self.runs if
                        run.data.tags.get("Model") == "AE" and run.data.tags.get('mlflow.parentRunId') is not None]
+
+            # Select all vae runs
             vae_runs = [run for run in self.runs if
                         run.data.tags.get("Model") == "VAE" and run.data.tags.get('mlflow.parentRunId') is not None]
 
@@ -97,6 +98,9 @@ class ExperimentComparer:
             vae_mean_scores, vae_combined_scores = DataLoader.load_r2_scores_for_model(self.vae_directory)
             mlflow.log_param("AE_marker_count", ae_mean_scores.shape[0])
             mlflow.log_param("VAE_marker_count", vae_mean_scores.shape[0])
+            Reporter.report_r2_score_mean_difference(ae_combined_scores.diff().mean(), self.ae_directory)
+            Reporter.report_r2_score_mean_difference(vae_combined_scores.diff().mean(), self.vae_directory)
+
             self.__report_r2_scores({
                 "ae_mean": ae_mean_scores,
                 "ae_combined": ae_combined_scores,
@@ -113,10 +117,19 @@ class ExperimentComparer:
             plotter.r2_scores_mean_values(ae_scores=ae_mean_scores, vae_scores=vae_mean_scores)
             plotter.plot_weights_distribution(encoding_layer_weights, "encoding")
             plotter.plot_weights_distribution(decoding_layer_weights, "decoding")
-            #plotter.plot_weights(weights=encoding_layer_weights.mean().T,
+
+            plotter.plot_r2_score_differences(pd.DataFrame(columns=["Marker", "Score"],
+                                                           data={'Marker': ae_combined_scores.columns,
+                                                                 'Score': ae_combined_scores.diff().mean().values}),
+                                              "ae")
+            plotter.plot_r2_score_differences(pd.DataFrame(columns=["Marker", "Score"],
+                                                           data={'Marker': ae_combined_scores.columns,
+                                                                 'Score': vae_combined_scores.diff().mean().values}),
+                                              "vae")
+            # plotter.plot_weights(weights=encoding_layer_weights.mean().T,
             #                     markers=list(encoding_layer_weights.columns.values),
             #                     mlflow_directory="", fig_name="layer_encoding_h1_weights")
-            #plotter.plot_weights(decoding_layer_weights.mean().T, markers=list(encoding_layer_weights.columns.values),
+            # plotter.plot_weights(decoding_layer_weights.mean().T, markers=list(encoding_layer_weights.columns.values),
             #                     mlflow_directory="", fig_name="layer_decoding_weights")
 
             self.__log_information()

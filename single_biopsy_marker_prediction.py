@@ -131,8 +131,7 @@ def start_vae_experiment(args, experiment_id: str):
                                                                                    mlflow_directory="VAE")
 
         # Evaluate
-        evaluation = Evaluation()
-        r2_scores = evaluation.calculate_r2_score(test_data=test_data, reconstructed_data=reconstructed_data,
+        r2_scores = Evaluation.calculate_r2_score(test_data=test_data, reconstructed_data=reconstructed_data,
                                                   markers=markers)
 
         # Report r2 score
