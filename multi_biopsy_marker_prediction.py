@@ -39,6 +39,7 @@ def get_args():
                         type=str)
     parser.add_argument("--file", action="store", nargs='+', required=True, help="The file used for training the model")
     parser.add_argument("--morph", action="store_true", help="Include morphological data", default=True)
+    parser.add_argument("--seed", "-s", action="store", help="Include morphological data", type=int, default=1)
     parser.add_argument("--mode", action="store",
                         help="If used only the given model will be executed and no comparison will take place",
                         required=False, choices=['vae', 'ae', 'none'], default="none")
@@ -55,6 +56,7 @@ def start_ae_experiment(args, experiment_id: str):
         mlflow.log_param("Test File", test_file)
         mlflow.log_param("Morphological Data", args.morph)
         mlflow.set_tag("Model", "AE")
+        mlflow.log_param("Seed", args.seed)
 
         # Load data
         train_cells, markers = DataLoader.load_data(file_name=train_file, keep_morph=args.morph)
@@ -68,8 +70,8 @@ def start_ae_experiment(args, experiment_id: str):
         train_cells_normalized = Preprocessing.normalize(train_cells)
         test_cells_normalized = Preprocessing.normalize(test_cells)
 
-        train_data, val_data, _ = create_splits(train_cells_normalized)
-        _, _, test_data = create_splits(test_cells_normalized)
+        train_data, val_data, _ = create_splits(train_cells_normalized, seed=args.seed)
+        _, _, test_data = create_splits(test_cells_normalized, seed=args.seed)
 
         # Create model
         model, encoder, decoder, history = AutoEncoder.build_auto_encoder(train_data=train_data,
@@ -125,21 +127,24 @@ def start_vae_experiment(args, experiment_id: str):
         mlflow.log_param("Test File", test_file)
         mlflow.log_param("Morphological Data", args.morph)
         mlflow.set_tag("Model", "VAE")
+        mlflow.log_param("Seed", args.seed)
 
         # Load data
         train_cells, markers = DataLoader.load_data(file_name=train_file, keep_morph=args.morph)
         test_cells, markers = DataLoader.load_data(file_name=test_file, keep_morph=args.morph)
 
-        train_cells_normalized = Preprocessing.normalize(train_cells)
-        test_cells_normalized = Preprocessing.normalize(train_cells)
         Reporter.report_cells_and_markers(save_path=vae_base_result_path, cells=train_cells, markers=markers,
                                           prefix="train")
         Reporter.report_cells_and_markers(save_path=vae_base_result_path, cells=test_cells, markers=markers,
                                           prefix="test")
 
+        # Normalize
+        train_cells_normalized = Preprocessing.normalize(train_cells)
+        test_cells_normalized = Preprocessing.normalize(train_cells)
+
         # Create train and val from train cells
-        train_data, val_data, _ = create_splits(train_cells_normalized)
-        _, _, test_data = create_splits(test_cells_normalized)
+        train_data, val_data, _ = create_splits(train_cells_normalized, seed=args.seed)
+        _, _, test_data = create_splits(test_cells_normalized, seed=args.seed)
 
         # Create model
         model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(training_data=train_data,
@@ -229,6 +234,7 @@ if __name__ == "__main__":
         mlflow.log_param("Train File", train_file)
         mlflow.log_param("Test File", test_file)
         mlflow.log_param("Mode", args.mode)
+        mlflow.log_param("Seed", args.seed)
 
         vae_r2_scores = start_vae_experiment(args, experiment_id=associated_experiment_id)
         ae_r2_scores = start_ae_experiment(args, experiment_id=associated_experiment_id)

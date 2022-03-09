@@ -1,6 +1,7 @@
 
 experiment_name=$1
-server=$2
+seed=$2
+server=$3
 
 if [ -z "$experiment_name" ]
 then
@@ -13,6 +14,13 @@ then
     echo "Using localhost tracking server"
 	  server="http://127.0.0.1:5000"
 fi
+
+if [ -z "$seed" ]
+then
+      echo "No seed provided. Defaulting to 1"
+      seed=1
+fi
+
 
 for filename in ./data/*.csv;
 do
@@ -37,7 +45,7 @@ do
     do
 	    echo "Starting run ${RUN} comparing ${filename} with ${comparefile}"
 	    source venv/bin/activate
-	    python3 multi_biopsy_marker_prediction.py -e "${experiment_name}" --file "${filename}" "${comparefile}" -r "${RUN}"
+	    python3 multi_biopsy_marker_prediction.py -e "${experiment_name}" --file "${filename}" "${comparefile}" -r "${RUN}" -s $seed
     done
   done
 done
