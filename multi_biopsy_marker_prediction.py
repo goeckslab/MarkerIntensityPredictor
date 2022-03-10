@@ -67,11 +67,13 @@ def start_ae_experiment(args, experiment_id: str):
         Reporter.report_cells_and_markers(save_path=ae_base_result_path, cells=test_cells, markers=markers,
                                           prefix="test")
 
-        train_cells_normalized = Preprocessing.normalize(train_cells)
-        test_cells_normalized = Preprocessing.normalize(test_cells)
+        train_data, val_data, _ = create_splits(train_cells, seed=args.seed)
+        _, _, test_data = create_splits(test_cells, seed=args.seed)
 
-        train_data, val_data, _ = create_splits(train_cells_normalized, seed=args.seed)
-        _, _, test_data = create_splits(test_cells_normalized, seed=args.seed)
+        # Normalize
+        train_data = Preprocessing.normalize(train_data)
+        val_data = Preprocessing.normalize(val_data)
+        test_data = Preprocessing.normalize(test_data)
 
         # Create model
         model, encoder, decoder, history = AutoEncoder.build_auto_encoder(train_data=train_data,
@@ -138,13 +140,14 @@ def start_vae_experiment(args, experiment_id: str):
         Reporter.report_cells_and_markers(save_path=vae_base_result_path, cells=test_cells, markers=markers,
                                           prefix="test")
 
-        # Normalize
-        train_cells_normalized = Preprocessing.normalize(train_cells)
-        test_cells_normalized = Preprocessing.normalize(train_cells)
-
         # Create train and val from train cells
-        train_data, val_data, _ = create_splits(train_cells_normalized, seed=args.seed)
-        _, _, test_data = create_splits(test_cells_normalized, seed=args.seed)
+        train_data, val_data, _ = create_splits(train_cells, seed=args.seed)
+        _, _, test_data = create_splits(test_cells, seed=args.seed)
+
+        # Normalize
+        train_data = Preprocessing.normalize(train_data)
+        val_data = Preprocessing.normalize(val_data)
+        test_data = Preprocessing.normalize(test_data)
 
         # Create model
         model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(training_data=train_data,

@@ -18,6 +18,8 @@ ae_base_result_path = Path("single_biopsy", "AE")
 comparison_base_results_path = Path("single_biopsy")
 
 
+# normalizing https://stackoverflow.com/questions/49444262/normalize-data-before-or-after-split-of-training-and-testing-data
+
 def get_args():
     """
     Load all provided cli args
@@ -56,8 +58,11 @@ def start_ae_experiment(args, experiment_id: str):
         cells, markers = DataLoader.load_data(file_name=args.file, keep_morph=args.morph)
         Reporter.report_cells_and_markers(save_path=ae_base_result_path, cells=cells, markers=markers)
 
-        normalized_data = Preprocessing.normalize(cells)
-        train_data, val_data, test_data = create_splits(normalized_data)
+        train_data, val_data, test_data = create_splits(cells)
+        # Normalize
+        train_data = Preprocessing.normalize(train_data)
+        val_data = Preprocessing.normalize(val_data)
+        test_data = Preprocessing.normalize(test_data)
 
         # Create model
         model, encoder, decoder, history = AutoEncoder.build_auto_encoder(train_data=train_data,
@@ -113,10 +118,13 @@ def start_vae_experiment(args, experiment_id: str):
         # Load data
         cells, markers = DataLoader.load_data(file_name=args.file, keep_morph=args.morph)
 
-        normalized_cells = Preprocessing.normalize(cells)
         Reporter.report_cells_and_markers(save_path=vae_base_result_path, cells=cells, markers=markers)
 
-        train_data, val_data, test_data = create_splits(normalized_cells)
+        train_data, val_data, test_data = create_splits(cells)
+
+        train_data = Preprocessing.normalize(train_data)
+        val_data = Preprocessing.normalize(val_data)
+        test_data = Preprocessing.normalize(test_data)
 
         # Create model
         model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(training_data=train_data,
