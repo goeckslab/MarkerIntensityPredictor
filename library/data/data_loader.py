@@ -81,9 +81,6 @@ class DataLoader:
                 combined_r2_scores = combined_r2_scores.append(df, ignore_index=True)
 
         combined_r2_scores.columns = markers
-
-        print(combined_r2_scores.mean())
-        input()
         mean_scores = pd.DataFrame(columns=["Marker", "Score"],
                                    data={"Marker": combined_r2_scores.columns,
                                          "Score": combined_r2_scores.mean().values})
