@@ -16,19 +16,20 @@ then
 fi
 
 
-for filename in ./data/*.csv;
+for filepath in ./data/*.csv;
 do
-  echo "$filename"
-  if [[ "$filename" == *"SARDANA.csv"* ]]
+  if [[ "$filepath" == *"SARDANA.csv"* ]]
   then
     continue
   fi
 
-  for RUN in {1..10}
+  for RUN in {1..15}
   do
 	  echo "Starting run ${RUN}"
 	  source venv/bin/activate
-	  python3 single_biopsy_marker_prediction.py -e "${experiment_name}" --file "${filename}" -r "${filename}_#${RUN}"
+	  filename="$(basename -- "${filepath} .csv")"
+	  filename=${filename%%.*}
+	  python3 single_biopsy_marker_prediction.py -e "${experiment_name}" --file "${filepath}" -r "${filename}_#${RUN}"
   done
 done
 
