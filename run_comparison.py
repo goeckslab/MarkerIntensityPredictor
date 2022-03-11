@@ -18,11 +18,8 @@ def get_args():
     Load all provided cli args
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--experiment", "-e", action="store", required=False,
-                        help="The name of the experiment which should be evaluated",
-                        default="Default", type=str)
-    parser.add_argument("--run", "-r", action="store", required=True,
-                        help="The name of the run being run", type=str)
+    parser.add_argument("--experiment", "-e", action="store", required=True,
+                        help="The name of the experiment which should be evaluated", type=str)
     parser.add_argument("--tracking_url", "-t", action="store", required=False,
                         help="The tracking url for the mlflow tracking server", type=str,
                         default="http://127.0.0.1:5000")
@@ -34,7 +31,7 @@ class ExperimentComparer:
     # All runs to compare
     runs: list = []
     client = mlflow.tracking.MlflowClient()
-    base_path = Path("experiment_exploration", "tmp")
+    base_path = Path("run_comparison")
     # The user given experiment name
     experiment_name: str
     # The experiment id
@@ -52,7 +49,7 @@ class ExperimentComparer:
 
         self.experiment_name = experiment_name
         self.experiment_id = self.experiment_handler.get_experiment_id_by_name(experiment_name=self.experiment_name,
-                                                                               experiment_description="")
+                                                                               create_experiment=False)
 
         if self.experiment_id is None:
             raise ValueError(f"Could not find experiment with name {experiment_name}")
@@ -71,9 +68,9 @@ class ExperimentComparer:
             print(f"Could not find an experiment with the given name: {self.experiment_name}")
             return
 
-        with mlflow.start_run(run_name=args.run, experiment_id=self.experiment_id) as run:
+        with mlflow.start_run(run_name="Run Comparison", experiment_id=self.experiment_id) as run:
             # Collect all experiments based on the search tag
-            self.runs = self.experiment_handler.get_runs(experiment_id=self.experiment_id)
+            self.runs = self.experiment_handler.get_vae_ae_runs(experiment_id=self.experiment_id)
 
             if len(self.runs) == 0:
                 print(f"No runs found.")
@@ -161,6 +158,7 @@ class ExperimentComparer:
 
 if __name__ == "__main__":
     args = get_args()
+
     comparer = ExperimentComparer(args.experiment)
     comparer.start_comparison()
 else:
