@@ -1,16 +1,18 @@
-import mlflow
 import logging
-from pathlib import Path
-import pandas as pd
-from library.data.folder_management import FolderManagement
 import argparse
-from library.mlflow_helper.experiment_handler import ExperimentHandler
-from library.mlflow_helper.reporter import Reporter
 from library.plotting.plots import Plotting
+import pandas as pd
+from library.mlflow_helper.experiment_handler import ExperimentHandler
+from pathlib import Path
+import mlflow
+from mlflow.entities import Run, Experiment
+from library.data.folder_management import FolderManagement
 from library.data.data_loader import DataLoader
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
+
+base_path = Path("experiment_comparison")
 
 
 def get_args():
@@ -18,11 +20,8 @@ def get_args():
     Load all provided cli args
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--experiment", "-e", action="store", required=False,
-                        help="The name of the experiment which should be evaluated",
-                        default="Default", type=str)
-    parser.add_argument("--run", "-r", action="store", required=True,
-                        help="The name of the run being run", type=str)
+    parser.add_argument("--experiments", "-e", nargs='+', action="store", required=True,
+                        help="The name of the experiments which should be evaluated", type=str)
     parser.add_argument("--tracking_url", "-t", action="store", required=False,
                         help="The tracking url for the mlflow tracking server", type=str,
                         default="http://127.0.0.1:5000")
@@ -30,138 +29,57 @@ def get_args():
     return parser.parse_args()
 
 
-class ExperimentComparer:
-    # All runs to compare
-    runs: list = []
-    client = mlflow.tracking.MlflowClient()
-    base_path = Path("experiment_exploration", "tmp")
-    # The user given experiment name
-    experiment_name: str
-    # The experiment id
-    experiment_id: str
-    experiment_handler: ExperimentHandler
-
-    download_directory: Path
-    ae_directory: Path
-    vae_directory: Path
-
-    def __init__(self, experiment_name: str):
-        # Create mlflow tracking client
-        client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
-        self.experiment_handler: ExperimentHandler = ExperimentHandler(client=client)
-
-        self.experiment_name = experiment_name
-        self.experiment_id = self.experiment_handler.get_experiment_id_by_name(experiment_name=self.experiment_name,
-                                                                               experiment_description="")
-
-        if self.experiment_id is None:
-            raise ValueError(f"Could not find experiment with name {experiment_name}")
-
-        self.download_directory = FolderManagement.create_directory(Path(self.base_path, "runs"))
-        self.ae_directory = FolderManagement.create_directory(Path(self.download_directory, "AE"))
-        self.vae_directory = FolderManagement.create_directory(Path(self.download_directory, "VAE"))
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        # Cleanup resources
-        if self.base_path is not None:
-            FolderManagement.delete_directory(self.base_path)
-
-    def start_comparison(self):
-        if self.experiment_id is None:
-            print(f"Could not find an experiment with the given name: {self.experiment_name}")
-            return
-
-        with mlflow.start_run(run_name=args.run, experiment_id=self.experiment_id) as run:
-            # Collect all experiments based on the search tag
-            self.runs = self.experiment_handler.get_runs(experiment_id=self.experiment_id)
-
-            if len(self.runs) == 0:
-                print(f"No runs found.")
-                print("Resources are being cleaned up.")
-                # self.client.delete_run(run.info.run_id)
-                return
-
-            print(f"Found {len(self.runs)} runs.")
-
-            # Select all auto encoder runs
-            ae_runs = [run for run in self.runs if
-                       run.data.tags.get("Model") == "AE" and run.data.tags.get('mlflow.parentRunId') is not None]
-
-            # Select all vae runs
-            vae_runs = [run for run in self.runs if
-                        run.data.tags.get("Model") == "VAE" and run.data.tags.get('mlflow.parentRunId') is not None]
-
-            # Download all artifacts
-            self.__download_artifacts(ae_runs=ae_runs, vae_runs=vae_runs)
-
-            ae_mean_scores, ae_combined_scores = DataLoader.load_r2_scores_for_model(self.ae_directory)
-            vae_mean_scores, vae_combined_scores = DataLoader.load_r2_scores_for_model(self.vae_directory)
-            mlflow.log_param("AE_marker_count", ae_mean_scores.shape[0])
-            mlflow.log_param("VAE_marker_count", vae_mean_scores.shape[0])
-            Reporter.report_r2_score_mean_difference(ae_combined_scores.diff().mean(), self.ae_directory)
-            Reporter.report_r2_score_mean_difference(vae_combined_scores.diff().mean(), self.vae_directory)
-
-            self.__report_r2_scores({
-                "ae_mean": ae_mean_scores,
-                "ae_combined": ae_combined_scores,
-                "vae_mean": vae_mean_scores,
-                "vae_combined": vae_combined_scores
-            })
-
-            encoding_layer_weights: pd.DataFrame = DataLoader.load_layer_weights(self.ae_directory,
-                                                                                 "layer_encoding_h1_weights.csv")
-            decoding_layer_weights: pd.DataFrame = DataLoader.load_layer_weights(self.ae_directory,
-                                                                                 "layer_decoding_output_weights.csv")
-
-            plotter = Plotting(self.base_path, args=args)
-            plotter.r2_scores_mean_values(ae_scores=ae_mean_scores, vae_scores=vae_mean_scores)
-            plotter.plot_weights_distribution(encoding_layer_weights, "encoding")
-            plotter.plot_weights_distribution(decoding_layer_weights, "decoding")
-
-            plotter.plot_r2_score_differences(pd.DataFrame(columns=["Marker", "Score"],
-                                                           data={'Marker': ae_combined_scores.columns,
-                                                                 'Score': ae_combined_scores.diff().mean().values}),
-                                              "ae")
-            plotter.plot_r2_score_differences(pd.DataFrame(columns=["Marker", "Score"],
-                                                           data={'Marker': ae_combined_scores.columns,
-                                                                 'Score': vae_combined_scores.diff().mean().values}),
-                                              "vae")
-            # plotter.plot_weights(weights=encoding_layer_weights.mean().T,
-            #                     markers=list(encoding_layer_weights.columns.values),
-            #                     mlflow_directory="", fig_name="layer_encoding_h1_weights")
-            # plotter.plot_weights(decoding_layer_weights.mean().T, markers=list(encoding_layer_weights.columns.values),
-            #                     mlflow_directory="", fig_name="layer_decoding_weights")
-
-            self.__log_information()
-
-    def __log_information(self):
-        mlflow.log_param("Included Runs", len(self.runs))
-        mlflow.log_param("Used Run Ids",
-                         [x.info.run_id for x in self.runs])
-
-    def __download_artifacts(self, ae_runs: [], vae_runs: []):
-        # Download ae evaluation files
-        self.experiment_handler.download_artifacts(save_path=self.ae_directory, runs=ae_runs,
-                                                   mlflow_folder="Evaluation")
-
-        self.experiment_handler.download_artifacts(save_path=self.vae_directory, runs=vae_runs,
-                                                   mlflow_folder="Evaluation")
-
-        self.experiment_handler.download_artifacts(save_path=self.ae_directory, runs=ae_runs,
-                                                   mlflow_folder="AE")
-
-        self.experiment_handler.download_artifacts(save_path=self.vae_directory, runs=vae_runs,
-                                                   mlflow_folder="VAE")
-
-    def __report_r2_scores(self, scores: {}):
-        for key, scores in scores.items():
-            Reporter.report_r2_scores(scores, save_path=Path(self.base_path, "runs"),
-                                      mlflow_folder="", prefix=key)
-
-
 if __name__ == "__main__":
     args = get_args()
-    comparer = ExperimentComparer(args.experiment)
-    comparer.start_comparison()
-else:
-    raise "Tool is meant to be executed as standalone"
+
+    experiment_name = args.experiments[0]
+    comp_experiment_name = args.experiments[1]
+
+    FolderManagement.create_directory(base_path)
+
+    if len(args.experiments) != 2:
+        raise ValueError("Please specify at least two experiments for comparison")
+
+    client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
+    experiment_handler = ExperimentHandler(client=client)
+    exp_id: str = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name,
+                                                               create_experiment=False)
+    comparison_exp_id: str = experiment_handler.get_experiment_id_by_name(experiment_name=comp_experiment_name,
+                                                                          create_experiment=False)
+
+    if exp_id is None or comparison_exp_id is None:
+        raise LookupError("Could not find all specified experiments. Please make sure they exist.")
+
+    # Load runs
+    run: Run = experiment_handler.get_run_comparison_run(experiment_id=exp_id)
+    comparison_run: Run = experiment_handler.get_run_comparison_run(experiment_id=comparison_exp_id)
+
+    if run is None:
+        raise LookupError(
+            "Could not found a run labeled 'Run Comparison'. "
+            f"Please create a run by running the run_comparison.py for the experiment {args.experiments[0]}.")
+
+    if comparison_run is None:
+        raise LookupError(
+            "Could not found a run labeled 'Run Comparison'. "
+            f"Please create a run by running the run_comparison.py for the experiment {args.experiments[1]}.")
+
+    experiment_handler.download_artifacts(base_path, run=run)
+    experiment_handler.download_artifacts(base_path, run=comparison_run)
+
+    vae_mean_score: pd.DataFrame = DataLoader.load_file(Path(base_path, run.info.run_id), "vae_mean_r2_score.csv")
+    comp_vae_mean_scores: pd.DataFrame = DataLoader.load_file(Path(base_path, comparison_run.info.run_id),
+                                                              "vae_mean_r2_score.csv")
+
+    if vae_mean_score is None or comp_vae_mean_scores is None:
+        raise ValueError("Could not find all requested r2 scores dataframes. Please make sure they exist")
+
+    # The new experiment which is used to store the evaluation data
+    evaluation_experiment_id: str = experiment_handler.create_experiment("Experiment Comparison",
+                                                                         "Evaluation of multiple experiments wll be listed here")
+    with mlflow.start_run(experiment_id=evaluation_experiment_id,
+                          run_name=f"{experiment_name} {comp_experiment_name} Comparison") as run:
+        plotting: Plotting = Plotting(base_path=base_path, args=args)
+        plotting.compare_r2_scores(r2_scores=vae_mean_score, compare_score=comp_vae_mean_scores,
+                                   r2_score_title=experiment_name, compare_title=comp_experiment_name,
+                                   file_name=f"{experiment_name}_{comp_experiment_name}_comparison")

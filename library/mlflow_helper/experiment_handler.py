@@ -1,7 +1,7 @@
 from mlflow.entities import Run
 from pathlib import Path
 import pandas as pd
-from typing import Tuple
+from typing import Tuple, Optional
 from library.data.folder_management import FolderManagement
 
 
@@ -14,7 +14,7 @@ class ExperimentHandler:
     def __init__(self, client):
         self.client = client
 
-    def get_experiment_id_by_name(self, experiment_name: str, experiment_description: str,
+    def get_experiment_id_by_name(self, experiment_name: str, experiment_description: str = None,
                                   create_experiment: bool = True) -> str:
         """
         Gets the experiment id associated with the given experiment name.
@@ -56,7 +56,12 @@ class ExperimentHandler:
             #    self.client.delete_experiment(experiment_id)
             raise
 
-    def get_runs(self, experiment_id: str) -> list:
+    def get_vae_ae_runs(self, experiment_id: str) -> list:
+        """
+        Returns all runs created by a vae or ae
+        @param experiment_id:
+        @return:
+        """
         found_runs = []
 
         all_run_infos: [] = reversed(self.client.list_run_infos(experiment_id))
@@ -81,29 +86,67 @@ class ExperimentHandler:
 
         return found_runs
 
-    def download_artifacts(self, save_path: Path, runs: [], mlflow_folder: str):
+    def get_run_comparison_run(self, experiment_id: str) -> Optional[Run]:
+        """
+        Returns the most recent run comparison
+        @param experiment_id:
+        @return: A run or None
+        """
+        all_run_infos: [] = reversed(self.client.list_run_infos(experiment_id))
+        end_time: int = 0
+        for run_info in all_run_infos:
+            full_run: Run
+            full_run = self.client.get_run(run_info.run_id)
+
+            # Skip unfinished or unsuccessful runs
+            if full_run.info.status != 'FINISHED':
+                continue
+
+            if full_run.info.end_time > end_time and full_run.info.status == "FINISHED" and full_run.data.tags.get(
+                    'mlflow.runName') == "Run Comparison":
+                return full_run
+
+        return None
+
+    def download_artifacts(self, save_path: Path, run: Run = None, runs: [] = None, mlflow_folder: str = None):
         """
          Downloads all artifacts of the found experiments
         @param save_path:  The path where the artificats should be saved
         @param runs: Runs which should be considered
+        @param run: The run which should be considered
         @param mlflow_folder: The specific folder to be downloaded for the given runs
         @return:
         """
-        print("Downloading artifacts...")
-        for run in runs:
 
+        if run is None and runs is None:
+            raise ValueError("Please provide either a run to download or a list of runs")
+
+        # Download single run
+        if run is not None:
+            run_save_path = Path(save_path, run.info.run_id)
+            run_save_path = FolderManagement.create_directory(run_save_path, remove_if_exists=False)
+            if mlflow_folder is not None:
+                self.client.download_artifacts(run.info.run_id, mlflow_folder,
+                                               str(run_save_path))
+            else:
+                self.client.download_artifacts(run.info.run_id, path="", dst_path=str(run_save_path))
+
+            return
+
+        # Download multiple runs
+        for run in runs:
             try:
                 run_path = Path(save_path, run.info.run_id)
                 run_path = FolderManagement.create_directory(run_path, remove_if_exists=False)
-                self.client.download_artifacts(run.info.run_id, mlflow_folder,
-                                               str(run_path))
+                if mlflow_folder is not None:
+                    self.client.download_artifacts(run.info.run_id, mlflow_folder,
+                                                   str(run_path))
+                else:
+                    self.client.download_artifacts(run.info.run_id, str(run_path))
 
             except BaseException as ex:
                 print(ex)
                 continue
-
-        print("Downloading finished.")
-
 
     def __get_run_by_id(self, run_id: str) -> Run:
         run: Run

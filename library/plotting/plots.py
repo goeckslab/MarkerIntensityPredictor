@@ -131,7 +131,7 @@ class Plotting:
         mlflow.log_artifact(str(save_path), mlflow_directory)
         plt.close()
 
-    def r2_scores_mean_values(self, ae_scores: pd.DataFrame, vae_scores: pd.DataFrame):
+    def compare_vae_to_ae_scores(self, ae_scores: pd.DataFrame, vae_scores: pd.DataFrame):
         """
         Plots a bar plot comparing ae scores vs vae scores
         @param ae_scores:
@@ -158,6 +158,32 @@ class Plotting:
 
         fig.tight_layout()
         save_path = Path(self.__base_path, "mean_r2_comparison.png")
+        plt.savefig(save_path)
+        mlflow.log_artifact(str(save_path))
+        plt.close()
+
+    def compare_r2_scores(self, r2_scores: pd.DataFrame, compare_score: pd.DataFrame, r2_score_title: str,
+                          compare_title: str, file_name: str):
+        fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, figsize=(19, 20), dpi=300, sharex=False)
+        sns.barplot(x='Marker', y='Score', data=r2_scores, ax=ax1)
+        sns.barplot(x='Marker', y='Score', data=compare_score, ax=ax2)
+
+        # Create difference dataframe
+        differences = pd.DataFrame(columns=["Marker", "Difference"], data={"Marker": r2_scores["Marker"].values,
+                                                                           "Difference": r2_scores["Score"] -
+                                                                                         compare_score[
+                                                                                             "Score"]})
+        sns.barplot(x="Marker", y="Difference", data=differences, ax=ax3)
+
+        ax1.set_title(r2_score_title)
+        ax2.set_title(compare_title)
+        ax3.set_title("Difference")
+        ax1.set_xticklabels(ax1.get_xticklabels(), rotation=90)
+        ax2.set_xticklabels(ax2.get_xticklabels(), rotation=90)
+        ax3.set_xticklabels(ax3.get_xticklabels(), rotation=90)
+
+        fig.tight_layout()
+        save_path = Path(self.__base_path, f"{file_name}.png")
         plt.savefig(save_path)
         mlflow.log_artifact(str(save_path))
         plt.close()

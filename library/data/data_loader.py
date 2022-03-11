@@ -2,7 +2,7 @@ import pandas as pd
 from pathlib import Path
 import re
 import os
-from typing import Tuple
+from typing import Tuple, Optional
 
 
 class DataLoader:
@@ -87,6 +87,21 @@ class DataLoader:
 
         # return mean scores
         return mean_scores, combined_r2_scores
+
+    @staticmethod
+    def load_file(load_path: Path, file_name: str) -> Optional[pd.DataFrame]:
+        """
+        Loads a file with the given name from the given path
+        @param load_path: The path to search for the file
+        @param file_name: File name with extensions
+        @return: None or a loaded dataframe
+        """
+        for p in load_path.rglob("*"):
+            if p.name == f"{file_name}":
+                df = pd.read_csv(p.absolute(), header=0)
+                return df
+
+        return None
 
     @staticmethod
     def load_layer_weights(load_path: Path, file_name: str) -> pd.DataFrame:
