@@ -177,7 +177,7 @@ class Plotting:
 
         ax1.set_title(r2_score_title)
         ax2.set_title(compare_title)
-        ax3.set_title("Difference")
+        ax3.set_title(f"{r2_score_title} vs. {compare_title} ")
         ax1.set_xticklabels(ax1.get_xticklabels(), rotation=90)
         ax2.set_xticklabels(ax2.get_xticklabels(), rotation=90)
         ax3.set_xticklabels(ax3.get_xticklabels(), rotation=90)
