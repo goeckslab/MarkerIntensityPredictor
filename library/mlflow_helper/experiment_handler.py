@@ -1,8 +1,10 @@
+import mlflow.exceptions
 from mlflow.entities import Run
 from pathlib import Path
 import pandas as pd
 from typing import Tuple, Optional
 from library.data.folder_management import FolderManagement
+from mlflow.exceptions import ErrorCode
 
 
 class ExperimentHandler:
@@ -49,6 +51,12 @@ class ExperimentHandler:
             experiment_id: str = self.client.create_experiment(name=name)
             self.client.set_experiment_tag(experiment_id, "description", description)
             return experiment_id
+
+        except mlflow.exceptions.RestException as ex:
+            # As experiment exist just return the existing experiment id
+            if ex.error_code == ErrorCode.Name(mlflow.exceptions.RESOURCE_ALREADY_EXISTS):
+                return self.get_experiment_id_by_name(experiment_name=name, create_experiment=False)
+
         except BaseException as ex:
             # print("Experiment does already exists. Deleting and recreating experiment.")
             # experiment_id = self.client.get_experiment_by_name(name)
