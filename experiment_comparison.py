@@ -90,4 +90,4 @@ if __name__ == "__main__":
                                    file_name=f"{experiment_name}_{comp_experiment_name}_comparison")
         plotting.r2_score_distribution(combined_r2_scores=vae_combined_scores,
                                        comparing_r2_scores=comp_vae_combined_scores, title="VAE",
-                                       comparing_title="VAE Comparison", file_name="R2 Score Distribution")
+                                       comparing_title="VAE Comparison", file_name="r2_score_distribution")
