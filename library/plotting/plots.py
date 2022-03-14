@@ -172,6 +172,37 @@ class Plotting:
         mlflow.log_artifact(str(save_path))
         plt.close()
 
+    def r2_scores_distribution(self, r2_scores: dict, file_name: str):
+        """
+        Plots a graph using a dictionary
+        @param r2_scores:
+        @param file_name:
+        @return:
+        """
+        num_rows = 1
+        if len(r2_scores.items()) > 3:
+            num_rows = int(len(r2_scores.items()) / 3)
+
+        fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(25, 20), dpi=300, sharex=False)
+
+        col: int = 0
+        row: int = 0
+        for experiment_name, r2_score in r2_scores.items():
+            sns.boxplot(data=r2_score, ax=axs[row, col])
+            axs[row, col].set_title(experiment_name)
+            axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+            col += 1
+
+            if col == 3:
+                row += 1
+                col = 0
+
+        fig.tight_layout()
+        save_path = Path(self.__base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+        mlflow.log_artifact(str(save_path))
+        plt.close()
+
     def plot_weights_distribution(self, weights: pd.DataFrame, layer: str, prefix: str = None):
 
         fig, ax1 = plt.subplots(ncols=1, figsize=(28, 20), dpi=300, sharex=False)
