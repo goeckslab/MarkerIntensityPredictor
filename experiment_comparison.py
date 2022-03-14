@@ -80,4 +80,4 @@ if __name__ == "__main__":
     with mlflow.start_run(experiment_id=evaluation_experiment_id,
                           run_name=f"{experiment_name} {comp_experiment_name} Comparison") as run:
         plotting: Plotting = Plotting(base_path=base_path, args=args)
-        plotting.r2_scores_distribution(r2_scores=r2_combined_scores, file_name="experiment_comparison")
+        plotting.r2_scores_distribution(r2_scores=r2_combined_scores, file_name="vae_r2_score_distribution")
