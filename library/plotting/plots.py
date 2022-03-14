@@ -86,31 +86,6 @@ class Plotting:
         mlflow.log_artifact(str(save_path), mlflow_directory)
         plt.close()
 
-    def plot_r2_scores_comparison(self, ae_r2_scores: pd.DataFrame, vae_r2_scores: pd.DataFrame):
-        fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, figsize=(19, 20), dpi=300, sharex=False)
-        sns.barplot(x='Marker', y='Score', data=ae_r2_scores, ax=ax1)
-        sns.barplot(x='Marker', y='Score', data=vae_r2_scores, ax=ax2)
-
-        differences = pd.DataFrame()
-        differences['Vae'] = vae_r2_scores['Score']
-        differences['Ae'] = ae_r2_scores['Score']
-        differences['Marker'] = vae_r2_scores['Marker']
-        differences['Difference'] = differences["Vae"] - differences["Ae"]
-        sns.barplot(x="Marker", y="Difference", data=differences, ax=ax3)
-
-        ax1.set_title("AE R2 Scores")
-        ax2.set_title("VAE R2 Scores")
-        ax3.set_title("Difference VAE to AE")
-        ax1.set_xticklabels(ax1.get_xticklabels(), rotation=90)
-        ax2.set_xticklabels(ax2.get_xticklabels(), rotation=90)
-        ax3.set_xticklabels(ax3.get_xticklabels(), rotation=90)
-
-        fig.tight_layout()
-        save_path = Path(self.__base_path, "r2_comparison.png")
-        plt.savefig(save_path)
-        mlflow.log_artifact(str(save_path))
-        plt.close()
-
     def plot_weights(self, weights, markers: list, mlflow_directory: str, fig_name: str):
         df = pd.DataFrame(weights, columns=markers)
         ax = sns.heatmap(df)
@@ -162,8 +137,17 @@ class Plotting:
         mlflow.log_artifact(str(save_path))
         plt.close()
 
-    def compare_r2_scores(self, r2_scores: pd.DataFrame, compare_score: pd.DataFrame, r2_score_title: str,
+    def r2_score_bar_plot(self, r2_scores: pd.DataFrame, compare_score: pd.DataFrame, r2_score_title: str,
                           compare_title: str, file_name: str):
+        """
+        Plots the given r2 scores and calculate the difference between the r2 scores and compare_score
+        @param r2_scores: A pandas dataframe with r2 scores
+        @param compare_score: The pandas dataframe for comparison
+        @param r2_score_title: The title for the first given dataframe
+        @param compare_title: The title for the comparison dataframe
+        @param file_name: The file name s
+        @return:
+        """
         fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, figsize=(19, 20), dpi=300, sharex=False)
         sns.barplot(x='Marker', y='Score', data=r2_scores, ax=ax1)
         sns.barplot(x='Marker', y='Score', data=compare_score, ax=ax2)
@@ -214,6 +198,32 @@ class Plotting:
         fig = ax.get_figure()
         fig.tight_layout()
         save_path = Path(self.__base_path, f"{prefix}_mean_r2_difference.png")
+        plt.savefig(save_path)
+        mlflow.log_artifact(str(save_path))
+        plt.close()
+
+    def r2_score_distribution(self, combined_r2_scores: pd.DataFrame, comparing_r2_scores: pd.DataFrame, title: str,
+                              comparing_title: str, file_name: str):
+        """
+        Plots the distribution of r2 scores
+        @param combined_r2_scores:
+        @param comparing_r2_scores:
+        @param title:
+        @param comparing_title:
+        @param file_name:
+        @return:
+        """
+        fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(19, 20), dpi=300, sharex=False)
+        sns.boxplot(data=combined_r2_scores, ax=ax1)
+        sns.boxplot(data=comparing_r2_scores, ax=ax2)
+
+        ax1.set_title(title)
+        ax2.set_title(comparing_title)
+        ax1.set_xticklabels(ax1.get_xticklabels(), rotation=90)
+        ax2.set_xticklabels(ax2.get_xticklabels(), rotation=90)
+
+        fig.tight_layout()
+        save_path = Path(self.__base_path, f"{file_name}.png")
         plt.savefig(save_path)
         mlflow.log_artifact(str(save_path))
         plt.close()

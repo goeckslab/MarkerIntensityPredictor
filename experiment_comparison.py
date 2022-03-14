@@ -71,6 +71,11 @@ if __name__ == "__main__":
     comp_vae_mean_scores: pd.DataFrame = DataLoader.load_file(Path(base_path, comparison_run.info.run_id),
                                                               "vae_mean_r2_score.csv")
 
+    vae_combined_scores: pd.DataFrame = DataLoader.load_file(Path(base_path, run.info.run_id),
+                                                             "vae_combined_r2_score.csv")
+    comp_vae_combined_scores: pd.DataFrame = DataLoader.load_file(Path(base_path, comparison_run.info.run_id),
+                                                                  "vae_combined_r2_score.csv")
+
     if vae_mean_score is None or comp_vae_mean_scores is None:
         raise ValueError("Could not find all requested r2 scores dataframes. Please make sure they exist")
 
@@ -80,6 +85,9 @@ if __name__ == "__main__":
     with mlflow.start_run(experiment_id=evaluation_experiment_id,
                           run_name=f"{experiment_name} {comp_experiment_name} Comparison") as run:
         plotting: Plotting = Plotting(base_path=base_path, args=args)
-        plotting.compare_r2_scores(r2_scores=vae_mean_score, compare_score=comp_vae_mean_scores,
+        plotting.r2_score_bar_plot(r2_scores=vae_mean_score, compare_score=comp_vae_mean_scores,
                                    r2_score_title=experiment_name, compare_title=comp_experiment_name,
                                    file_name=f"{experiment_name}_{comp_experiment_name}_comparison")
+        plotting.r2_score_distribution(combined_r2_scores=vae_combined_scores,
+                                       comparing_r2_scores=comp_vae_combined_scores, title="VAE",
+                                       comparing_title="VAE Comparison", file_name="R2 Score Distribution")

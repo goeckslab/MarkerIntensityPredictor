@@ -111,7 +111,11 @@ class ExperimentComparer:
                                                                                  "layer_decoding_output_weights.csv")
 
             plotter = Plotting(self.base_path, args=args)
-            plotter.r2_scores_mean_values(ae_scores=ae_mean_scores, vae_scores=vae_mean_scores)
+
+            plotter.compare_vae_to_ae_scores(ae_scores=ae_mean_scores, vae_scores=vae_mean_scores)
+            plotter.r2_score_distribution(combined_r2_scores=ae_combined_scores,
+                                          comparing_r2_scores=vae_combined_scores,
+                                          title="AE", comparing_title="VAE", file_name="r2_distribution")
             plotter.plot_weights_distribution(encoding_layer_weights, "encoding")
             plotter.plot_weights_distribution(decoding_layer_weights, "decoding")
 

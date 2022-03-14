@@ -13,10 +13,6 @@ from library.preprocessing.split import create_splits
 from library.evalation.evaluation import Evaluation
 from library.predictions.predictions import Predictions
 
-vae_base_result_path = Path("single_biopsy", "VAE")
-ae_base_result_path = Path("single_biopsy", "AE")
-comparison_base_results_path = Path("single_biopsy")
-
 
 # normalizing https://stackoverflow.com/questions/49444262/normalize-data-before-or-after-split-of-training-and-testing-data
 
@@ -48,7 +44,7 @@ def get_args():
     return parser.parse_args()
 
 
-def start_ae_experiment(args, experiment_id: str):
+def start_ae_experiment(args, experiment_id: str, results_folder: Path):
     with mlflow.start_run(run_name="AE", nested=True, experiment_id=experiment_id) as run:
         mlflow.log_param("file", args.file)
         mlflow.log_param("morphological_data", args.morph)
@@ -56,7 +52,7 @@ def start_ae_experiment(args, experiment_id: str):
 
         # Load data
         cells, markers = DataLoader.load_data(file_name=args.file, keep_morph=args.morph)
-        Reporter.report_cells_and_markers(save_path=ae_base_result_path, cells=cells, markers=markers)
+        Reporter.report_cells_and_markers(save_path=results_folder, cells=cells, markers=markers)
 
         train_data, val_data, test_data = create_splits(cells)
         # Normalize
@@ -72,7 +68,7 @@ def start_ae_experiment(args, experiment_id: str):
 
         embeddings, reconstructed_data = Predictions.encode_decode_ae_test_data(encoder=encoder, decoder=decoder,
                                                                                 test_data=test_data, markers=markers,
-                                                                                save_path=ae_base_result_path,
+                                                                                save_path=results_folder,
                                                                                 mlflow_directory="AE")
 
         r2_scores = Evaluation.calculate_r2_score(test_data=test_data, reconstructed_data=reconstructed_data,
@@ -82,7 +78,7 @@ def start_ae_experiment(args, experiment_id: str):
         Reporter.report_r2_scores(r2_scores=r2_scores, save_path=vae_base_result_path,
                                   mlflow_folder="Evaluation")
 
-        plotter = Plotting(ae_base_result_path, args)
+        plotter = Plotting(results_folder, args)
         plotter.plot_model_performance(history, "AE", "Model performance")
         plotter.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data, markers=markers,
                                            mlflow_directory="Evaluation", file_name="Input v Reconstructed")
@@ -95,10 +91,10 @@ def start_ae_experiment(args, experiment_id: str):
         encoding_h1_weights = encoder.get_layer('encoding_h1').get_weights()[0]
         decoding_output_weights = decoder.get_layer('decoder_output').get_weights()[0]
 
-        Reporter.report_weights(encoding_h1_weights, markers=markers, save_path=ae_base_result_path,
+        Reporter.report_weights(encoding_h1_weights, markers=markers, save_path=results_folder,
                                 mlflow_folder="AE", file_name="layer_encoding_h1_weights")
 
-        Reporter.report_weights(decoding_output_weights, markers=markers, save_path=ae_base_result_path,
+        Reporter.report_weights(decoding_output_weights, markers=markers, save_path=results_folder,
                                 mlflow_folder="AE", file_name="layer_decoding_output_weights")
 
         # Plot weights
@@ -108,7 +104,7 @@ def start_ae_experiment(args, experiment_id: str):
         return r2_scores
 
 
-def start_vae_experiment(args, experiment_id: str):
+def start_vae_experiment(args, experiment_id: str, results_folder: Path):
     # Load cells and markers from the given file
     with mlflow.start_run(run_name="VAE", nested=True, experiment_id=experiment_id) as run:
         mlflow.log_param("file", args.file)
@@ -118,7 +114,7 @@ def start_vae_experiment(args, experiment_id: str):
         # Load data
         cells, markers = DataLoader.load_data(file_name=args.file, keep_morph=args.morph)
 
-        Reporter.report_cells_and_markers(save_path=vae_base_result_path, cells=cells, markers=markers)
+        Reporter.report_cells_and_markers(save_path=results_folder, cells=cells, markers=markers)
 
         train_data, val_data, test_data = create_splits(cells)
 
@@ -135,7 +131,7 @@ def start_vae_experiment(args, experiment_id: str):
 
         # Predictions
         encoded_data, reconstructed_data = Predictions.encode_decode_vae_test_data(encoder, decoder, test_data, markers,
-                                                                                   save_path=vae_base_result_path,
+                                                                                   save_path=results_folder,
                                                                                    mlflow_directory="VAE")
 
         # Evaluate
@@ -143,10 +139,10 @@ def start_vae_experiment(args, experiment_id: str):
                                                   markers=markers)
 
         # Report r2 score
-        Reporter.report_r2_scores(r2_scores=r2_scores, save_path=vae_base_result_path,
+        Reporter.report_r2_scores(r2_scores=r2_scores, save_path=results_folder,
                                   mlflow_folder="Evaluation")
 
-        vae_plotting = Plotting(vae_base_result_path, args)
+        vae_plotting = Plotting(results_folder, args)
         vae_plotting.plot_model_performance(model.history, "VAE", "model_performance")
         vae_plotting.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data,
                                                 markers=markers, mlflow_directory="Evaluation",
@@ -160,10 +156,10 @@ def start_vae_experiment(args, experiment_id: str):
         encoding_h1_weights = encoder.get_layer('encoding_h1').get_weights()[0]
         decoding_output_weights = decoder.get_layer('decoder_output').get_weights()[0]
 
-        Reporter.report_weights(encoding_h1_weights, markers=markers, save_path=vae_base_result_path,
+        Reporter.report_weights(encoding_h1_weights, markers=markers, save_path=results_folder,
                                 mlflow_folder="VAE", file_name="layer_encoding_h1_weights")
 
-        Reporter.report_weights(decoding_output_weights, markers=markers, save_path=vae_base_result_path,
+        Reporter.report_weights(decoding_output_weights, markers=markers, save_path=results_folder,
                                 mlflow_folder="VAE", file_name="layer_decoding_output_weights")
 
         vae_plotting.plot_weights(encoding_h1_weights, markers, "VAE", "Encoding layer")
@@ -174,6 +170,9 @@ def start_vae_experiment(args, experiment_id: str):
 
 if __name__ == "__main__":
     args = get_args()
+    base_results_path = Path(f"in_sample_{args.run}")
+    vae_base_result_path = Path(base_results_path, "VAE")
+    ae_base_result_path = Path(base_results_path, "AE")
 
     # Create working directories
     FolderManagement.create_directory(vae_base_result_path)
@@ -208,16 +207,18 @@ if __name__ == "__main__":
         mlflow.log_param("File", args.file)
         mlflow.log_param("Mode", args.mode)
 
-        vae_r2_scores = start_vae_experiment(args, experiment_id=associated_experiment_id)
-        ae_r2_scores = start_ae_experiment(args, experiment_id=associated_experiment_id)
+        vae_r2_scores = start_vae_experiment(args, experiment_id=associated_experiment_id,
+                                             results_folder=vae_base_result_path)
+        ae_r2_scores = start_ae_experiment(args, experiment_id=associated_experiment_id,
+                                           results_folder=ae_base_result_path)
 
         # Start experiment which compares AE and VAE
         with mlflow.start_run(run_name="Comparison", nested=True,
                               experiment_id=associated_experiment_id) as comparison:
             print("Comparing vae with ae.")
-            plotter = Plotting(comparison_base_results_path, args)
-            plotter.plot_r2_scores_comparison(ae_r2_scores=ae_r2_scores,
-                                              vae_r2_scores=vae_r2_scores)
+            plotter = Plotting(base_results_path, args)
+            plotter.r2_score_bar_plot(r2_scores=ae_r2_scores, compare_score=vae_r2_scores, r2_score_title="AE",
+                                      compare_title="VAE", file_name="r2_scores")
 
     # Cleanup resources
     FolderManagement.delete_directory(ae_base_result_path)
