@@ -43,6 +43,7 @@ class ExperimentComparer:
     vae_directory: Path
 
     def __init__(self, experiment_name: str):
+
         # Create mlflow tracking client
         client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
         self.experiment_handler: ExperimentHandler = ExperimentHandler(client=client)
@@ -115,9 +116,10 @@ class ExperimentComparer:
             plotter.compare_vae_to_ae_scores(ae_scores=ae_mean_scores, vae_scores=vae_mean_scores)
             plotter.r2_score_distribution(combined_r2_scores=ae_combined_scores,
                                           comparing_r2_scores=vae_combined_scores,
-                                          title="AE", comparing_title="VAE", file_name="r2_distribution")
-            plotter.plot_weights_distribution(encoding_layer_weights, "encoding")
-            plotter.plot_weights_distribution(decoding_layer_weights, "decoding")
+                                          title="AE", comparing_title="VAE",
+                                          file_name="r2_score_distribution")
+            plotter.plot_weights_distribution(weights=encoding_layer_weights, layer="encoding")
+            plotter.plot_weights_distribution(weights=decoding_layer_weights, layer="decoding")
 
             plotter.plot_r2_score_differences(pd.DataFrame(columns=["Marker", "Score"],
                                                            data={'Marker': ae_combined_scores.columns,
@@ -157,7 +159,7 @@ class ExperimentComparer:
     def __report_r2_scores(self, scores: {}):
         for key, scores in scores.items():
             Reporter.report_r2_scores(scores, save_path=Path(self.base_path, "runs"),
-                                      mlflow_folder="", prefix=key)
+                                      mlflow_folder="", prefix=f"{key}")
 
 
 if __name__ == "__main__":

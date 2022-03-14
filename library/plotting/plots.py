@@ -172,7 +172,7 @@ class Plotting:
         mlflow.log_artifact(str(save_path))
         plt.close()
 
-    def plot_weights_distribution(self, weights: pd.DataFrame, layer: str):
+    def plot_weights_distribution(self, weights: pd.DataFrame, layer: str, prefix: str = None):
 
         fig, ax1 = plt.subplots(ncols=1, figsize=(28, 20), dpi=300, sharex=False)
         df = pd.DataFrame(columns=["Weights", "Markers"])
@@ -186,7 +186,11 @@ class Plotting:
         sns.displot(df, x="Weights", hue="Markers", legend=True)
         fig.tight_layout()
         plt.legend(loc='lower center')
-        save_path = Path(self.__base_path, f"{layer}_weights_distribution.png")
+
+        if prefix is not None:
+            save_path = Path(self.__base_path, f"{prefix}_{layer}_weights_distribution.png")
+        else:
+            save_path = Path(self.__base_path, f"{layer}_weights_distribution.png")
         plt.savefig(save_path)
         mlflow.log_artifact(str(save_path))
         plt.close()
