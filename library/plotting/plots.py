@@ -183,7 +183,9 @@ class Plotting:
         if len(r2_scores.items()) > 3:
             num_rows = int(len(r2_scores.items()) / 3)
 
-        fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(25, 20), dpi=300, sharex=False)
+        n_cols = 3
+
+        fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(25, 20), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0
@@ -193,7 +195,7 @@ class Plotting:
             axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
             col += 1
 
-            if col == 3:
+            if col == n_cols:
                 row += 1
                 col = 0
 

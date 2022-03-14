@@ -43,9 +43,8 @@ if __name__ == "__main__":
     client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
     experiment_handler = ExperimentHandler(client=client)
 
-    experiments: [] = []
-    r2_mean_scores: {} = {}
-    r2_combined_scores: {} = {}
+    vae_r2_mean_scores: {} = {}
+    vae_r2_combined_scores: {} = {}
 
     for experiment_name in args.experiments:
         experiment_id: str = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name,
@@ -65,12 +64,12 @@ if __name__ == "__main__":
         # Download artifacts
         experiment_handler.download_artifacts(base_path, run=run)
 
-        mean_score: pd.DataFrame = DataLoader.load_file(Path(base_path, run.info.run_id), "vae_mean_r2_score.csv")
-        combined_scores: pd.DataFrame = DataLoader.load_file(Path(base_path, run.info.run_id),
-                                                             "vae_combined_r2_score.csv")
+        vae_mean_score: pd.DataFrame = DataLoader.load_file(Path(base_path, run.info.run_id), "vae_mean_r2_score.csv")
+        ae_combined_scores: pd.DataFrame = DataLoader.load_file(Path(base_path, run.info.run_id),
+                                                                "vae_combined_r2_score.csv")
 
-        r2_mean_scores[experiment_name] = mean_score
-        r2_combined_scores[experiment_name] = combined_scores
+        vae_r2_mean_scores[experiment_name] = vae_mean_score
+        vae_r2_combined_scores[experiment_name] = ae_combined_scores
 
     # The new experiment which is used to store the evaluation data
     evaluation_experiment_id: str = experiment_handler.create_experiment("Experiment Comparison Test",
@@ -80,4 +79,4 @@ if __name__ == "__main__":
     with mlflow.start_run(experiment_id=evaluation_experiment_id,
                           run_name=f"{experiment_name} {comp_experiment_name} Comparison") as run:
         plotting: Plotting = Plotting(base_path=base_path, args=args)
-        plotting.r2_scores_distribution(r2_scores=r2_combined_scores, file_name="vae_r2_score_distribution")
+        plotting.r2_scores_distribution(r2_scores=vae_r2_combined_scores, file_name="vae_r2_score_distribution")
