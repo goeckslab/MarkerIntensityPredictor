@@ -56,7 +56,7 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.Da
         mlflow.log_param("Seed", args.seed)
 
         # Load data
-        cells, markers = DataLoader.load_data(file_name=args.file, keep_morph=args.morph)
+        cells, markers = DataLoader.load_marker_data(file_name=args.file, keep_morph=args.morph)
         Reporter.report_cells_and_markers(save_path=results_folder, cells=cells, markers=markers)
 
         train_data, val_data, test_data = create_splits(cells, seed=args.seed)
@@ -118,7 +118,7 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.D
         mlflow.log_param("Seed", args.seed)
 
         # Load data
-        cells, markers = DataLoader.load_data(file_name=args.file, keep_morph=args.morph)
+        cells, markers = DataLoader.load_marker_data(file_name=args.file, keep_morph=args.morph)
 
         Reporter.report_cells_and_markers(save_path=results_folder, cells=cells, markers=markers)
 
@@ -182,7 +182,7 @@ def start_elastic_net(args, experiment_id: str, results_folder: Path) -> pd.Data
         mlflow.log_param("Seed", args.seed)
 
         # Load data
-        intensities, markers = DataLoader.load_data(file_name=args.file, keep_morph=args.morph)
+        intensities, markers = DataLoader.load_marker_data(file_name=args.file, keep_morph=args.morph)
 
         Reporter.report_cells_and_markers(save_path=results_folder, cells=intensities, markers=markers)
 

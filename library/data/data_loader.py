@@ -7,9 +7,9 @@ from typing import Tuple, Optional
 
 class DataLoader:
     @staticmethod
-    def load_data(file_name: str, keep_morph: bool = True):
+    def load_marker_data(file_name: str, keep_morph: bool = True):
         """
-        Loads the data, given the provided information
+        Loads the marker data, given the provided information
         @param file_name: The file name to load from the os
         @param keep_morph: Keep morphological features or sort them out? Default to true
         @return:
