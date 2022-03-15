@@ -1,5 +1,5 @@
 import pandas as pd
-
+import time
 from library.data.data_loader import DataLoader
 from library.data.folder_management import FolderManagement
 from library.mlflow_helper.experiment_handler import ExperimentHandler
@@ -242,7 +242,7 @@ if __name__ == "__main__":
     train_file = args.file[0]
     test_file = args.file[1]
 
-    base_results_path = Path(f"multi_{args.run}")
+    base_results_path = Path(f"multi_{args.run}_{int(time.time())}")
     ae_base_result_path = Path(base_results_path, "AE")
     vae_base_result_path = Path(base_results_path, "VAE")
     en_base_result_path = Path(base_results_path, "EN")

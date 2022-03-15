@@ -14,6 +14,7 @@ from library.evalation.evaluation import Evaluation
 from library.predictions.predictions import Predictions
 from library.linear.elastic_net import ElasticNet
 import pandas as pd
+import time
 
 
 # normalizing https://stackoverflow.com/questions/49444262/normalize-data-before-or-after-split-of-training-and-testing-data
@@ -206,7 +207,7 @@ def start_elastic_net(args, experiment_id: str, results_folder: Path) -> pd.Data
 
 if __name__ == "__main__":
     args = get_args()
-    base_results_path = Path(f"in_sample_{args.run}")
+    base_results_path = Path(f"in_sample_{args.run}_{int(time.time())}")
     vae_base_result_path = Path(base_results_path, "VAE")
     ae_base_result_path = Path(base_results_path, "AE")
     en_base_result_path = Path(base_results_path, "EN")
