@@ -41,7 +41,7 @@ do
       continue
     fi
 
-    for RUN in {1..10}
+    for RUN in {1..5}
     do
 	    echo "Starting run ${RUN} comparing ${filename} with ${comparefile}"
 	    source venv/bin/activate

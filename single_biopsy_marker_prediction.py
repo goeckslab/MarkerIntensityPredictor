@@ -12,6 +12,8 @@ from library.mlflow_helper.reporter import Reporter
 from library.preprocessing.split import create_splits
 from library.evalation.evaluation import Evaluation
 from library.predictions.predictions import Predictions
+from library.linear.elastic_net import ElasticNet
+import pandas as pd
 
 
 # normalizing https://stackoverflow.com/questions/49444262/normalize-data-before-or-after-split-of-training-and-testing-data
@@ -40,21 +42,23 @@ def get_args():
     parser.add_argument("--mode", action="store",
                         help="If used only the given model will be executed and no comparison will take place",
                         required=False, choices=['vae', 'ae', 'none'], default="none")
+    parser.add_argument("--seed", "-s", action="store", help="Include morphological data", type=int, default=1)
 
     return parser.parse_args()
 
 
-def start_ae_experiment(args, experiment_id: str, results_folder: Path):
+def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.DataFrame:
     with mlflow.start_run(run_name="AE", nested=True, experiment_id=experiment_id) as run:
         mlflow.log_param("file", args.file)
         mlflow.log_param("morphological_data", args.morph)
         mlflow.set_tag("Model", "AE")
+        mlflow.log_param("Seed", args.seed)
 
         # Load data
         cells, markers = DataLoader.load_data(file_name=args.file, keep_morph=args.morph)
         Reporter.report_cells_and_markers(save_path=results_folder, cells=cells, markers=markers)
 
-        train_data, val_data, test_data = create_splits(cells)
+        train_data, val_data, test_data = create_splits(cells, seed=args.seed)
         # Normalize
         train_data = Preprocessing.normalize(train_data)
         val_data = Preprocessing.normalize(val_data)
@@ -71,7 +75,7 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path):
                                                                                 save_path=results_folder,
                                                                                 mlflow_directory="AE")
 
-        r2_scores = Evaluation.calculate_r2_score(test_data=test_data, reconstructed_data=reconstructed_data,
+        r2_scores = Evaluation.calculate_r2_score(ground_truth=test_data, reconstructed_data=reconstructed_data,
                                                   markers=markers)
 
         # Report r2 score
@@ -82,7 +86,7 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path):
         plotter.plot_model_performance(history, "AE", "Model performance")
         plotter.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data, markers=markers,
                                            mlflow_directory="Evaluation", file_name="Input v Reconstructed")
-        plotter.plot_r2_scores(r2_scores, "Evaluation", "R2 scores")
+        plotter.r2_scores(r2_scores={"AE": r2_scores}, mlflow_directory="Evaluation", file_name="R2 scores")
         plotter.plot_markers(train_data=train_data, test_data=test_data,
                              val_data=val_data, markers=markers,
                              mlflow_directory="Evaluation",
@@ -104,19 +108,20 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path):
         return r2_scores
 
 
-def start_vae_experiment(args, experiment_id: str, results_folder: Path):
+def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.DataFrame:
     # Load cells and markers from the given file
     with mlflow.start_run(run_name="VAE", nested=True, experiment_id=experiment_id) as run:
         mlflow.log_param("file", args.file)
         mlflow.log_param("morphological_data", args.morph)
         mlflow.set_tag("Model", "VAE")
+        mlflow.log_param("Seed", args.seed)
 
         # Load data
         cells, markers = DataLoader.load_data(file_name=args.file, keep_morph=args.morph)
 
         Reporter.report_cells_and_markers(save_path=results_folder, cells=cells, markers=markers)
 
-        train_data, val_data, test_data = create_splits(cells)
+        train_data, val_data, test_data = create_splits(cells, seed=args.seed)
 
         train_data = Preprocessing.normalize(train_data)
         val_data = Preprocessing.normalize(val_data)
@@ -135,7 +140,7 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path):
                                                                                    mlflow_directory="VAE")
 
         # Evaluate
-        r2_scores = Evaluation.calculate_r2_score(test_data=test_data, reconstructed_data=reconstructed_data,
+        r2_scores = Evaluation.calculate_r2_score(ground_truth=test_data, reconstructed_data=reconstructed_data,
                                                   markers=markers)
 
         # Report r2 score
@@ -147,7 +152,7 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path):
         vae_plotting.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data,
                                                 markers=markers, mlflow_directory="Evaluation",
                                                 file_name="Initial vs. Reconstructed markers")
-        vae_plotting.plot_r2_scores(r2_scores, "Evaluation", "R^2 Scores")
+        vae_plotting.r2_scores(r2_scores={"VAE": r2_scores}, mlflow_directory="Evaluation", file_name="R^2 Scores")
         vae_plotting.plot_markers(train_data=train_data, test_data=test_data,
                                   val_data=val_data, markers=markers,
                                   mlflow_directory="Evaluation",
@@ -168,58 +173,102 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path):
         return r2_scores
 
 
+def start_elastic_net(args, experiment_id: str, results_folder: Path) -> pd.DataFrame:
+    with mlflow.start_run(run_name="ElasticNet", nested=True, experiment_id=experiment_id) as run:
+        mlflow.log_param("file", args.file)
+        mlflow.log_param("morphological_data", args.morph)
+        mlflow.set_tag("Model", "ElasticNet")
+        mlflow.log_param("Seed", args.seed)
+
+        # Load data
+        intensities, markers = DataLoader.load_data(file_name=args.file, keep_morph=args.morph)
+
+        Reporter.report_cells_and_markers(save_path=results_folder, cells=intensities, markers=markers)
+
+        # Create train and val from train cells
+        train_data, test_data = create_splits(intensities, seed=args.seed, create_val=False)
+
+        # Normalize
+        train_data = Preprocessing.normalize(train_data)
+        test_data = Preprocessing.normalize(test_data)
+
+        r2_scores: pd.DataFrame = ElasticNet.train_elastic_net(train_data=train_data, test_data=test_data,
+                                                               markers=markers,
+                                                               random_state=args.seed, tolerance=0.05)
+
+        Reporter.report_r2_scores(r2_scores=r2_scores, save_path=results_folder, mlflow_folder="Evaluation")
+
+        plotter = Plotting(results_folder, args)
+        plotter.r2_scores(r2_scores={"EN": r2_scores}, mlflow_directory="Evaluation", file_name="R^2 Scores")
+
+        return r2_scores
+
+
 if __name__ == "__main__":
     args = get_args()
     base_results_path = Path(f"in_sample_{args.run}")
     vae_base_result_path = Path(base_results_path, "VAE")
     ae_base_result_path = Path(base_results_path, "AE")
+    en_base_result_path = Path(base_results_path, "EN")
 
     # Create working directories
     FolderManagement.create_directory(vae_base_result_path)
     FolderManagement.create_directory(ae_base_result_path)
+    FolderManagement.create_directory(en_base_result_path)
 
-    # set tracking url
-    if args.tracking_url is not None:
-        mlflow.set_tracking_uri(args.tracking_url)
+    try:
+        # set tracking url
+        if args.tracking_url is not None:
+            mlflow.set_tracking_uri(args.tracking_url)
 
-    # Create mlflow tracking client
-    client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
-    experiment_handler: ExperimentHandler = ExperimentHandler(client=client)
+        # Create mlflow tracking client
+        client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
+        experiment_handler: ExperimentHandler = ExperimentHandler(client=client)
 
-    # The id of the associated
-    associated_experiment_id = None
+        # The id of the associated
+        associated_experiment_id = None
 
-    experiment_name = args.experiment
-    if experiment_name is not None:
-        associated_experiment_id = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name,
-                                                                                experiment_description=args.description)
+        experiment_name = args.experiment
+        if experiment_name is not None:
+            associated_experiment_id = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name,
+                                                                                    experiment_description=args.description)
 
-    # Experiment not found
-    if associated_experiment_id is None:
-        raise ValueError(
-            f"Experiment {experiment_name} not found! Either specify a different name or set create_experiment = True.")
+        # Experiment not found
+        if associated_experiment_id is None:
+            raise ValueError(
+                f"Experiment {experiment_name} not found! Either specify a different name or set create_experiment = True.")
 
-    mlflow.set_experiment(experiment_id=associated_experiment_id)
+        mlflow.set_experiment(experiment_id=associated_experiment_id)
 
-    # Start initial experiment
-    with mlflow.start_run(run_name=args.run, nested=True, experiment_id=associated_experiment_id) as run:
-        mlflow.log_param("Included Morphological Data", args.morph)
-        mlflow.log_param("File", args.file)
-        mlflow.log_param("Mode", args.mode)
+        # Start initial experiment
+        with mlflow.start_run(run_name=args.run, nested=True, experiment_id=associated_experiment_id) as run:
+            mlflow.log_param("Included Morphological Data", args.morph)
+            mlflow.log_param("File", args.file)
+            mlflow.log_param("Mode", args.mode)
+            mlflow.log_param("Seed", args.seed)
 
-        vae_r2_scores = start_vae_experiment(args, experiment_id=associated_experiment_id,
-                                             results_folder=vae_base_result_path)
-        ae_r2_scores = start_ae_experiment(args, experiment_id=associated_experiment_id,
-                                           results_folder=ae_base_result_path)
+            vae_r2_scores = start_vae_experiment(args, experiment_id=associated_experiment_id,
+                                                 results_folder=vae_base_result_path)
+            ae_r2_scores = start_ae_experiment(args, experiment_id=associated_experiment_id,
+                                               results_folder=ae_base_result_path)
 
-        # Start experiment which compares AE and VAE
-        with mlflow.start_run(run_name="Comparison", nested=True,
-                              experiment_id=associated_experiment_id) as comparison:
-            print("Comparing vae with ae.")
-            plotter = Plotting(base_results_path, args)
-            plotter.r2_score_bar_plot(r2_scores=ae_r2_scores, compare_score=vae_r2_scores, r2_score_title="AE",
-                                      compare_title="VAE", file_name="r2_scores")
+            en_r2_scores = start_elastic_net(args, experiment_id=associated_experiment_id,
+                                             results_folder=en_base_result_path)
 
-    # Cleanup resources
-    FolderManagement.delete_directory(ae_base_result_path)
-    FolderManagement.delete_directory(vae_base_result_path)
+            # Start experiment which compares AE and VAE
+            with mlflow.start_run(run_name="Comparison", nested=True,
+                                  experiment_id=associated_experiment_id) as comparison:
+                print("Comparing vae with ae.")
+                plotter = Plotting(base_results_path, args)
+                plotter.r2_score_comparison(r2_scores={"AE": ae_r2_scores, "VAE": vae_r2_scores, "EN": en_r2_scores},
+                                            file_name="r2_score_differences")
+
+
+    except BaseException as ex:
+        raise
+    finally:
+        # Cleanup resources
+        FolderManagement.delete_directory(ae_base_result_path)
+        FolderManagement.delete_directory(vae_base_result_path)
+        FolderManagement.delete_directory(en_base_result_path)
+        FolderManagement.delete_directory(base_results_path)

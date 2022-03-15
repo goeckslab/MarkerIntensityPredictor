@@ -67,18 +67,8 @@ class DataLoader:
         for p in load_path.rglob("*"):
             if p.name == "r2_score.csv":
                 df = pd.read_csv(p.absolute(), header=0)
-
-                # Get markers
-                markers = df["Marker"].to_list()
-
-                # Transpose
-                df = df.T
-                # Drop markers row
-                df.drop(index=df.index[0],
-                        axis=0,
-                        inplace=True)
-
-                combined_r2_scores = combined_r2_scores.append(df, ignore_index=True)
+                combined_r2_scores = combined_r2_scores.append(df["Score"], ignore_index=True)
+                markers = df["Marker"]
 
         combined_r2_scores.columns = markers
         mean_scores = pd.DataFrame(columns=["Marker", "Score"],

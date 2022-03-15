@@ -22,6 +22,8 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--experiments", "-e", nargs='+', action="store", required=True,
                         help="The name of the experiments which should be evaluated", type=str)
+    parser.add_argument("--run", "-r", action="store", required=True,
+                        help="The name of the run being run", type=str)
     parser.add_argument("--tracking_url", "-t", action="store", required=False,
                         help="The tracking url for the mlflow tracking server", type=str,
                         default="http://127.0.0.1:5000")
@@ -32,51 +34,56 @@ def get_args():
 if __name__ == "__main__":
     args = get_args()
 
-    experiment_name = args.experiments[0]
-    comp_experiment_name = args.experiments[1]
-
-    FolderManagement.create_directory(base_path)
-
     if len(args.experiments) < 2:
         raise ValueError("Please specify at least two experiments for comparison")
 
-    client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
-    experiment_handler = ExperimentHandler(client=client)
+    FolderManagement.create_directory(base_path)
 
-    vae_r2_mean_scores: {} = {}
-    vae_r2_combined_scores: {} = {}
+    try:
+        client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
+        experiment_handler = ExperimentHandler(client=client)
 
-    for experiment_name in args.experiments:
-        experiment_id: str = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name,
-                                                                          create_experiment=False)
+        vae_r2_mean_scores: {} = {}
+        vae_r2_combined_scores: {} = {}
 
-        if experiment_id is None:
-            print(f"Could not find experiment with name {experiment_name}. Skipping..")
-            continue
+        for experiment_name in args.experiments:
+            experiment_id: str = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name,
+                                                                              create_experiment=False)
 
-        run: Run = experiment_handler.get_run_comparison_run(experiment_id=experiment_id)
+            if experiment_id is None:
+                print(f"Could not find experiment with name {experiment_name}. Skipping..")
+                continue
 
-        if run is None:
-            print("Could not found a run labeled 'Run Comparison'. "
-                  f"Please create a run by running the run_comparison.py for the experiment {args.experiments[0]}.")
-            continue
+            run: Run = experiment_handler.get_run_comparison_run(experiment_id=experiment_id)
 
-        # Download artifacts
-        experiment_handler.download_artifacts(base_path, run=run)
+            if run is None:
+                print("Could not found a run labeled 'Run Comparison'. "
+                      f"Please create a run by running the run_comparison.py for the experiment {args.experiments[0]}.")
+                continue
 
-        vae_mean_score: pd.DataFrame = DataLoader.load_file(Path(base_path, run.info.run_id), "vae_mean_r2_score.csv")
-        ae_combined_scores: pd.DataFrame = DataLoader.load_file(Path(base_path, run.info.run_id),
-                                                                "vae_combined_r2_score.csv")
+            # Download artifacts
+            experiment_handler.download_artifacts(base_path, run=run)
 
-        vae_r2_mean_scores[experiment_name] = vae_mean_score
-        vae_r2_combined_scores[experiment_name] = ae_combined_scores
+            vae_mean_score: pd.DataFrame = DataLoader.load_file(Path(base_path, run.info.run_id),
+                                                                "vae_mean_r2_score.csv")
+            ae_combined_scores: pd.DataFrame = DataLoader.load_file(Path(base_path, run.info.run_id),
+                                                                    "vae_combined_r2_score.csv")
 
-    # The new experiment which is used to store the evaluation data
-    evaluation_experiment_id: str = experiment_handler.create_experiment("Experiment Comparison Test",
-                                                                         "Evaluation of multiple experiments wll be listed here")
+            vae_r2_mean_scores[experiment_name] = vae_mean_score
+            vae_r2_combined_scores[experiment_name] = ae_combined_scores
 
-    # Create experiment and evaluation data
-    with mlflow.start_run(experiment_id=evaluation_experiment_id,
-                          run_name=f"{experiment_name} {comp_experiment_name} Comparison") as run:
-        plotting: Plotting = Plotting(base_path=base_path, args=args)
-        plotting.r2_scores_distribution(r2_scores=vae_r2_combined_scores, file_name="vae_r2_score_distribution")
+        # The new experiment which is used to store the evaluation data
+        evaluation_experiment_id: str = experiment_handler.create_experiment("Experiment Comparison Test",
+                                                                             "Evaluation of multiple experiments wll be listed here")
+
+        # Create experiment and evaluation data
+        with mlflow.start_run(experiment_id=evaluation_experiment_id,
+                              run_name=args.run) as run:
+            plotting: Plotting = Plotting(base_path=base_path, args=args)
+            plotting.r2_scores_distribution(r2_scores=vae_r2_combined_scores, file_name="vae_r2_score_distribution")
+
+    except BaseException as ex:
+        print(ex)
+
+    finally:
+        FolderManagement.delete_directory(base_path)

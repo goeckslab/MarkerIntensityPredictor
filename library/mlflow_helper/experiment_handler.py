@@ -84,7 +84,7 @@ class ExperimentHandler:
 
             if "Model" in full_run.data.tags:
                 model = full_run.data.tags.get("Model")
-                if model == "VAE" or model == "AE":
+                if model == "VAE" or model == "AE" or model == "ElasticNet":
                     parent_run: Run = self.__get_run_by_id(full_run.data.tags.get('mlflow.parentRunId'))
                     # Skip unfinished or unsuccessful runs
                     if parent_run is None or parent_run.info.status != "FINISHED":

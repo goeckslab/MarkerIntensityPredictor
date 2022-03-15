@@ -53,7 +53,10 @@ class Reporter:
         mlflow.log_artifact(str(save_path), mlflow_folder)
 
     @staticmethod
-    def report_r2_score_mean_difference(r2score_difference: pd.DataFrame, save_path: Path):
-        save_path = Path(save_path, f"r2scores_mean_difference.csv")
+    def report_r2_score_mean_difference(r2score_difference: pd.DataFrame, save_path: Path, prefix: str = None):
+        if prefix is not None:
+            save_path = Path(save_path, f"{prefix}_r2_score_mean_difference.csv")
+        else:
+            save_path = Path(save_path, f"r2_score_mean_difference.csv")
         r2score_difference.to_csv(save_path, index=False)
         mlflow.log_artifact(str(save_path))

@@ -7,17 +7,17 @@ import mlflow
 class Evaluation:
 
     @staticmethod
-    def calculate_r2_score(test_data: pd.DataFrame, reconstructed_data: pd.DataFrame, markers: list) -> pd.DataFrame:
+    def calculate_r2_score(ground_truth: pd.DataFrame, reconstructed_data: pd.DataFrame, markers: list) -> pd.DataFrame:
         """
         Calculates the r2 scores for the given parameters
-        @param test_data: The input data to evaluate
+        @param ground_truth: The input data to evaluate
         @param reconstructed_data: The reconstructed data to evaluate
         @param markers: The markers of the dataset
         @return: Returns a dataframe containing all r2 scores
         """
         r2_scores = pd.DataFrame(columns=["Marker", "Score"])
         recon_test = pd.DataFrame(data=reconstructed_data, columns=markers)
-        test_data = pd.DataFrame(data=test_data, columns=markers)
+        test_data = pd.DataFrame(data=ground_truth, columns=markers)
 
         for marker in markers:
             ground_truth_marker = test_data[f"{marker}"]

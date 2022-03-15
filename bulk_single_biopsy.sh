@@ -23,7 +23,7 @@ do
     continue
   fi
 
-  for RUN in {1..15}
+  for RUN in {1..5}
   do
 	  echo "Starting run ${RUN}"
 	  source venv/bin/activate

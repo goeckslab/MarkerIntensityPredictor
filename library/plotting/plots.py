@@ -4,6 +4,8 @@ from pathlib import Path
 import mlflow
 import pandas as pd
 import seaborn as sns
+from itertools import combinations
+from typing import Tuple
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
@@ -49,19 +51,7 @@ class Plotting:
         mlflow.log_artifact(str(save_path), mlflow_directory)
         plt.close()
 
-    def plot_r2_scores(self, r2_scores: pd.DataFrame, mlflow_directory: str, file_name: str):
-        ax = sns.barplot(x="Marker", y="Score", data=r2_scores)
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
-        fig = ax.get_figure()
-        fig.tight_layout()
-        save_path = Path(self.__base_path, f"{file_name}.png")
-        plt.savefig(save_path)
-        mlflow.log_artifact(str(save_path), mlflow_directory)
-        plt.close()
-
     def plot_markers(self, train_data, test_data, markers, mlflow_directory: str, file_name: str, val_data=None):
-        logging.info("Plotting markers")
-
         if val_data is not None:
             fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(9, 10), dpi=300, sharex=True)
         else:
@@ -106,65 +96,57 @@ class Plotting:
         mlflow.log_artifact(str(save_path), mlflow_directory)
         plt.close()
 
-    def compare_vae_to_ae_scores(self, ae_scores: pd.DataFrame, vae_scores: pd.DataFrame):
-        """
-        Plots a bar plot comparing ae scores vs vae scores
-        @param ae_scores:
-        @param vae_scores:
-        @return:
-        """
-        fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, figsize=(19, 20), dpi=300, sharex=False)
-        sns.barplot(x='Marker', y='Score', data=ae_scores, ax=ax1)
-        sns.barplot(x='Marker', y='Score', data=vae_scores, ax=ax2)
+    def r2_score_comparison(self, r2_scores: dict, file_name: str):
+        if len(r2_scores.items()) < 2:
+            return
 
-        # Create difference dataframe
-        differences = pd.DataFrame(columns=["Marker", "Difference"], data={"Marker": ae_scores["Marker"].values,
-                                                                           "Difference": vae_scores["Score"] -
-                                                                                         ae_scores[
-                                                                                             "Score"]})
-        sns.barplot(x="Marker", y="Difference", data=differences, ax=ax3)
+        possible_combinations: list = list(combinations(r2_scores.keys(), 2))
 
-        ax1.set_title("AE R2 Scores")
-        ax2.set_title("VAE R2 Scores")
-        ax3.set_title("Difference VAE to AE")
-        ax1.set_xticklabels(ax1.get_xticklabels(), rotation=90)
-        ax2.set_xticklabels(ax2.get_xticklabels(), rotation=90)
-        ax3.set_xticklabels(ax3.get_xticklabels(), rotation=90)
+        # Determine number of rows
+        num_rows = 1
+        if len(possible_combinations) > 3:
+            num_rows = int(len(r2_scores.items()) / 3)
 
-        fig.tight_layout()
-        save_path = Path(self.__base_path, "mean_r2_comparison.png")
-        plt.savefig(save_path)
-        mlflow.log_artifact(str(save_path))
-        plt.close()
+        n_cols = 3
 
-    def r2_score_bar_plot(self, r2_scores: pd.DataFrame, compare_score: pd.DataFrame, r2_score_title: str,
-                          compare_title: str, file_name: str):
-        """
-        Plots the given r2 scores and calculate the difference between the r2 scores and compare_score
-        @param r2_scores: A pandas dataframe with r2 scores
-        @param compare_score: The pandas dataframe for comparison
-        @param r2_score_title: The title for the first given dataframe
-        @param compare_title: The title for the comparison dataframe
-        @param file_name: The file name s
-        @return:
-        """
-        fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, figsize=(19, 20), dpi=300, sharex=False)
-        sns.barplot(x='Marker', y='Score', data=r2_scores, ax=ax1)
-        sns.barplot(x='Marker', y='Score', data=compare_score, ax=ax2)
+        # Adjust columns based on items
+        if num_rows == 1:
+            fig, axs = plt.subplots(ncols=len(possible_combinations), nrows=num_rows, figsize=(25, 20), dpi=300,
+                                    sharex=False)
+        else:
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(25, 20), dpi=300, sharex=False)
 
-        # Create difference dataframe
-        differences = pd.DataFrame(columns=["Marker", "Difference"], data={"Marker": r2_scores["Marker"].values,
-                                                                           "Difference": r2_scores["Score"] -
-                                                                                         compare_score[
-                                                                                             "Score"]})
-        sns.barplot(x="Marker", y="Difference", data=differences, ax=ax3)
+        col: int = 0
+        row: int = 0
 
-        ax1.set_title(r2_score_title)
-        ax2.set_title(compare_title)
-        ax3.set_title(f"Difference {r2_score_title} vs. {compare_title} ")
-        ax1.set_xticklabels(ax1.get_xticklabels(), rotation=90)
-        ax2.set_xticklabels(ax2.get_xticklabels(), rotation=90)
-        ax3.set_xticklabels(ax3.get_xticklabels(), rotation=90)
+        combination: Tuple
+        for combination in possible_combinations:
+            experiment_name: str = combination[0]
+            compare_experiment_name: str = combination[1]
+
+            r2_score = r2_scores[combination[0]]
+            compare_score = r2_scores[combination[1]]
+
+            # Create difference dataframe
+            differences = pd.DataFrame(columns=["Marker", "Score"],
+                                       data={"Marker": r2_score["Marker"].values,
+                                             "Score": r2_score["Score"] - compare_score["Score"]})
+
+            if num_rows == 1:
+                sns.barplot(x='Marker', y='Score', data=differences, ax=axs[col])
+                axs[col].set_title(f"Difference {experiment_name} vs. {compare_experiment_name}")
+                axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
+                col += 1
+
+            else:
+                sns.barplot(x='Marker', y='Score', data=differences, ax=axs[row, col])
+                axs[row, col].set_title(f"Difference {experiment_name} vs. {compare_experiment_name}")
+                axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+                col += 1
+
+                if col == n_cols:
+                    row += 1
+                    col = 0
 
         fig.tight_layout()
         save_path = Path(self.__base_path, f"{file_name}.png")
@@ -172,11 +154,13 @@ class Plotting:
         mlflow.log_artifact(str(save_path))
         plt.close()
 
-    def r2_scores_distribution(self, r2_scores: dict, file_name: str):
+    def r2_scores(self, r2_scores: dict, file_name: str, mlflow_directory: str = None, prefix: str = None):
         """
-        Plots a graph using a dictionary
-        @param r2_scores:
-        @param file_name:
+        Creates a bar plot for all r2 score values
+        @param r2_scores: A dict which contains all r2 scores. Keys are used as sub plot titles. Values are scores
+        @param file_name: The file name to use for storing the file
+        @param mlflow_directory: The mlflow directory to save the file
+        @param prefix: An optional prefix for the file
         @return:
         """
         num_rows = 1
@@ -185,19 +169,100 @@ class Plotting:
 
         n_cols = 3
 
-        fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(25, 20), dpi=300, sharex=False)
+        # Adjust columns based on items
+        if num_rows == 1:
+            fig, axs = plt.subplots(ncols=len(r2_scores.keys()), nrows=num_rows, figsize=(25, 20), dpi=300,
+                                    sharex=False)
+        else:
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(25, 20), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0
-        for experiment_name, r2_score in r2_scores.items():
-            sns.boxplot(data=r2_score, ax=axs[row, col])
-            axs[row, col].set_title(experiment_name)
-            axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
-            col += 1
 
-            if col == n_cols:
-                row += 1
-                col = 0
+        if num_rows == 1:
+            for experiment_name, r2_score in r2_scores.items():
+                if len(r2_scores.items()) == 1:
+                    sns.barplot(x='Marker', y='Score', data=r2_score, ax=axs)
+                    axs.set_title(experiment_name)
+                    axs.set_xticklabels(axs.get_xticklabels(), rotation=90)
+                else:
+                    sns.barplot(x='Marker', y='Score', data=r2_score, ax=axs[col])
+                    axs[col].set_title(experiment_name)
+                    axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
+                    col += 1
+
+        else:
+            for experiment_name, r2_score in r2_scores.items():
+                sns.barplot(x='Marker', y='Score', data=r2_score, ax=axs[row, col])
+                axs[row, col].set_title(experiment_name)
+                axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+                col += 1
+
+                if col == n_cols:
+                    row += 1
+                    col = 0
+
+        fig.tight_layout()
+
+        if prefix is not None:
+            save_path = Path(self.__base_path, f"{prefix}_{file_name}.png")
+        else:
+            save_path = Path(self.__base_path, f"{file_name}.png")
+
+        plt.savefig(save_path)
+
+        if mlflow_directory is not None:
+            mlflow.log_artifact(str(save_path), mlflow_directory)
+        else:
+            mlflow.log_artifact(str(save_path))
+        plt.close()
+
+    def r2_scores_distribution(self, r2_scores: dict, file_name: str):
+        """
+        Plots a graph using a dictionary
+        @param r2_scores: The scores to plot. Keys are sub plot names, values are scores
+        @param file_name: The file name
+        @return:
+        """
+        num_rows = 1
+        if len(r2_scores.items()) > 3:
+            num_rows = int(len(r2_scores.items()) / 3)
+
+        n_cols = 3
+
+        # Adjust columns based on items
+        if num_rows == 1:
+            fig, axs = plt.subplots(ncols=len(r2_scores.keys()), nrows=num_rows, figsize=(25, 20), dpi=300,
+                                    sharex=False)
+        else:
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(25, 20), dpi=300, sharex=False)
+
+        col: int = 0
+        row: int = 0
+
+        if num_rows == 1:
+            for experiment_name, r2_score in r2_scores.items():
+
+                if len(r2_scores.items()) == 1:
+                    sns.barplot(x='Marker', y='Score', data=r2_score, ax=axs)
+                    axs.set_title(experiment_name)
+                    axs.set_xticklabels(axs.get_xticklabels(), rotation=90)
+                else:
+                    sns.boxplot(data=r2_score, ax=axs[col])
+                    axs[col].set_title(experiment_name)
+                    axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
+                    col += 1
+
+        else:
+            for experiment_name, r2_score in r2_scores.items():
+                sns.boxplot(data=r2_score, ax=axs[row, col])
+                axs[row, col].set_title(experiment_name)
+                axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+                col += 1
+
+                if col == n_cols:
+                    row += 1
+                    col = 0
 
         fig.tight_layout()
         save_path = Path(self.__base_path, f"{file_name}.png")
@@ -206,7 +271,6 @@ class Plotting:
         plt.close()
 
     def plot_weights_distribution(self, weights: pd.DataFrame, layer: str, prefix: str = None):
-
         fig, ax1 = plt.subplots(ncols=1, figsize=(28, 20), dpi=300, sharex=False)
         df = pd.DataFrame(columns=["Weights", "Markers"])
         for column, weights in weights.iteritems():
@@ -224,43 +288,6 @@ class Plotting:
             save_path = Path(self.__base_path, f"{prefix}_{layer}_weights_distribution.png")
         else:
             save_path = Path(self.__base_path, f"{layer}_weights_distribution.png")
-        plt.savefig(save_path)
-        mlflow.log_artifact(str(save_path))
-        plt.close()
-
-    def plot_r2_score_differences(self, r2_score_difference: pd.DataFrame, prefix: str):
-        ax = sns.barplot(x='Marker', y='Score', data=r2_score_difference)
-        ax.set_title("Mean R2 Score Difference")
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
-        fig = ax.get_figure()
-        fig.tight_layout()
-        save_path = Path(self.__base_path, f"{prefix}_mean_r2_difference.png")
-        plt.savefig(save_path)
-        mlflow.log_artifact(str(save_path))
-        plt.close()
-
-    def r2_score_distribution(self, combined_r2_scores: pd.DataFrame, comparing_r2_scores: pd.DataFrame, title: str,
-                              comparing_title: str, file_name: str):
-        """
-        Plots the distribution of r2 scores
-        @param combined_r2_scores:
-        @param comparing_r2_scores:
-        @param title:
-        @param comparing_title:
-        @param file_name:
-        @return:
-        """
-        fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(19, 20), dpi=300, sharex=False)
-        sns.boxplot(data=combined_r2_scores, ax=ax1)
-        sns.boxplot(data=comparing_r2_scores, ax=ax2)
-
-        ax1.set_title(title)
-        ax2.set_title(comparing_title)
-        ax1.set_xticklabels(ax1.get_xticklabels(), rotation=90)
-        ax2.set_xticklabels(ax2.get_xticklabels(), rotation=90)
-
-        fig.tight_layout()
-        save_path = Path(self.__base_path, f"{file_name}.png")
         plt.savefig(save_path)
         mlflow.log_artifact(str(save_path))
         plt.close()

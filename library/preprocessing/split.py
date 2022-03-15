@@ -1,5 +1,6 @@
+import numpy as np
 import pandas as pd
-from typing import Tuple
+from typing import Tuple, Optional
 from sklearn.model_selection import train_test_split, KFold
 
 
