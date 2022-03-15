@@ -119,7 +119,7 @@ class ExperimentHandler:
     def download_artifacts(self, save_path: Path, run: Run = None, runs: [] = None, mlflow_folder: str = None):
         """
          Downloads all artifacts of the found experiments
-        @param save_path:  The path where the artificats should be saved
+        @param save_path:  The path where the artifacts should be saved
         @param runs: Runs which should be considered
         @param run: The run which should be considered
         @param mlflow_folder: The specific folder to be downloaded for the given runs

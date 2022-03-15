@@ -32,6 +32,7 @@ def get_args():
 
 
 if __name__ == "__main__":
+    print("Experiment evaluation started...")
     args = get_args()
 
     if len(args.experiments) < 2:
@@ -45,6 +46,12 @@ if __name__ == "__main__":
 
         vae_r2_mean_scores: {} = {}
         vae_r2_combined_scores: {} = {}
+
+        en_r2_mean_scores: {} = {}
+        en_r2_combined_scores: {} = {}
+
+        ae_r2_mean_scores: {} = {}
+        ae_r2_combined_scores: {} = {}
 
         for experiment_name in args.experiments:
             experiment_id: str = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name,
@@ -64,13 +71,19 @@ if __name__ == "__main__":
             # Download artifacts
             experiment_handler.download_artifacts(base_path, run=run)
 
-            vae_mean_score: pd.DataFrame = DataLoader.load_file(Path(base_path, run.info.run_id),
-                                                                "vae_mean_r2_score.csv")
-            ae_combined_scores: pd.DataFrame = DataLoader.load_file(Path(base_path, run.info.run_id),
-                                                                    "vae_combined_r2_score.csv")
+            vae_r2_mean_scores[experiment_name] = DataLoader.load_file(load_path=Path(base_path, run.info.run_id),
+                                                                       file_name="vae_mean_r2_score.csv")
+            vae_r2_combined_scores[experiment_name] = DataLoader.load_file(load_path=Path(base_path, run.info.run_id),
+                                                                           file_name="vae_combined_r2_score.csv")
 
-            vae_r2_mean_scores[experiment_name] = vae_mean_score
-            vae_r2_combined_scores[experiment_name] = ae_combined_scores
+            en_r2_mean_scores[experiment_name] = DataLoader.load_file(load_path=Path(base_path, run.info.run_id),
+                                                                      file_name="en_mean_r2_score.csv")
+            en_r2_combined_scores[experiment_name] = DataLoader.load_file(load_path=Path(base_path, run.info.run_id),
+                                                                          file_name="en_combined_r2_score.csv")
+            ae_r2_mean_scores[experiment_name] = DataLoader.load_file(load_path=Path(base_path, run.info.run_id),
+                                                                      file_name="ae_mean_r2_score.csv")
+            ae_r2_combined_scores[experiment_name] = DataLoader.load_file(load_path=Path(base_path, run.info.run_id),
+                                                                          file_name="ae_combined_r2_score.csv")
 
         # The new experiment which is used to store the evaluation data
         evaluation_experiment_id: str = experiment_handler.create_experiment("Experiment Comparison Test",
@@ -81,6 +94,15 @@ if __name__ == "__main__":
                               run_name=args.run) as run:
             plotting: Plotting = Plotting(base_path=base_path, args=args)
             plotting.r2_scores_distribution(r2_scores=vae_r2_combined_scores, file_name="vae_r2_score_distribution")
+            plotting.r2_scores_distribution(r2_scores=en_r2_combined_scores, file_name="en_r2_score_distribution")
+            plotting.r2_scores_distribution(r2_scores=ae_r2_combined_scores, file_name="ae_r2_score_distribution")
+            plotting.r2_score_model_distribution(vae_r2_scores=vae_r2_combined_scores,
+                                                 ae_r2_scores=ae_r2_combined_scores,
+                                                 en_r2_scores=en_r2_combined_scores,
+                                                 file_name="model_distribution_comparison")
+
+            plotting.r2_score_model_mean(vae_r2_scores=vae_r2_mean_scores, ae_r2_scores=ae_r2_mean_scores,
+                                         en_r2_scores=en_r2_mean_scores, file_name="model_mean_comparison")
 
     except BaseException as ex:
         print(ex)

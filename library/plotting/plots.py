@@ -133,10 +133,17 @@ class Plotting:
                                              "Score": r2_score["Score"] - compare_score["Score"]})
 
             if num_rows == 1:
-                sns.barplot(x='Marker', y='Score', data=differences, ax=axs[col])
-                axs[col].set_title(f"Difference {experiment_name} vs. {compare_experiment_name}")
-                axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
-                col += 1
+                if len(possible_combinations) == 1:
+                    sns.barplot(x='Marker', y='Score', data=differences, ax=axs)
+                    axs.set_title(f"Difference {experiment_name} vs. {compare_experiment_name}")
+                    axs.set_xticklabels(axs.get_xticklabels(), rotation=90)
+                    col += 1
+                else:
+                    sns.barplot(x='Marker', y='Score', data=differences, ax=axs[col])
+                    axs[col].set_title(f"Difference {experiment_name} vs. {compare_experiment_name}")
+                    axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
+                    col += 1
+
 
             else:
                 sns.barplot(x='Marker', y='Score', data=differences, ax=axs[row, col])
@@ -215,6 +222,130 @@ class Plotting:
             mlflow.log_artifact(str(save_path), mlflow_directory)
         else:
             mlflow.log_artifact(str(save_path))
+        plt.close()
+
+    def r2_score_model_distribution(self, vae_r2_scores: dict, ae_r2_scores: dict, en_r2_scores: dict, file_name: str):
+        """
+        Plots a graph which aligns all models next to each other for each experiment
+        @param vae_r2_scores: The vae scores
+        @param ae_r2_scores: The ae scores
+        @param en_r2_scores: The en scores
+        @param file_name: The file name which should be used for the file
+        @return:
+        """
+
+        if len(vae_r2_scores.values()) < 1 or len(ae_r2_scores.values()) < 1 or len(en_r2_scores.values()) < 1:
+            print("Dictionaries do not contain enough values. Please make sure all keys are included for all models.")
+            return
+
+        if len(vae_r2_scores.keys()) != len(ae_r2_scores.keys()) != len(en_r2_scores.keys()):
+            print("Dictionaries do not contain the same amount of experiments.")
+            return
+
+        num_rows = int(len(vae_r2_scores.keys()))
+
+        # Adjust columns based on items
+        if num_rows == 1:
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(25, 30), dpi=300,
+                                    sharex=False)
+        else:
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(25, 30), dpi=300, sharex=False)
+
+        col: int = 0
+        row: int = 0
+
+        experiment_names: [] = [experiment_name for experiment_name in vae_r2_scores.keys()]
+
+        for experiment_name in experiment_names:
+            vae_r2_score = vae_r2_scores[experiment_name]
+            ae_r2_score = ae_r2_scores[experiment_name]
+            en_r2_score = en_r2_scores[experiment_name]
+
+            sns.boxplot(data=vae_r2_score, ax=axs[row, col])
+            axs[row, col].set_title(experiment_name)
+            axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+            col += 1
+
+            sns.boxplot(data=ae_r2_score, ax=axs[row, col])
+            axs[row, col].set_title(experiment_name)
+            axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+            col += 1
+
+            sns.boxplot(data=en_r2_score, ax=axs[row, col])
+            axs[row, col].set_title(experiment_name)
+            axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+            col += 1
+
+            row += 1
+            col = 0
+
+        plt.legend(title='Model', loc='upper left', labels=['VAE', 'AE', 'EN'])
+        fig.tight_layout()
+        save_path = Path(self.__base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+        mlflow.log_artifact(str(save_path))
+        plt.close()
+
+    def r2_score_model_mean(self, vae_r2_scores: dict, ae_r2_scores: dict, en_r2_scores: dict, file_name: str):
+        """
+        Plots a graph which aligns all models next to each other for each experiment
+        @param vae_r2_scores: The vae scores
+        @param ae_r2_scores: The ae scores
+        @param en_r2_scores: The en scores
+        @param file_name: The file name which should be used for the file
+        @return:
+        """
+
+        if len(vae_r2_scores.values()) < 1 or len(ae_r2_scores.values()) < 1 or len(en_r2_scores.values()) < 1:
+            print("Dictionaries do not contain enough values. Please make sure all keys are included for all models.")
+            return
+
+        if len(vae_r2_scores.keys()) != len(ae_r2_scores.keys()) != len(en_r2_scores.keys()):
+            print("Dictionaries do not contain the same amount of experiments.")
+            return
+
+        num_rows = int(len(vae_r2_scores.keys()))
+
+        # Adjust columns based on items
+        if num_rows == 1:
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(25, 30), dpi=300,
+                                    sharex=False)
+        else:
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(25, 30), dpi=300, sharex=False)
+
+        col: int = 0
+        row: int = 0
+
+        experiment_names: [] = [experiment_name for experiment_name in vae_r2_scores.keys()]
+
+        for experiment_name in experiment_names:
+            vae_r2_score = vae_r2_scores[experiment_name]
+            ae_r2_score = ae_r2_scores[experiment_name]
+            en_r2_score = en_r2_scores[experiment_name]
+
+            sns.barplot(x='Marker', y='Score', data=vae_r2_score, ax=axs[row, col])
+            axs[row, col].set_title(experiment_name)
+            axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+            col += 1
+
+            sns.barplot(x='Marker', y='Score', data=ae_r2_score, ax=axs[row, col])
+            axs[row, col].set_title(experiment_name)
+            axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+            col += 1
+
+            sns.barplot(x='Marker', y='Score', data=en_r2_score, ax=axs[row, col])
+            axs[row, col].set_title(experiment_name)
+            axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+            col += 1
+
+            row += 1
+            col = 0
+
+        plt.legend(title='Model', loc='upper left', labels=['VAE', 'AE', 'EN'])
+        fig.tight_layout()
+        save_path = Path(self.__base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+        mlflow.log_artifact(str(save_path))
         plt.close()
 
     def r2_scores_distribution(self, r2_scores: dict, file_name: str):
