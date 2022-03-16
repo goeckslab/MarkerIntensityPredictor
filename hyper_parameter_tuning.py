@@ -11,6 +11,7 @@ import pandas as pd
 from sklearn.metrics import r2_score
 from library.plotting.plots import Plotting
 from pathlib import Path
+from library.mlflow_helper.reporter import Reporter
 
 base_path = Path("data_imputation")
 
@@ -86,13 +87,11 @@ if __name__ == "__main__":
             model_count += 1
 
         reconstruction_loss: float = 999999
-        selected_run = {}
+        selected_fold = {}
         for key, value in eval_data.items():
             if value["reconstruction_loss"] < reconstruction_loss:
-                selected_run = value
+                selected_fold = value
                 reconstruction_loss = value["reconstruction_loss"]
-
-        print(selected_run)
 
         # Normalize
         train_data = Preprocessing.normalize(train_data)
@@ -100,8 +99,10 @@ if __name__ == "__main__":
 
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=args.run) as run:
             # Set hyper parameters
-            learning_rate = float(selected_run["learning_rate"])
+            learning_rate = float(selected_fold["learning_rate"])
             print(f"Using learning rate {learning_rate}")
+
+            mlflow.log_param("Selected Fold", selected_fold)
 
             model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(
                 training_data=train_data,
@@ -132,9 +133,9 @@ if __name__ == "__main__":
                     }, ignore_index=True
                 )
 
-            print(r2_scores)
             plotter = Plotting(base_path=base_path, args=args)
-            plotter.r2_scores(r2_scores={"VAE": r2_scores}, file_name="r2_score")
+            plotter.r2_scores(r2_scores={"VAE": r2_scores}, file_name="r2_score", mlflow_directory="Evaluation")
+            Reporter.report_r2_scores(r2_scores=r2_scores, save_path=base_path, mlflow_folder="Evaluation")
 
     except:
         raise
