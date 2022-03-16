@@ -16,15 +16,19 @@ class MarkerPredictionVAE:
     @staticmethod
     def build_variational_auto_encoder(training_data: pd.DataFrame, validation_data: pd.DataFrame,
                                        input_dimensions: int,
-                                       embedding_dimension: int, activation='relu'):
+                                       embedding_dimension: int, activation='relu', learning_rate: float = 1e-3,
+                                       optimizer: str = "adam", use_ml_flow: bool = True):
         """
         Sets up the vae and trains it
         """
 
-        mlflow.tensorflow.autolog()
+        if use_ml_flow:
+            mlflow.tensorflow.autolog()
 
         r = regularizers.l1_l2(10e-5)
-        mlflow.log_param("regularizer", r)
+
+        if use_ml_flow:
+            mlflow.log_param("regularizer", r)
 
         encoder_inputs = keras.Input(shape=(input_dimensions,))
         h1 = layers.Dense(input_dimensions, activation=activation, activity_regularizer=r, name="encoding_h1")(
@@ -51,7 +55,13 @@ class MarkerPredictionVAE:
                                                           mode="min", patience=5,
                                                           restore_best_weights=True)
         vae = VAE(encoder, decoder)
-        vae.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3))
+
+        if optimizer == "adam":
+            vae.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))
+        elif optimizer == "sgd":
+            vae.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=learning_rate))
+        else:
+            raise ValueError("Please specify a valid optimizer.")
 
         history = vae.fit(training_data,
                           validation_data=(validation_data, validation_data),

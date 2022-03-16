@@ -15,7 +15,8 @@ def create_splits(cells: pd.DataFrame, create_val: bool = True, seed: int = 1) -
 
     # No validation set will be created
     if not create_val:
-        return train_test_split(cells, test_size=0.2, random_state=seed, shuffle=True)
+        X_train, X_test = train_test_split(cells, test_size=0.2, random_state=seed, shuffle=True)
+        return X_train, X_test
 
     # Create validation set
     X_dev, X_val = train_test_split(cells, test_size=0.05, random_state=seed, shuffle=True)
@@ -24,9 +25,16 @@ def create_splits(cells: pd.DataFrame, create_val: bool = True, seed: int = 1) -
 
 
 def create_folds(data_to_split: pd.DataFrame, splits: int = 5, seed: int = 1) -> Tuple:
+    """
+    Creates folds and yields back the results. Can be used for loops
+    @param data_to_split:
+    @param splits:
+    @param seed:
+    @return: The current split
+    """
     # https://datascience.stackexchange.com/a/52643
     kf = KFold(n_splits=splits, random_state=seed, shuffle=True)
-    kf.get_n_splits(data_to_split)
+    kf.get_n_splits(data_to_split.to_numpy())
 
     for train_index, test_index in kf.split(data_to_split):
-        yield data_to_split[train_index], data_to_split[test_index]
+        yield data_to_split.iloc[train_index], data_to_split.iloc[test_index]
