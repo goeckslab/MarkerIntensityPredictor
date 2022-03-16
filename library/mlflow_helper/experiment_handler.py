@@ -1,5 +1,5 @@
 import mlflow.exceptions
-from mlflow.entities import Run
+from mlflow.entities import Run, RunInfo
 from pathlib import Path
 import pandas as pd
 from typing import Tuple, Optional
@@ -11,13 +11,13 @@ class ExperimentHandler:
     client = None
 
     # Cache for already downloaded runs
-    __runs: list = []
+    __runs: dict = {}
 
     def __init__(self, client):
         self.client = client
 
     def get_experiment_id_by_name(self, experiment_name: str, experiment_description: str = None,
-                                  create_experiment: bool = True) -> str:
+                                  create_experiment: bool = True) -> Optional[str]:
         """
         Gets the experiment id associated with the given experiment name.
         If no experiment is found by default a new experiment will be created
@@ -85,7 +85,8 @@ class ExperimentHandler:
             if "Model" in full_run.data.tags:
                 model = full_run.data.tags.get("Model")
                 if model == "VAE" or model == "AE" or model == "ElasticNet":
-                    parent_run: Run = self.__get_run_by_id(full_run.data.tags.get('mlflow.parentRunId'))
+                    parent_run: Run = self.__get_run_by_id(experiment_id=experiment_id,
+                                                           run_id=full_run.data.tags.get('mlflow.parentRunId'))
                     # Skip unfinished or unsuccessful runs
                     if parent_run is None or parent_run.info.status != "FINISHED":
                         continue
@@ -156,18 +157,97 @@ class ExperimentHandler:
                 print(ex)
                 continue
 
-    def __get_run_by_id(self, run_id: str) -> Run:
+    def get_run_by_name(self, experiment_id: str, run_name: str) -> Optional[Run]:
+        """
+        Returns a run for a given name in a given experiment
+        @param experiment_id: The experiment id in which the run is located
+        @param run_name:  The run name to search for
+        @return: A run or None if not found
+        """
+        run: Run
+
+        # Check cache
+        runs: [] = self.__runs.get(experiment_id)
+
+        if runs is not None and len(runs) != 0:
+            for run in runs:
+                if run.data.tags.get('mlflow.runName') == run_name:
+                    return run
+
+        # Run not cached
+        all_run_infos: [] = reversed(self.client.list_run_infos(experiment_id))
+        run_info: RunInfo
+        for run_info in all_run_infos:
+            full_run: Run
+            full_run = self.client.get_run(run_info.run_id)
+
+            if full_run.data.tags.get('mlflow.runName') == run_name:
+                # Add to cache
+                if runs is None or len(runs) == 0:
+                    self.__runs[experiment_id] = [full_run]
+                else:
+                    self.__runs[experiment_id].append(full_run)
+
+                return full_run
+
+        # Run not found
+        return None
+
+    def get_run_id_by_name(self, experiment_id: str, run_name: str) -> Optional[str]:
+        """
+        Returns a run id for a given name in a given experiment
+        @param experiment_id: The experiment id in which the run is located
+        @param run_name:  The run name to search for
+        @return: A run or None if not found
+        """
+        run: Run
+
+        # Check cache
+        runs: [] = self.__runs.get(experiment_id)
+
+        if runs is not None and len(runs) != 0:
+            for run in runs:
+                if run.data.tags.get('mlflow.runName') == run_name:
+                    return run.info.run_id
+
+        # Run not cached
+        all_run_infos: [] = reversed(self.client.list_run_infos(experiment_id))
+        run_info: RunInfo
+        for run_info in all_run_infos:
+            full_run: Run
+            full_run = self.client.get_run(run_info.run_id)
+
+            if full_run.data.tags.get('mlflow.runName') == run_name:
+                # Add to cache
+                if runs is None or len(runs) == 0:
+                    self.__runs[experiment_id] = [full_run]
+                else:
+                    self.__runs[experiment_id].append(full_run)
+
+                return full_run.info.run_id
+
+        # Run not found
+        return None
+
+    def __get_run_by_id(self, experiment_id: str, run_id: str) -> Run:
         run: Run
 
         # Check cache first
-        for run in self.__runs:
-            if run.info.run_id == run_id:
-                return run
+
+        runs: [] = self.__runs.get(experiment_id)
+
+        if runs is not None and len(runs) != 0:
+            for run in runs:
+                if run.info.run_id == run_id:
+                    return run
 
         run: Run = self.client.get_run(run_id)
 
         if run is not None:
             # Add to cache
-            self.__runs.append(run)
+            if runs is None or len(runs) == 0:
+                self.__runs[experiment_id] = [run]
+            else:
+                self.__runs[experiment_id].append(run)
 
         return run
