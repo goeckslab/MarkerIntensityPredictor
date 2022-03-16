@@ -13,7 +13,7 @@ from library.plotting.plots import Plotting
 from pathlib import Path
 from library.mlflow_helper.reporter import Reporter
 
-base_path = Path("data_imputation")
+base_path = Path("hyper_parameter_tuning")
 
 
 def get_args():
