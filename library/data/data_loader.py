@@ -46,7 +46,7 @@ class DataLoader:
 
         markers = cells.columns
         markers = [re.sub("_nucleiMasks", "", x) for x in markers]
-
+        cells.columns = markers
         assert 'ERK1_2' not in markers, 'ERK1_2 should not be in markers'
         assert 'CellId' not in markers, 'CellId should not be in markers'
         assert 'Orientation' not in markers, 'Orientation should not be in markers'

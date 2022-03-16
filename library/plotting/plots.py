@@ -209,6 +209,8 @@ class Plotting:
                     row += 1
                     col = 0
 
+        plt.ylim(0, 1)
+
         fig.tight_layout()
 
         if prefix is not None:
