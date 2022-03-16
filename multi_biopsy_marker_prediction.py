@@ -58,8 +58,8 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.Da
         mlflow.log_param("Seed", args.seed)
 
         # Load data
-        train_cells, markers = DataLoader.load_data(file_name=train_file, keep_morph=args.morph)
-        test_cells, markers = DataLoader.load_data(file_name=test_file, keep_morph=args.morph)
+        train_cells, markers = DataLoader.load_marker_data(file_name=train_file, keep_morph=args.morph)
+        test_cells, markers = DataLoader.load_marker_data(file_name=test_file, keep_morph=args.morph)
 
         Reporter.report_cells_and_markers(save_path=results_folder, cells=train_cells, markers=markers,
                                           prefix="train")
@@ -129,8 +129,8 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.D
         mlflow.log_param("Seed", args.seed)
 
         # Load data
-        train_cells, markers = DataLoader.load_data(file_name=train_file, keep_morph=args.morph)
-        test_cells, markers = DataLoader.load_data(file_name=test_file, keep_morph=args.morph)
+        train_cells, markers = DataLoader.load_marker_data(file_name=train_file, keep_morph=args.morph)
+        test_cells, markers = DataLoader.load_marker_data(file_name=test_file, keep_morph=args.morph)
 
         Reporter.report_cells_and_markers(save_path=results_folder, cells=train_cells, markers=markers,
                                           prefix="train")
@@ -203,8 +203,8 @@ def start_elastic_net(args, experiment_id: str, results_folder: Path) -> pd.Data
         mlflow.log_param("Seed", args.seed)
 
         # Load data
-        train_cells, markers = DataLoader.load_data(file_name=train_file, keep_morph=args.morph)
-        test_cells, markers = DataLoader.load_data(file_name=test_file, keep_morph=args.morph)
+        train_cells, markers = DataLoader.load_marker_data(file_name=train_file, keep_morph=args.morph)
+        test_cells, markers = DataLoader.load_marker_data(file_name=test_file, keep_morph=args.morph)
 
         Reporter.report_cells_and_markers(save_path=results_folder, cells=train_cells, markers=markers,
                                           prefix="train")
