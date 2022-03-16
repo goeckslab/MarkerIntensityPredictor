@@ -23,7 +23,7 @@ class DataLoader:
         if keep_morph:
             print("Including morphological data")
             morph_data = pd.DataFrame(
-                columns=["Area", "MajorAxisLength", "MinorAxisLength", "Eccentricity", "Solidity", "Extent"])
+                columns=["Area", "MajorAxisLength", "MinorAxisLength", "Solidity", "Extent"])
 
             morph_data = cells.loc[:, morph_data.columns]
 
@@ -50,6 +50,7 @@ class DataLoader:
         assert 'ERK1_2' not in markers, 'ERK1_2 should not be in markers'
         assert 'CellId' not in markers, 'CellId should not be in markers'
         assert 'Orientation' not in markers, 'Orientation should not be in markers'
+        assert 'Eccentricity' not in markers, 'Eccentricity should not be in markers'
 
         # return cells, markers
         return cells.iloc[:, :], markers
