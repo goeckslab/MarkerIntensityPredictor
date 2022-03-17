@@ -11,6 +11,8 @@ from library.preprocessing.preprocessing import Preprocessing
 from sklearn.metrics import r2_score
 from library.plotting.plots import Plotting
 from typing import Optional
+from library.mlflow_helper.reporter import Reporter
+from library.predictions.predictions import Predictions
 
 base_path = Path("data_imputation_random_mean")
 
@@ -40,6 +42,8 @@ def get_args():
     parser.add_argument("--model", "-m", action="store", nargs="+",
                         help="Specify experiment and run name from where to load the model",
                         type=str, required=True)
+    parser.add_argument("--percentage", "-p", action="store", help="The percentage of data being replaced",
+                        default=0.2, required=False)
 
     return parser.parse_args()
 
@@ -64,7 +68,8 @@ def get_associated_experiment_id(args) -> Optional[str]:
 
 if __name__ == "__main__":
     args = get_args()
-    marker_to_impute = "CK14"
+    # Percentage of data replaced by random sampling
+    fraction: float = 1 - float(args.percentage)
 
     if len(args.model) != 2:
         raise ValueError("Please specify the experiment as the first parameter and the run name as the second one!")
@@ -102,8 +107,8 @@ if __name__ == "__main__":
         ground_truth_r2_scores: pd.DataFrame = pd.DataFrame()
         imputed_r2_scores: pd.DataFrame = pd.DataFrame()
         for marker_to_impute in markers:
-            # Replace 20% of the data
-            test_data[marker_to_impute] = test_data[marker_to_impute].sample(frac=0.8, replace=False)
+            # Replace % of the data provided by the args
+            test_data[marker_to_impute] = test_data[marker_to_impute].sample(frac=fraction, replace=False)
 
             index = test_data[test_data[marker_to_impute].isna()].index
 
@@ -122,20 +127,12 @@ if __name__ == "__main__":
 
             differences = pd.DataFrame(ground_truth_data[marker_to_impute] - test_data[marker_to_impute])
             differences = differences.loc[(differences != 0).any(1)]
-            # print(differences)
 
-            # print("With replacements compared to imputed data")
-            # print(r2_score(test_data[marker_to_impute], imputed_data[marker_to_impute]))
+            encoded_data, reconstructed_data = Predictions.encode_decode_vae_data(encoder=model.encoder,
+                                                                                  decoder=model.decoder,
+                                                                                  data=ground_truth_data,
+                                                                                  markers=markers, use_mlflow=False)
 
-            # print("Ground truth data compared to imputed data")
-            # print(r2_score(ground_truth_data[marker_to_impute], imputed_data[marker_to_impute]))
-
-            mean, log_var, z = model.encoder.predict(ground_truth_data)
-            encoded_data = pd.DataFrame(z)
-            reconstructed_data = pd.DataFrame(columns=markers, data=model.decoder.predict(encoded_data))
-
-            # print("Ground truth compared to normal reconstructed data")
-            # print(r2_score(ground_truth_data[marker_to_impute], reconstructed_data[marker_to_impute]))
             ground_truth_r2_scores = ground_truth_r2_scores.append({
                 "Marker": marker_to_impute,
                 "Score": r2_score(ground_truth_data[marker_to_impute], reconstructed_data[marker_to_impute]),
@@ -146,13 +143,21 @@ if __name__ == "__main__":
                 "Score": r2_score(ground_truth_data[marker_to_impute], imputed_data[marker_to_impute])
             }, ignore_index=True)
 
-        print(ground_truth_r2_scores)
-        print(imputed_r2_scores)
-
         with mlflow.start_run(experiment_id=get_associated_experiment_id(args=args), run_name=args.run) as run:
+            mlflow.log_param("Percentage of replaced values", args.percentage)
+            mlflow.log_param("Model location", f"{args.model[0]} {args.model[1]}")
+            mlflow.log_param("File", args.file)
+            mlflow.log_param("Seed", args.seed)
+
             plotter: Plotting = Plotting(base_path=base_path, args=args)
             plotter.r2_scores(r2_scores={"Ground Truth": ground_truth_r2_scores, "Imputed": imputed_r2_scores},
                               file_name="r2_scores")
+
+            Reporter.report_r2_scores(r2_scores=ground_truth_r2_scores, save_path=base_path, mlflow_folder="",
+                                      prefix="ground_truth")
+            Reporter.report_r2_scores(r2_scores=imputed_r2_scores, save_path=base_path, mlflow_folder="",
+                                      prefix="imputed")
+
 
     except:
         raise

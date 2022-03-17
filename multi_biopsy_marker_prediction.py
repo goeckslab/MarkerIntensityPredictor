@@ -80,10 +80,10 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.Da
                                                                           input_dimensions=train_data.shape[1],
                                                                           embedding_dimensions=5)
 
-        embeddings, reconstructed_data = Predictions.encode_decode_ae_test_data(encoder=encoder, decoder=decoder,
-                                                                                test_data=test_data, markers=markers,
-                                                                                save_path=results_folder,
-                                                                                mlflow_directory="AE")
+        embeddings, reconstructed_data = Predictions.encode_decode_ae_data(encoder=encoder, decoder=decoder,
+                                                                           data=test_data, markers=markers,
+                                                                           save_path=results_folder,
+                                                                           mlflow_directory="AE")
 
         r2_scores = Evaluation.calculate_r2_score(ground_truth=test_data, reconstructed_data=reconstructed_data,
                                                   markers=markers)
@@ -154,9 +154,10 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.D
                                                                                               embedding_dimension=5)
 
         # Predictions
-        embeddings, reconstructed_data = Predictions.encode_decode_vae_test_data(encoder, decoder, test_data, markers,
-                                                                                 save_path=results_folder,
-                                                                                 mlflow_directory="VAE")
+        embeddings, reconstructed_data = Predictions.encode_decode_vae_data(encoder, decoder, data=test_data,
+                                                                            markers=markers,
+                                                                            save_path=results_folder,
+                                                                            mlflow_directory="VAE")
 
         # Evaluate
         r2_scores = Evaluation.calculate_r2_score(ground_truth=test_data, reconstructed_data=reconstructed_data,
