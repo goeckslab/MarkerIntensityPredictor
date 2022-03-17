@@ -66,6 +66,24 @@ def get_associated_experiment_id(args) -> Optional[str]:
     return associated_experiment_id
 
 
+def get_model_experiment_id(args) -> str:
+    model_experiment_id: str = experiment_handler.get_experiment_id_by_name(experiment_name=args.model[0],
+                                                                            create_experiment=False)
+    if model_experiment_id is None:
+        raise ValueError(f"Could not find experiment {args.model[0]}")
+
+    return model_experiment_id
+
+
+def get_model_run_id(args, model_experiment_id: str) -> str:
+    model_run_id: str = experiment_handler.get_run_id_by_name(experiment_id=model_experiment_id, run_name=args.model[1])
+
+    if model_run_id is None:
+        raise ValueError(f"Could not find run with name {args.model[1]}")
+
+    return model_run_id
+
+
 if __name__ == "__main__":
     args = get_args()
     # Percentage of data replaced by random sampling
@@ -78,15 +96,9 @@ if __name__ == "__main__":
     client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
     experiment_handler: ExperimentHandler = ExperimentHandler(client=client)
 
-    model_experiment_id: str = experiment_handler.get_experiment_id_by_name(experiment_name=args.model[0],
-                                                                            create_experiment=False)
-    if model_experiment_id is None:
-        raise ValueError(f"Could not find experiment {args.model[0]}")
-
-    model_run_id: str = experiment_handler.get_run_id_by_name(experiment_id=model_experiment_id, run_name=args.model[1])
-
-    if model_run_id is None:
-        raise ValueError(f"Could not find run with name {args.model[1]}")
+    # Load model experiment and run id
+    model_experiment_id: str = get_model_experiment_id(args)
+    model_run_id: str = get_model_run_id(args=args, model_experiment_id=model_experiment_id)
 
     FolderManagement.create_directory(base_path)
 
