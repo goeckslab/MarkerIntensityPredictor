@@ -55,14 +55,14 @@ if __name__ == "__main__":
         # Experiment not found
         if associated_experiment_id is None:
             raise ValueError(
-                f"Experiment {experiment_name} not found! Either specify a different name or set create_experiment = True.")
+                f"Experiment {experiment_name} not found!")
 
         mlflow.set_experiment(experiment_id=associated_experiment_id)
 
         cells, markers = DataLoader.load_marker_data(args.file)
         train_data, test_data = create_splits(cells=cells, create_val=False)
 
-        eval_data: dict = {}
+        eval_data: list = []
         model_count: int = 0
         learning_rate: float = 0.001
         for train, validation in create_folds(train_data.copy()):
@@ -75,23 +75,50 @@ if __name__ == "__main__":
                                                                                                   train.shape[1],
                                                                                                   embedding_dimension=5,
                                                                                                   learning_rate=learning_rate,
-                                                                                                  use_ml_flow=False)
+                                                                                                  use_ml_flow=False,
+                                                                                                  amount_of_layers=3)
 
-            eval_data[f"sgd_{model_count}"] = {"loss": history.history['loss'][-1],
-                                               "kl_loss": history.history['kl_loss'][-1],
-                                               "reconstruction_loss": history.history['reconstruction_loss'][-1],
-                                               "learning_rate": learning_rate, "optimizer": "adam",
-                                               "model": model, "encoder": encoder, "decoder": decoder}
+            eval_data.append({"name": f"3_{model_count}", "loss": history.history['loss'][-1],
+                              "kl_loss": history.history['kl_loss'][-1],
+                              "reconstruction_loss": history.history['reconstruction_loss'][-1],
+                              "learning_rate": learning_rate, "optimizer": "adam",
+                              "model": model, "encoder": encoder, "decoder": decoder,
+                              "amount_of_layers": 3})
+
+            learning_rate += 0.002
+            model_count += 1
+
+        model_count: int = 0
+        learning_rate: float = 0.001
+        for train, validation in create_folds(train_data.copy()):
+            train = Preprocessing.normalize(train)
+            validation = Preprocessing.normalize(validation)
+
+            model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(training_data=train,
+                                                                                                  validation_data=validation,
+                                                                                                  input_dimensions=
+                                                                                                  train.shape[1],
+                                                                                                  embedding_dimension=5,
+                                                                                                  learning_rate=learning_rate,
+                                                                                                  use_ml_flow=False,
+                                                                                                  amount_of_layers=5)
+
+            eval_data.append({"name": f"5_{model_count}", "loss": history.history['loss'][-1],
+                              "kl_loss": history.history['kl_loss'][-1],
+                              "reconstruction_loss": history.history['reconstruction_loss'][-1],
+                              "learning_rate": learning_rate, "optimizer": "adam",
+                              "model": model, "encoder": encoder, "decoder": decoder,
+                              "amount_of_layers": 5})
 
             learning_rate += 0.002
             model_count += 1
 
         reconstruction_loss: float = 999999
         selected_fold = {}
-        for key, value in eval_data.items():
-            if value["reconstruction_loss"] < reconstruction_loss:
-                selected_fold = value
-                reconstruction_loss = value["reconstruction_loss"]
+        for evaluation in eval_data:
+            if evaluation["reconstruction_loss"] < reconstruction_loss:
+                selected_fold = evaluation
+                reconstruction_loss = evaluation["reconstruction_loss"]
 
         # Normalize
         train_data = Preprocessing.normalize(train_data)
@@ -103,6 +130,7 @@ if __name__ == "__main__":
             print(f"Using learning rate {learning_rate}")
 
             mlflow.log_param("Selected Fold", selected_fold)
+            mlflow.log_param("File", args.file)
 
             model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(
                 training_data=train_data,

@@ -424,3 +424,24 @@ class Plotting:
         plt.savefig(save_path)
         mlflow.log_artifact(str(save_path))
         plt.close()
+
+    def cross_fold_evaluation(self, evaluation_data: list, value_to_display: str, file_name: str, mlflow_folder: str):
+        """
+        Plots a barplot given the evaluation data of the cross fold validation.
+        @param evaluation_data: The data of each run
+        @param value_to_display: E.g. reconstruction_loss, or kl_loss. Uses the column to display the distribution
+        @param file_name: The file name for the results
+        @param mlflow_folder: Where to store the resulting file?
+        @return:
+        """
+
+        df = pd.DataFrame(evaluation_data)
+
+        fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(9, 12), dpi=300, sharex=False)
+        sns.boxplot(x=df["amount_of_layers"], y=df[f"{value_to_display}"])
+        ax.set_title("Cross Fold model performance")
+
+        save_path = Path(self.__base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+        mlflow.log_artifact(str(save_path), mlflow_folder)
+        plt.close()

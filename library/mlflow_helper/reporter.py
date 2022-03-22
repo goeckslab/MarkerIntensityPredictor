@@ -60,3 +60,10 @@ class Reporter:
             save_path = Path(save_path, f"r2_score_mean_difference.csv")
         r2score_difference.to_csv(save_path, index=False)
         mlflow.log_artifact(str(save_path))
+
+    @staticmethod
+    def report_evaluation(evaluations: list, file_name: str, save_path: Path, mlflow_folder: str):
+        df = pd.DataFrame(evaluations)
+        save_path = Path(save_path, f"{file_name}.csv")
+        df.to_csv(save_path, index=False)
+        mlflow.log_artifact(str(save_path), mlflow_folder)
