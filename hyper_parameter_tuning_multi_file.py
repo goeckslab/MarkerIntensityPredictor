@@ -34,6 +34,36 @@ def get_args():
     return parser.parse_args()
 
 
+def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, learning_rate: float = 0.001) -> list:
+    evaluation_data: list = []
+
+    model_count: int = 0
+
+    for train, validation in create_folds(train_data.copy()):
+        train = Preprocessing.normalize(train)
+        validation = Preprocessing.normalize(validation)
+
+        model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(training_data=train,
+                                                                                              validation_data=validation,
+                                                                                              input_dimensions=
+                                                                                              train.shape[1],
+                                                                                              embedding_dimension=5,
+                                                                                              learning_rate=learning_rate,
+                                                                                              use_ml_flow=False,
+                                                                                              amount_of_layers=amount_of_layers)
+
+        evaluation_data.append({"name": f"{name}_{model_count}", "loss": history.history['loss'][-1],
+                                "kl_loss": history.history['kl_loss'][-1],
+                                "reconstruction_loss":
+                                    history.history['reconstruction_loss'][-1],
+                                "learning_rate": learning_rate, "optimizer": "adam",
+                                "model": model, "encoder": encoder, "decoder": decoder,
+                                "amount_of_layers": amount_of_layers})
+        model_count += 1
+
+    return evaluation_data
+
+
 if __name__ == "__main__":
     args = get_args()
 
@@ -67,88 +97,59 @@ if __name__ == "__main__":
 
         mlflow.set_experiment(experiment_id=associated_experiment_id)
 
+        # Model evaluations are being stored here
+        evaluation_data: list = []
+
         # Load train and test cells
         train_cells, _ = DataLoader.load_marker_data(train_file)
         test_cells, markers = DataLoader.load_marker_data(test_file)
 
+        # Create train test split using the train file data
         train_data, _ = create_splits(cells=train_cells, create_val=False)
-        _, test_data = create_splits(cells=test_cells, create_val=False)
 
-        eval_data: list = []
-        model_count: int = 0
-        learning_rate: float = 0.001
+        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=3, name="Train Data 3"))
+        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Train Data 5"))
 
-        for train, validation in create_folds(train_data.copy()):
-            train = Preprocessing.normalize(train)
-            validation = Preprocessing.normalize(validation)
+        # Create train test split using the test file data
+        train_data, _ = create_splits(cells=test_cells, create_val=False)
 
-            model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(training_data=train,
-                                                                                                  validation_data=validation,
-                                                                                                  input_dimensions=
-                                                                                                  train.shape[1],
-                                                                                                  embedding_dimension=5,
-                                                                                                  learning_rate=learning_rate,
-                                                                                                  use_ml_flow=False,
-                                                                                                  amount_of_layers=3)
+        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=3, name="Test Data 3"))
+        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Test Data 5"))
 
-            eval_data.append({"name": f"3_{model_count}", "loss": history.history['loss'][-1],
-                              "kl_loss": history.history['kl_loss'][-1],
-                              "reconstruction_loss":
-                                  history.history['reconstruction_loss'][-1],
-                              "learning_rate": learning_rate, "optimizer": "adam",
-                              "model": model, "encoder": encoder, "decoder": decoder,
-                              "amount_of_layers": 3})
+        # Create combined data of both files
+        frames = [train_cells, test_cells]
+        combined_data = pd.concat(frames)
+        combined_train_data, _ = create_splits(cells=combined_data, create_val=False)
 
-            learning_rate += 0.002
-            model_count += 1
-
-        model_count = 0
-        learning_rate = 0.001
-        for train, validation in create_folds(train_data.copy()):
-            train = Preprocessing.normalize(train)
-            validation = Preprocessing.normalize(validation)
-
-            model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(training_data=train,
-                                                                                                  validation_data=validation,
-                                                                                                  input_dimensions=
-                                                                                                  train.shape[1],
-                                                                                                  embedding_dimension=5,
-                                                                                                  learning_rate=learning_rate,
-                                                                                                  use_ml_flow=False,
-                                                                                                  amount_of_layers=5)
-
-            eval_data.append({"name": f"5_{model_count}", "loss": history.history['loss'][-1],
-                              "kl_loss": history.history['kl_loss'][-1],
-                              "reconstruction_loss": history.history['reconstruction_loss'][-1],
-                              "learning_rate": learning_rate, "optimizer": "adam",
-                              "model": model, "encoder": encoder, "decoder": decoder,
-                              "amount_of_layers": 5})
-
-            learning_rate += 0.002
-            model_count += 1
+        evaluation_data.extend(
+            evaluate_folds(train_data=combined_train_data, amount_of_layers=3, name="Combined Data 3"))
+        evaluation_data.extend(
+            evaluate_folds(train_data=combined_train_data, amount_of_layers=5, name="Combined Data 5"))
 
         reconstruction_loss: float = 999999
         selected_fold = {}
-        for validation_data in eval_data:
+        for validation_data in evaluation_data:
             if validation_data["reconstruction_loss"] < reconstruction_loss:
                 selected_fold = validation_data
                 reconstruction_loss = validation_data["reconstruction_loss"]
 
-        # Normalize
-        train_data = Preprocessing.normalize(train_data)
-        test_data = Preprocessing.normalize(test_data)
-
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=args.run) as run:
             # Set hyper parameters
-            learning_rate = float(selected_fold["learning_rate"])
+            learning_rate: float = float(selected_fold["learning_rate"])
+            amount_of_layers: int = selected_fold["amount_of_layers"]
             print(f"Using learning rate {learning_rate}")
 
             mlflow.log_param("Selected Fold", selected_fold)
             mlflow.log_param("Train File", train_file)
             mlflow.log_param("Test File", test_file)
-            mlflow.log_param("Fold evaluation", eval_data)
-            Reporter.report_evaluation(evaluations=eval_data, file_name="evaluation_data",
-                                       mlflow_folder="Evaluation", save_path=base_path)
+
+            # Create train test split for real model training
+            train_data, _ = create_splits(cells=train_cells, create_val=False)
+            _, test_data = create_splits(cells=test_cells, create_val=False)
+
+            # Normalize
+            train_data = Preprocessing.normalize(train_data)
+            test_data = Preprocessing.normalize(test_data)
 
             model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(
                 training_data=train_data,
@@ -156,7 +157,8 @@ if __name__ == "__main__":
                 input_dimensions=
                 train_data.shape[1],
                 embedding_dimension=5,
-                learning_rate=learning_rate)
+                learning_rate=learning_rate,
+                amount_of_layers=amount_of_layers)
 
             mean, log_var, z = encoder.predict(test_data)
             encoded_data = pd.DataFrame(z)
@@ -180,14 +182,21 @@ if __name__ == "__main__":
                 )
 
             plotter = Plotting(base_path=base_path, args=args)
+
+            # Save final model evaluation
             plotter.r2_scores(r2_scores={"VAE": r2_scores}, file_name="r2_score", mlflow_directory="Evaluation")
-            plotter.cross_fold_evaluation(evaluation_data=eval_data, value_to_display="loss",
-                                          file_name="Loss Distribution", mlflow_folder="Evaluation")
-            plotter.cross_fold_evaluation(evaluation_data=eval_data, value_to_display="kl_loss",
-                                          file_name="KL Loss Distribution", mlflow_folder="Evaluation")
-            plotter.cross_fold_evaluation(evaluation_data=eval_data, value_to_display="reconstruction_loss",
-                                          file_name="Reconstructed Loss Distribution", mlflow_folder="Evaluation")
             Reporter.report_r2_scores(r2_scores=r2_scores, save_path=base_path, mlflow_folder="Evaluation")
+
+            # Save fold evaluation
+            Reporter.report_evaluation(evaluations=evaluation_data, file_name="evaluation_data",
+                                       mlflow_folder="Fold Evaluation", save_path=base_path)
+            plotter.cross_fold_evaluation(evaluation_data=evaluation_data, value_to_display="loss",
+                                          file_name="Loss Distribution", mlflow_folder="Fold Evaluation")
+            plotter.cross_fold_evaluation(evaluation_data=evaluation_data, value_to_display="kl_loss",
+                                          file_name="KL Loss Distribution", mlflow_folder="Fold Evaluation")
+            plotter.cross_fold_evaluation(evaluation_data=evaluation_data, value_to_display="reconstruction_loss",
+                                          file_name="Reconstructed Loss Distribution", mlflow_folder="Fold Evaluation")
+
 
 
     except:
