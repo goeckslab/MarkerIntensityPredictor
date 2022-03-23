@@ -118,6 +118,8 @@ if __name__ == "__main__":
 
         ground_truth_r2_scores: pd.DataFrame = pd.DataFrame()
         imputed_r2_scores: pd.DataFrame = pd.DataFrame()
+
+        iter_steps: int = 1
         for marker_to_impute in markers:
             # Replace % of the data provided by the args
             test_data[marker_to_impute] = test_data[marker_to_impute].sample(frac=fraction, replace=False)
@@ -129,7 +131,8 @@ if __name__ == "__main__":
             test_data[marker_to_impute].fillna(pd.Series(value, index=index), inplace=True)
 
             imputed_data: pd.DataFrame = test_data.copy()
-            for i in range(7):
+            # Iterate to impute
+            for i in range(iter_steps):
                 mean, log_var, z = model.encoder.predict(imputed_data)
                 encoded_data = pd.DataFrame(z)
 
@@ -137,9 +140,11 @@ if __name__ == "__main__":
                 reconstructed_data.loc[index, marker_to_impute] = reconstructed_data[marker_to_impute].mean()
                 imputed_data = reconstructed_data
 
+            # Calculate differences
             differences = pd.DataFrame(ground_truth_data[marker_to_impute] - test_data[marker_to_impute])
             differences = differences.loc[(differences != 0).any(1)]
 
+            # Reconstruct unmodified test data
             encoded_data, reconstructed_data = Predictions.encode_decode_vae_data(encoder=model.encoder,
                                                                                   decoder=model.decoder,
                                                                                   data=ground_truth_data,
@@ -160,10 +165,11 @@ if __name__ == "__main__":
             mlflow.log_param("Model location", f"{args.model[0]} {args.model[1]}")
             mlflow.log_param("File", args.file)
             mlflow.log_param("Seed", args.seed)
+            mlflow.log_param("Iteration Steps", iter_steps)
 
             plotter: Plotting = Plotting(base_path=base_path, args=args)
             plotter.r2_scores(r2_scores={"Ground Truth": ground_truth_r2_scores, "Imputed": imputed_r2_scores},
-                              file_name="r2_scores")
+                              file_name="r2_scores_comparison")
 
             Reporter.report_r2_scores(r2_scores=ground_truth_r2_scores, save_path=base_path, mlflow_folder="",
                                       prefix="ground_truth")
