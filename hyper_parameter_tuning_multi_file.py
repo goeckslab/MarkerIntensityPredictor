@@ -1,17 +1,18 @@
 import argparse
-from library.mlflow_helper.experiment_handler import ExperimentHandler
+from pathlib import Path
 import mlflow
-from library.data.folder_management import FolderManagement
+import pandas as pd
+import tensorflow as tf
+from sklearn.metrics import r2_score
+from timeit import default_timer as timer
 from library.data.data_loader import DataLoader
+from library.data.folder_management import FolderManagement
+from library.mlflow_helper.experiment_handler import ExperimentHandler
+from library.mlflow_helper.reporter import Reporter
+from library.plotting.plots import Plotting
+from library.preprocessing.preprocessing import Preprocessing
 from library.preprocessing.split import create_splits, create_folds
 from library.vae.vae import MarkerPredictionVAE
-from library.preprocessing.preprocessing import Preprocessing
-from library.predictions.predictions import Predictions
-import pandas as pd
-from sklearn.metrics import r2_score
-from library.plotting.plots import Plotting
-from pathlib import Path
-from library.mlflow_helper.reporter import Reporter
 
 base_path = Path("hyper_parameter_tuning")
 
@@ -65,6 +66,10 @@ def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, l
 
 
 if __name__ == "__main__":
+    # Check whether gpu is available
+    if len(tf.config.list_physical_devices('GPU')) > 0:
+        print("GPU detected. Using gpu training")
+
     args = get_args()
 
     if len(args.file) != 2:
@@ -72,6 +77,10 @@ if __name__ == "__main__":
 
     train_file = args.file[0]
     test_file = args.file[1]
+
+    test_file_evaluation_duration: float = 0
+    train_file_evaluation_duration: float = 0
+    combined_files_evaluation_duration: float = 0
 
     FolderManagement.create_directory(base_path)
     try:
@@ -107,24 +116,39 @@ if __name__ == "__main__":
         # Create train test split using the train file data
         train_data, _ = create_splits(cells=train_cells, create_val=False)
 
+
+        print("Evaluation training data set...")
+        start = timer()
         evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=3, name="Train Data 3"))
         evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Train Data 5"))
+        end = timer()
+        train_file_evaluation_duration = end - start
+
 
         # Create train test split using the test file data
         train_data, _ = create_splits(cells=test_cells, create_val=False)
 
+        print("Evaluation testing set...")
+        start = timer()
         evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=3, name="Test Data 3"))
         evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Test Data 5"))
+        end = timer()
+        test_file_evaluation_duration = end - start
 
         # Create combined data of both files
         frames = [train_cells, test_cells]
         combined_data = pd.concat(frames)
         combined_train_data, _ = create_splits(cells=combined_data, create_val=False)
 
+        print("Evaluation combined data set...")
+        start = timer()
         evaluation_data.extend(
             evaluate_folds(train_data=combined_train_data, amount_of_layers=3, name="Combined Data 3"))
         evaluation_data.extend(
             evaluate_folds(train_data=combined_train_data, amount_of_layers=5, name="Combined Data 5"))
+
+        end = timer()
+        combined_files_evaluation_duration = end - start
 
         reconstruction_loss: float = 999999
         selected_fold = {}
@@ -142,6 +166,9 @@ if __name__ == "__main__":
             mlflow.log_param("Selected Fold", selected_fold)
             mlflow.log_param("Train File", train_file)
             mlflow.log_param("Test File", test_file)
+            mlflow.log_param("Train File Evaluation Duration", train_file_evaluation_duration)
+            mlflow.log_param("Test File Evaluation Duration", test_file_evaluation_duration)
+            mlflow.log_param("Combined Files Evaluation Duration", combined_files_evaluation_duration)
 
             # Create train test split for real model training
             train_data, _ = create_splits(cells=train_cells, create_val=False)

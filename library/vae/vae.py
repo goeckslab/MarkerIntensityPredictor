@@ -110,7 +110,7 @@ class MarkerPredictionVAE:
                           callbacks=[early_stopping, WeightsForBatch()],
                           batch_size=256,
                           shuffle=True,
-                          verbose=0)
+                          verbose=1)
 
         return vae, encoder, decoder, history
 
