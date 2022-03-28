@@ -44,6 +44,8 @@ def get_args():
                         type=str, required=True)
     parser.add_argument("--percentage", "-p", action="store", help="The percentage of data being replaced",
                         default=0.2, required=False)
+    parser.add_argument("--steps", action="store", help="The iterations for imputation",
+                        default=3, required=False)
 
     return parser.parse_args()
 
@@ -103,78 +105,87 @@ if __name__ == "__main__":
     FolderManagement.create_directory(base_path)
 
     try:
-        # load model
-        model = mlflow.keras.load_model(f"./mlruns/{model_experiment_id}/{model_run_id}/artifacts/model")
+        with mlflow.start_run(experiment_id=get_associated_experiment_id(args=args),
+                              run_name=f"{args.run} {args.percentage} {args.steps}") as run:
 
-        # Load data
-        cells, markers = DataLoader.load_marker_data(args.file)
-
-        train_data, test_data = create_splits(cells=cells, create_val=False, seed=args.seed)
-
-        train_data = pd.DataFrame(columns=markers, data=Preprocessing.normalize(train_data))
-        test_data = pd.DataFrame(columns=markers, data=Preprocessing.normalize(test_data))
-
-        ground_truth_data = test_data.copy()
-
-        ground_truth_r2_scores: pd.DataFrame = pd.DataFrame()
-        imputed_r2_scores: pd.DataFrame = pd.DataFrame()
-
-        iter_steps: int = 1
-        for marker_to_impute in markers:
-            # Replace % of the data provided by the args
-            test_data[marker_to_impute] = test_data[marker_to_impute].sample(frac=fraction, replace=False)
-
-            index = test_data[test_data[marker_to_impute].isna()].index
-
-            value = np.random.normal(loc=test_data[marker_to_impute].mean(), scale=test_data[marker_to_impute].std(),
-                                     size=test_data[marker_to_impute].isna().sum())
-            test_data[marker_to_impute].fillna(pd.Series(value, index=index), inplace=True)
-
-            imputed_data: pd.DataFrame = test_data.copy()
-            # Iterate to impute
-            for i in range(iter_steps):
-                mean, log_var, z = model.encoder.predict(imputed_data)
-                encoded_data = pd.DataFrame(z)
-
-                reconstructed_data = pd.DataFrame(columns=markers, data=model.decoder.predict(mean))
-                reconstructed_data.loc[index, marker_to_impute] = reconstructed_data[marker_to_impute].mean()
-                imputed_data = reconstructed_data
-
-            # Calculate differences
-            differences = pd.DataFrame(ground_truth_data[marker_to_impute] - test_data[marker_to_impute])
-            differences = differences.loc[(differences != 0).any(1)]
-
-            # Reconstruct unmodified test data
-            encoded_data, reconstructed_data = Predictions.encode_decode_vae_data(encoder=model.encoder,
-                                                                                  decoder=model.decoder,
-                                                                                  data=ground_truth_data,
-                                                                                  markers=markers, use_mlflow=False)
-
-            ground_truth_r2_scores = ground_truth_r2_scores.append({
-                "Marker": marker_to_impute,
-                "Score": r2_score(ground_truth_data[marker_to_impute], reconstructed_data[marker_to_impute]),
-            }, ignore_index=True)
-
-            imputed_r2_scores = imputed_r2_scores.append({
-                "Marker": marker_to_impute,
-                "Score": r2_score(ground_truth_data[marker_to_impute], imputed_data[marker_to_impute])
-            }, ignore_index=True)
-
-        with mlflow.start_run(experiment_id=get_associated_experiment_id(args=args), run_name=args.run) as run:
+            iter_steps: int = int(args.steps)
+            # Report
             mlflow.log_param("Percentage of replaced values", args.percentage)
             mlflow.log_param("Model location", f"{args.model[0]} {args.model[1]}")
             mlflow.log_param("File", args.file)
             mlflow.log_param("Seed", args.seed)
             mlflow.log_param("Iteration Steps", iter_steps)
 
-            plotter: Plotting = Plotting(base_path=base_path, args=args)
-            plotter.r2_scores(r2_scores={"Ground Truth": ground_truth_r2_scores, "Imputed": imputed_r2_scores},
-                              file_name="r2_scores_comparison")
+            # load model
+            model = mlflow.keras.load_model(f"./mlruns/{model_experiment_id}/{model_run_id}/artifacts/model")
 
-            Reporter.report_r2_scores(r2_scores=ground_truth_r2_scores, save_path=base_path, mlflow_folder="",
-                                      prefix="ground_truth")
-            Reporter.report_r2_scores(r2_scores=imputed_r2_scores, save_path=base_path, mlflow_folder="",
-                                      prefix="imputed")
+            # Load data
+            cells, markers = DataLoader.load_marker_data(args.file)
+
+            train_data, test_data = create_splits(cells=cells, create_val=False, seed=args.seed)
+
+            train_data = pd.DataFrame(columns=markers, data=Preprocessing.normalize(train_data))
+            test_data = pd.DataFrame(columns=markers, data=Preprocessing.normalize(test_data))
+
+            ground_truth_data = test_data.copy()
+
+            ground_truth_r2_scores: pd.DataFrame = pd.DataFrame()
+            imputed_r2_scores: pd.DataFrame = pd.DataFrame()
+
+            for marker_to_impute in markers:
+                # Replace % of the data provided by the args
+
+                mean = test_data[marker_to_impute].mean()
+                std = test_data[marker_to_impute].std()
+
+                test_data[marker_to_impute] = test_data[marker_to_impute].sample(frac=fraction, replace=False)
+
+                index = test_data[test_data[marker_to_impute].isna()].index
+
+                value = np.random.normal(loc=mean, scale=std,
+                                         size=test_data[marker_to_impute].isna().sum())
+                test_data[marker_to_impute].fillna(pd.Series(value, index=index), inplace=True)
+
+                imputed_data: pd.DataFrame = test_data.copy()
+                # Iterate to impute
+                for i in range(iter_steps):
+                    mean, log_var, z = model.encoder.predict(imputed_data)
+                    encoded_data = pd.DataFrame(z)
+
+                    reconstructed_data = pd.DataFrame(columns=markers, data=model.decoder.predict(mean))
+
+                    reconstructed_data.loc[index, marker_to_impute] = reconstructed_data[marker_to_impute].mean()
+                    imputed_data = reconstructed_data
+
+                # Calculate differences
+                differences = pd.DataFrame(ground_truth_data[marker_to_impute] - test_data[marker_to_impute])
+                differences = differences.loc[(differences != 0).any(1)]
+
+                # Reconstruct unmodified test data
+                encoded_data, reconstructed_data = Predictions.encode_decode_vae_data(encoder=model.encoder,
+                                                                                      decoder=model.decoder,
+                                                                                      data=ground_truth_data,
+                                                                                      markers=markers, use_mlflow=False)
+
+                ground_truth_r2_scores = ground_truth_r2_scores.append({
+                    "Marker": marker_to_impute,
+                    "Score": r2_score(ground_truth_data[marker_to_impute], reconstructed_data[marker_to_impute]),
+                }, ignore_index=True)
+
+                imputed_r2_scores = imputed_r2_scores.append({
+                    "Marker": marker_to_impute,
+                    "Score": r2_score(ground_truth_data[marker_to_impute], imputed_data[marker_to_impute])
+                }, ignore_index=True)
+
+                # Report results
+                plotter: Plotting = Plotting(base_path=base_path, args=args)
+                plotter.r2_scores(r2_scores={"Ground Truth": ground_truth_r2_scores, "Imputed": imputed_r2_scores},
+                                  file_name="r2_scores_comparison")
+
+                Reporter.report_r2_scores(r2_scores=ground_truth_r2_scores, save_path=base_path, mlflow_folder="",
+                                          prefix="ground_truth")
+                Reporter.report_r2_scores(r2_scores=imputed_r2_scores, save_path=base_path, mlflow_folder="",
+                                          prefix="imputed")
 
 
     except:
