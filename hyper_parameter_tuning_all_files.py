@@ -134,9 +134,9 @@ if __name__ == "__main__":
         reconstruction_loss: float = 999999
         selected_fold = {}
         for validation_data in evaluation_data:
-            if validation_data["reconstruction_loss"] < reconstruction_loss:
+            if validation_data["loss"] < reconstruction_loss:
                 selected_fold = validation_data
-                reconstruction_loss = validation_data["reconstruction_loss"]
+                reconstruction_loss = validation_data["loss"]
 
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=args.run) as run:
             # Set hyper parameters
@@ -145,9 +145,11 @@ if __name__ == "__main__":
             print(f"Using learning rate {learning_rate}")
 
             mlflow.log_param("Selected Fold", selected_fold)
-            mlflow.log_param("# of Files", len(files_used))
+            mlflow.log_param("Number of Files", len(files_used))
             mlflow.log_param("Files", files_used)
             mlflow.log_param("Evaluation Duration", evaluation_duration)
+            mlflow.log_param("Number of cells", data_set.shape[0])
+            mlflow.log_param("Number of markers", data_set.shape[1])
 
             # Create train test split for real model training
             train_data, test_data = create_splits(cells=test_data, create_val=False)
