@@ -84,6 +84,7 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.Da
                                   mlflow_folder="Evaluation")
 
         plotter = Plotting(results_folder, args)
+        plotter.plot_model(model, "AE Model", "Evaluation")
         plotter.plot_model_performance(history, "AE", "Model performance")
         plotter.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data, markers=markers,
                                            mlflow_directory="Evaluation", file_name="Input v Reconstructed")
@@ -150,6 +151,8 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.D
                                   mlflow_folder="Evaluation")
 
         vae_plotting = Plotting(results_folder, args)
+        vae_plotting.plot_model(model=encoder, file_name="VAE Encoder", mlflow_folder="Evaluation")
+        vae_plotting.plot_model(model=decoder, file_name="VAE Decoder", mlflow_folder="Evaluation")
         vae_plotting.plot_model_performance(model.history, "VAE", "model_performance")
         vae_plotting.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data,
                                                 markers=markers, mlflow_directory="Evaluation",
