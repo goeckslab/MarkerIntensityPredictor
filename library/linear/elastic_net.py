@@ -15,7 +15,7 @@ class ElasticNet:
         coeffs: dict = {}
 
         for marker in markers:
-            regr = ElasticNetCV(cv=5, random_state=random_state, tol=tolerance)
+            model = ElasticNetCV(cv=5, random_state=random_state, tol=tolerance)
 
             # Create y and X
             train_copy = pd.DataFrame(data=train_data.copy(), columns=markers)
@@ -29,14 +29,13 @@ class ElasticNet:
             del test_copy[f"{marker}"]
             X_test = test_copy
 
-            regr.fit(X_train, y_train)
-            r2_scores[marker] = regr.score(X_test, y_test)
-            coeffs[marker] = regr.coef_
+            model.fit(X_train, y_train)
+            r2_scores[marker] = model.score(X_test, y_test)
+            coeffs[marker] = model.coef_
 
         scores = pd.DataFrame.from_dict(r2_scores, orient='index')
         scores["Marker"] = scores.index
         scores.rename(columns={0: "Score"}, inplace=True)
         scores.reset_index(drop=True, inplace=True)
-
 
         return scores
