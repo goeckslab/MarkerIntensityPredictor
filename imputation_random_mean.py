@@ -140,22 +140,25 @@ if __name__ == "__main__":
 
                 test_data[marker_to_impute] = test_data[marker_to_impute].sample(frac=fraction, replace=False)
 
-                index = test_data[test_data[marker_to_impute].isna()].index
+                indexes = test_data[test_data[marker_to_impute].isna()].index
 
-                value = np.random.normal(loc=mean, scale=std,
-                                         size=test_data[marker_to_impute].isna().sum())
-                test_data[marker_to_impute].fillna(pd.Series(value, index=index), inplace=True)
+                # values = np.random.normal(loc=mean, scale=std, size=test_data[marker_to_impute].isna().sum())
+                values = [0] * test_data[marker_to_impute].isna().sum()
+                test_data[marker_to_impute].fillna(pd.Series(values, index=indexes), inplace=True)
 
-                imputed_data: pd.DataFrame = test_data.copy()
+                imputed_data: pd.DataFrame = test_data.iloc[indexes].copy()
+
                 # Iterate to impute
                 for i in range(iter_steps):
+                    # Predict embeddings and mean
                     mean, log_var, z = model.encoder.predict(imputed_data)
-                    encoded_data = pd.DataFrame(z)
-
+                    # Create reconstructed date
                     reconstructed_data = pd.DataFrame(columns=markers, data=model.decoder.predict(mean))
-
-                    reconstructed_data.loc[index, marker_to_impute] = reconstructed_data[marker_to_impute].mean()
+                    # Overwrite imputed data with reconstructed data
                     imputed_data = reconstructed_data
+
+                new_imputed_data = test_data.copy()
+                new_imputed_data.loc[imputed_data.index, :] = imputed_data[:]
 
                 # Calculate differences
                 differences = pd.DataFrame(ground_truth_data[marker_to_impute] - test_data[marker_to_impute])
@@ -174,18 +177,18 @@ if __name__ == "__main__":
 
                 imputed_r2_scores = imputed_r2_scores.append({
                     "Marker": marker_to_impute,
-                    "Score": r2_score(ground_truth_data[marker_to_impute], imputed_data[marker_to_impute])
+                    "Score": r2_score(ground_truth_data[marker_to_impute], new_imputed_data[marker_to_impute])
                 }, ignore_index=True)
 
-                # Report results
-                plotter: Plotting = Plotting(base_path=base_path, args=args)
-                plotter.r2_scores(r2_scores={"Ground Truth": ground_truth_r2_scores, "Imputed": imputed_r2_scores},
-                                  file_name="r2_scores_comparison")
+            # Report results
+            plotter: Plotting = Plotting(base_path=base_path, args=args)
+            plotter.r2_scores(r2_scores={"Ground Truth": ground_truth_r2_scores, "Imputed": imputed_r2_scores},
+                              file_name=f"r2_scores_comparison_{iter_steps}_{fraction}")
 
-                Reporter.report_r2_scores(r2_scores=ground_truth_r2_scores, save_path=base_path, mlflow_folder="",
-                                          prefix="ground_truth")
-                Reporter.report_r2_scores(r2_scores=imputed_r2_scores, save_path=base_path, mlflow_folder="",
-                                          prefix="imputed")
+            Reporter.report_r2_scores(r2_scores=ground_truth_r2_scores, save_path=base_path, mlflow_folder="",
+                                      prefix="ground_truth")
+            Reporter.report_r2_scores(r2_scores=imputed_r2_scores, save_path=base_path, mlflow_folder="",
+                                      prefix="imputed")
 
 
     except:
