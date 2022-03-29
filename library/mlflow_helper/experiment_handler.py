@@ -116,36 +116,41 @@ class ExperimentHandler:
 
         return None
 
-    def download_artifacts(self, save_path: Path, run: Run = None, runs: [] = None, mlflow_folder: str = None):
+    def download_artifacts(self, base_save_path: Path, run: Run = None, runs: [] = None,
+                           mlflow_folder: str = None) -> []:
         """
-         Downloads all artifacts of the found experiments
-        @param save_path:  The path where the artifacts should be saved
+         Downloads all artifacts of the found runs. Creates download folder for each run
+        @param base_save_path:  The path where the artifacts should be saved
         @param runs: Runs which should be considered
         @param run: The run which should be considered
         @param mlflow_folder: The specific folder to be downloaded for the given runs
-        @return:
+        @return: Returns a list of created directories
         """
 
         if run is None and runs is None:
             raise ValueError("Please provide either a run to download or a list of runs")
 
+        created_directories: list = []
+
         # Download single run
         if run is not None:
-            run_save_path = Path(save_path, run.info.run_id)
+            run_save_path = Path(base_save_path, run.info.run_id)
             run_save_path = FolderManagement.create_directory(run_save_path, remove_if_exists=False)
+            created_directories.append(run_save_path)
             if mlflow_folder is not None:
                 self.client.download_artifacts(run.info.run_id, mlflow_folder,
                                                str(run_save_path))
             else:
                 self.client.download_artifacts(run.info.run_id, path="", dst_path=str(run_save_path))
 
-            return
+            return created_directories
 
         # Download multiple runs
         for run in runs:
             try:
-                run_path = Path(save_path, run.info.run_id)
+                run_path = Path(base_save_path, run.info.run_id)
                 run_path = FolderManagement.create_directory(run_path, remove_if_exists=False)
+                created_directories.append(run_path)
                 if mlflow_folder is not None:
                     self.client.download_artifacts(run.info.run_id, mlflow_folder,
                                                    str(run_path))
@@ -155,6 +160,8 @@ class ExperimentHandler:
             except BaseException as ex:
                 print(ex)
                 continue
+
+        return created_directories
 
     def get_run_by_name(self, experiment_id: str, run_name: str) -> Optional[Run]:
         """
