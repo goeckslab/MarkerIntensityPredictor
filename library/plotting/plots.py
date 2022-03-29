@@ -6,6 +6,7 @@ import pandas as pd
 import seaborn as sns
 from itertools import combinations
 from typing import Tuple
+from tensorflow.keras.utils import plot_model
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
@@ -155,6 +156,7 @@ class Plotting:
                     row += 1
                     col = 0
 
+        plt.ylim(0, 1)
         fig.tight_layout()
         save_path = Path(self.__base_path, f"{file_name}.png")
         plt.savefig(save_path)
@@ -172,7 +174,11 @@ class Plotting:
         """
         num_rows = 1
         if len(r2_scores.items()) > 3:
-            num_rows = int(len(r2_scores.items()) / 3)
+            num_rows = float(len(r2_scores.items()) / 3)
+            if not num_rows.is_integer():
+                num_rows += 1
+
+            num_rows = int(num_rows)
 
         n_cols = 3
 
@@ -192,10 +198,12 @@ class Plotting:
                     sns.barplot(x='Marker', y='Score', data=r2_score, ax=axs)
                     axs.set_title(experiment_name)
                     axs.set_xticklabels(axs.get_xticklabels(), rotation=90)
+                    axs.set_ylim(0, 1)
                 else:
                     sns.barplot(x='Marker', y='Score', data=r2_score, ax=axs[col])
                     axs[col].set_title(experiment_name)
                     axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
+                    axs[col].set_ylim(0, 1)
                     col += 1
 
         else:
@@ -203,13 +211,12 @@ class Plotting:
                 sns.barplot(x='Marker', y='Score', data=r2_score, ax=axs[row, col])
                 axs[row, col].set_title(experiment_name)
                 axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+                axs[row, col].set_ylim(0, 1)
                 col += 1
 
                 if col == n_cols:
                     row += 1
                     col = 0
-
-        plt.ylim(0, 1)
 
         fig.tight_layout()
 
@@ -343,6 +350,7 @@ class Plotting:
             row += 1
             col = 0
 
+        plt.ylim(0, 1)
         plt.legend(title='Model', loc='upper left', labels=['VAE', 'AE', 'EN'])
         fig.tight_layout()
         save_path = Path(self.__base_path, f"{file_name}.png")
@@ -445,3 +453,18 @@ class Plotting:
         plt.savefig(save_path)
         mlflow.log_artifact(str(save_path), mlflow_folder)
         plt.close()
+
+    def plot_model(self, model, file_name: str, mlflow_folder: str = None):
+        """
+        Plots the models summary
+        @param model:
+        @param file_name:
+        @param mlflow_folder:
+        @return:
+        """
+        save_path = Path(self.__base_path, f"{file_name}.png")
+        plot_model(model, to_file=save_path, show_layer_names=True)
+        if mlflow_folder is None:
+            mlflow.log_artifact(str(save_path))
+        else:
+            mlflow.log_artifact(str(save_path), mlflow_folder)
