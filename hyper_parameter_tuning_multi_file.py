@@ -116,7 +116,7 @@ if __name__ == "__main__":
         # Create train test split using the train file data
         train_data, _ = create_splits(cells=train_cells, create_val=False)
 
-        print("Evaluation training data set...")
+        print("Evaluating training data set...")
         start = timer()
         evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=3, name="Train Data 3"))
         evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Train Data 5"))
@@ -126,7 +126,7 @@ if __name__ == "__main__":
         # Create train test split using the test file data
         train_data, _ = create_splits(cells=test_cells, create_val=False)
 
-        print("Evaluation testing set...")
+        print("Evaluating testing set...")
         start = timer()
         evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=3, name="Test Data 3"))
         evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Test Data 5"))
@@ -138,7 +138,7 @@ if __name__ == "__main__":
         combined_data = pd.concat(frames)
         combined_train_data, _ = create_splits(cells=combined_data, create_val=False)
 
-        print("Evaluation combined data set...")
+        print("Evaluating combined data set...")
         start = timer()
         evaluation_data.extend(
             evaluate_folds(train_data=combined_train_data, amount_of_layers=3, name="Combined Data 3"))
@@ -151,9 +151,9 @@ if __name__ == "__main__":
         reconstruction_loss: float = 999999
         selected_fold = {}
         for validation_data in evaluation_data:
-            if validation_data["reconstruction_loss"] < reconstruction_loss:
+            if validation_data["loss"] < reconstruction_loss:
                 selected_fold = validation_data
-                reconstruction_loss = validation_data["reconstruction_loss"]
+                reconstruction_loss = validation_data["loss"]
 
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=args.run) as run:
             # Set hyper parameters
