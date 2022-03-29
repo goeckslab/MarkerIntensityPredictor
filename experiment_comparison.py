@@ -71,19 +71,26 @@ if __name__ == "__main__":
             # Download artifacts
             experiment_handler.download_artifacts(base_path, run=run)
 
-            vae_r2_mean_scores[experiment_name] = DataLoader.load_file(load_path=Path(base_path, run.info.run_id),
-                                                                       file_name="vae_mean_r2_score.csv")
-            vae_r2_combined_scores[experiment_name] = DataLoader.load_file(load_path=Path(base_path, run.info.run_id),
-                                                                           file_name="vae_combined_r2_score.csv")
+            vae_r2_mean_scores[experiment_name] = DataLoader.load_file(
+                load_path=Path(base_path, run.info.run_id),
+                file_name="vae_mean_r2_score.csv")
+            vae_r2_combined_scores[experiment_name] = DataLoader.load_file(
+                load_path=Path(base_path, run.info.run_id),
+                file_name="vae_combined_r2_score.csv")
 
-            en_r2_mean_scores[experiment_name] = DataLoader.load_file(load_path=Path(base_path, run.info.run_id),
-                                                                      file_name="en_mean_r2_score.csv")
-            en_r2_combined_scores[experiment_name] = DataLoader.load_file(load_path=Path(base_path, run.info.run_id),
-                                                                          file_name="en_combined_r2_score.csv")
-            ae_r2_mean_scores[experiment_name] = DataLoader.load_file(load_path=Path(base_path, run.info.run_id),
-                                                                      file_name="ae_mean_r2_score.csv")
-            ae_r2_combined_scores[experiment_name] = DataLoader.load_file(load_path=Path(base_path, run.info.run_id),
-                                                                          file_name="ae_combined_r2_score.csv")
+            en_r2_mean_scores[experiment_name] = DataLoader.load_file(
+                load_path=Path(base_path, run.info.run_id),
+                file_name="en_mean_r2_score.csv")
+            en_r2_combined_scores[experiment_name] = DataLoader.load_file(
+                load_path=Path(base_path, run.info.run_id),
+                file_name="en_combined_r2_score.csv")
+
+            ae_r2_mean_scores[experiment_name] = DataLoader.load_file(
+                load_path=Path(base_path, run.info.run_id),
+                file_name="ae_mean_r2_score.csv")
+            ae_r2_combined_scores[experiment_name] = DataLoader.load_file(
+                load_path=Path(base_path, run.info.run_id),
+                file_name="ae_combined_r2_score.csv")
 
         # The new experiment which is used to store the evaluation data
         evaluation_experiment_id: str = experiment_handler.create_experiment("Experiment Comparison Test",
@@ -99,13 +106,16 @@ if __name__ == "__main__":
             plotting.r2_score_model_distribution(vae_r2_scores=vae_r2_combined_scores,
                                                  ae_r2_scores=ae_r2_combined_scores,
                                                  en_r2_scores=en_r2_combined_scores,
-                                                 file_name="model_distribution_comparison")
+                                                 file_name="VAE vs. AE vs. EN Score Distribution")
+            plotting.r2_score_model_distribution_vae_vs_en(vae_r2_scores=vae_r2_combined_scores,
+                                                           en_r2_scores=en_r2_combined_scores,
+                                                           file_name="VAE vs. EN Score Distribution")
 
             plotting.r2_score_model_mean(vae_r2_scores=vae_r2_mean_scores, ae_r2_scores=ae_r2_mean_scores,
                                          en_r2_scores=en_r2_mean_scores, file_name="model_mean_comparison")
 
     except BaseException as ex:
-        print(ex)
+        raise
 
     finally:
         FolderManagement.delete_directory(base_path)
