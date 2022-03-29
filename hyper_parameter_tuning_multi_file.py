@@ -116,14 +116,12 @@ if __name__ == "__main__":
         # Create train test split using the train file data
         train_data, _ = create_splits(cells=train_cells, create_val=False)
 
-
         print("Evaluation training data set...")
         start = timer()
         evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=3, name="Train Data 3"))
         evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Train Data 5"))
         end = timer()
         train_file_evaluation_duration = end - start
-
 
         # Create train test split using the test file data
         train_data, _ = create_splits(cells=test_cells, create_val=False)

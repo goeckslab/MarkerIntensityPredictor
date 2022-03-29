@@ -116,9 +116,9 @@ if __name__ == "__main__":
         reconstruction_loss: float = 999999
         selected_fold = {}
         for evaluation in eval_data:
-            if evaluation["reconstruction_loss"] < reconstruction_loss:
+            if evaluation["loss"] < reconstruction_loss:
                 selected_fold = evaluation
-                reconstruction_loss = evaluation["reconstruction_loss"]
+                reconstruction_loss = evaluation["loss"]
 
         # Normalize
         train_data = Preprocessing.normalize(train_data)
