@@ -169,8 +169,7 @@ if __name__ == "__main__":
             mlflow.log_param("Combined Files Evaluation Duration", combined_files_evaluation_duration)
 
             # Create train test split for real model training
-            train_data, _ = create_splits(cells=train_cells, create_val=False)
-            _, test_data = create_splits(cells=test_cells, create_val=False)
+            train_data, test_data = create_splits(cells=combined_data, create_val=False)
 
             # Normalize
             train_data = Preprocessing.normalize(train_data)

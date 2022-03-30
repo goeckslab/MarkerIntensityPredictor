@@ -100,9 +100,9 @@ if __name__ == "__main__":
         with mlflow.start_run(experiment_id=evaluation_experiment_id,
                               run_name=args.run) as run:
             plotting: Plotting = Plotting(base_path=base_path, args=args)
-            plotting.r2_scores_distribution(r2_scores=vae_r2_combined_scores, file_name="vae_r2_score_distribution")
-            plotting.r2_scores_distribution(r2_scores=en_r2_combined_scores, file_name="en_r2_score_distribution")
-            plotting.r2_scores_distribution(r2_scores=ae_r2_combined_scores, file_name="ae_r2_score_distribution")
+            plotting.r2_scores_distribution(r2_scores=vae_r2_combined_scores, file_name="VAE R2 Score Distribution")
+            plotting.r2_scores_distribution(r2_scores=en_r2_combined_scores, file_name="EN R2 Score Distribution")
+            plotting.r2_scores_distribution(r2_scores=ae_r2_combined_scores, file_name="AE R2 Score Distribution")
             plotting.r2_score_model_distribution(vae_r2_scores=vae_r2_combined_scores,
                                                  ae_r2_scores=ae_r2_combined_scores,
                                                  en_r2_scores=en_r2_combined_scores,
@@ -112,7 +112,7 @@ if __name__ == "__main__":
                                                            file_name="VAE vs. EN Score Distribution")
 
             plotting.r2_score_model_mean(vae_r2_scores=vae_r2_mean_scores, ae_r2_scores=ae_r2_mean_scores,
-                                         en_r2_scores=en_r2_mean_scores, file_name="model_mean_comparison")
+                                         en_r2_scores=en_r2_mean_scores, file_name="Mean R2 score comparison")
 
     except BaseException as ex:
         raise

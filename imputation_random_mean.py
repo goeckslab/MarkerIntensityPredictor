@@ -106,7 +106,7 @@ if __name__ == "__main__":
 
     try:
         with mlflow.start_run(experiment_id=get_associated_experiment_id(args=args),
-                              run_name=f"{args.run} {args.percentage} {args.steps}") as run:
+                              run_name=f"{args.run} Percentage {args.percentage} Steps {args.steps}") as run:
 
             iter_steps: int = int(args.steps)
             # Report
@@ -133,16 +133,19 @@ if __name__ == "__main__":
             imputed_r2_scores: pd.DataFrame = pd.DataFrame()
 
             for marker_to_impute in markers:
+                # Make a fresh copy, to start with the ground truth data
+                test_data = ground_truth_data.copy()
+
+                marker_mean = test_data[marker_to_impute].mean()
+                marker_std = test_data[marker_to_impute].std()
+
                 # Replace % of the data provided by the args
-
-                mean = test_data[marker_to_impute].mean()
-                std = test_data[marker_to_impute].std()
-
                 test_data[marker_to_impute] = test_data[marker_to_impute].sample(frac=fraction, replace=False)
 
                 indexes = test_data[test_data[marker_to_impute].isna()].index
 
-                # values = np.random.normal(loc=mean, scale=std, size=test_data[marker_to_impute].isna().sum())
+                # values = np.random.normal(loc=marker_mean, scale=marker_std,
+                #                          size=test_data[marker_to_impute].isna().sum())
                 values = [0] * test_data[marker_to_impute].isna().sum()
                 test_data[marker_to_impute].fillna(pd.Series(values, index=indexes), inplace=True)
 
@@ -152,12 +155,15 @@ if __name__ == "__main__":
                 for i in range(iter_steps):
                     # Predict embeddings and mean
                     mean, log_var, z = model.encoder.predict(imputed_data)
+
                     # Create reconstructed date
                     reconstructed_data = pd.DataFrame(columns=markers, data=model.decoder.predict(mean))
+
                     # Overwrite imputed data with reconstructed data
                     imputed_data = reconstructed_data
 
-                new_imputed_data = test_data.copy()
+                # Derive from ground truth dataset, to only compare imputation values.
+                new_imputed_data = ground_truth_data.copy()
                 new_imputed_data.loc[imputed_data.index, :] = imputed_data[:]
 
                 # Calculate differences
@@ -172,18 +178,20 @@ if __name__ == "__main__":
 
                 ground_truth_r2_scores = ground_truth_r2_scores.append({
                     "Marker": marker_to_impute,
-                    "Score": r2_score(ground_truth_data[marker_to_impute], reconstructed_data[marker_to_impute]),
+                    "Score": r2_score(ground_truth_data[marker_to_impute].iloc[indexes],
+                                      reconstructed_data[marker_to_impute].iloc[indexes]),
                 }, ignore_index=True)
 
                 imputed_r2_scores = imputed_r2_scores.append({
                     "Marker": marker_to_impute,
-                    "Score": r2_score(ground_truth_data[marker_to_impute], new_imputed_data[marker_to_impute])
+                    "Score": r2_score(ground_truth_data[marker_to_impute].iloc[indexes], imputed_data[marker_to_impute])
                 }, ignore_index=True)
 
             # Report results
             plotter: Plotting = Plotting(base_path=base_path, args=args)
-            plotter.r2_scores(r2_scores={"Ground Truth": ground_truth_r2_scores, "Imputed": imputed_r2_scores},
-                              file_name=f"r2_scores_comparison_{iter_steps}_{fraction}")
+            plotter.r2_scores(r2_scores={"Ground Truth vs. Reconstructed": ground_truth_r2_scores,
+                                         "Ground Truth vs. Imputed": imputed_r2_scores},
+                              file_name=f"R2 score comparison Steps {iter_steps} Percentage {args.percentage}")
 
             Reporter.report_r2_scores(r2_scores=ground_truth_r2_scores, save_path=base_path, mlflow_folder="",
                                       prefix="ground_truth")

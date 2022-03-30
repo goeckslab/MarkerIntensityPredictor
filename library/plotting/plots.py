@@ -82,7 +82,7 @@ class Plotting:
         ax = sns.heatmap(df)
 
         # Markers count is 26. As all are present we can change the labels
-        if len(df) == 26:
+        if len(df) == 25:
             ax.set_yticks(range(len(df)))
             ax.set_yticklabels(markers)
             ax.set_xticks(range(len(df)))
@@ -106,16 +106,24 @@ class Plotting:
         # Determine number of rows
         num_rows = 1
         if len(possible_combinations) > 3:
-            num_rows = int(len(r2_scores.items()) / 3)
+            num_rows = float(len(r2_scores.items()) / 3)
+            if not num_rows.is_integer():
+                num_rows += 1
+
+            num_rows = int(num_rows)
 
         n_cols = 3
 
         # Adjust columns based on items
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=len(possible_combinations), nrows=num_rows, figsize=(25, 20), dpi=300,
+            fig, axs = plt.subplots(ncols=len(possible_combinations), nrows=num_rows, figsize=(9, 12), dpi=300,
                                     sharex=False)
+        elif num_rows == 2:
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 15), dpi=300, sharex=False)
+        elif num_rows == 3:
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(15, 18), dpi=300, sharex=False)
         else:
-            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(25, 20), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(18, 21), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0
@@ -138,11 +146,13 @@ class Plotting:
                     sns.barplot(x='Marker', y='Score', data=differences, ax=axs)
                     axs.set_title(f"Difference {experiment_name} vs. {compare_experiment_name}")
                     axs.set_xticklabels(axs.get_xticklabels(), rotation=90)
+                    axs.set_ylim(0, 1)
                     col += 1
                 else:
                     sns.barplot(x='Marker', y='Score', data=differences, ax=axs[col])
                     axs[col].set_title(f"Difference {experiment_name} vs. {compare_experiment_name}")
                     axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
+                    axs[col].set_ylim(0, 1)
                     col += 1
 
 
@@ -150,13 +160,13 @@ class Plotting:
                 sns.barplot(x='Marker', y='Score', data=differences, ax=axs[row, col])
                 axs[row, col].set_title(f"Difference {experiment_name} vs. {compare_experiment_name}")
                 axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+                axs[row, col].set_ylim(0, 1)
                 col += 1
 
                 if col == n_cols:
                     row += 1
                     col = 0
 
-        plt.ylim(0, 1)
         fig.tight_layout()
         save_path = Path(self.__base_path, f"{file_name}.png")
         plt.savefig(save_path)
@@ -184,10 +194,14 @@ class Plotting:
 
         # Adjust columns based on items
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=len(r2_scores.keys()), nrows=num_rows, figsize=(25, 20), dpi=300,
+            fig, axs = plt.subplots(ncols=len(r2_scores.keys()), nrows=num_rows, figsize=(7, 7), dpi=300,
                                     sharex=False)
+        elif num_rows == 2:
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 15), dpi=300, sharex=False)
+        elif num_rows == 3:
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(15, 18), dpi=300, sharex=False)
         else:
-            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(25, 20), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(18, 21), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0
@@ -255,10 +269,13 @@ class Plotting:
 
         # Adjust columns based on items
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(25, 30), dpi=300,
-                                    sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(9, 12), dpi=300, sharex=False)
+        elif num_rows == 2:
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 15), dpi=300, sharex=False)
+        elif num_rows == 3:
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(15, 18), dpi=300, sharex=False)
         else:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(25, 30), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(18, 21), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0
@@ -273,22 +290,24 @@ class Plotting:
             sns.boxplot(data=vae_r2_score, ax=axs[row, col])
             axs[row, col].set_title(f"{experiment_name} VAE")
             axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+            axs[row, col].set_ylim(0, 1)
             col += 1
 
             sns.boxplot(data=ae_r2_score, ax=axs[row, col])
             axs[row, col].set_title(f"{experiment_name} AE")
             axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+            axs[row, col].set_ylim(0, 1)
             col += 1
 
             sns.boxplot(data=en_r2_score, ax=axs[row, col])
             axs[row, col].set_title(f"{experiment_name} EN")
             axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+            axs[row, col].set_ylim(0, 1)
             col += 1
 
             row += 1
             col = 0
 
-        plt.legend(title='Model', loc='upper left', labels=['VAE', 'AE', 'EN'])
         fig.tight_layout()
         save_path = Path(self.__base_path, f"{file_name}.png")
         plt.savefig(save_path)
@@ -316,10 +335,13 @@ class Plotting:
 
         # Adjust columns based on items
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=2, nrows=num_rows, figsize=(25, 30), dpi=300,
-                                    sharex=False)
+            fig, axs = plt.subplots(ncols=2, nrows=num_rows, figsize=(9, 12), dpi=300, sharex=False)
+        elif num_rows == 2:
+            fig, axs = plt.subplots(ncols=2, nrows=num_rows, figsize=(12, 15), dpi=300, sharex=False)
+        elif num_rows == 3:
+            fig, axs = plt.subplots(ncols=2, nrows=num_rows, figsize=(15, 18), dpi=300, sharex=False)
         else:
-            fig, axs = plt.subplots(ncols=2, nrows=num_rows, figsize=(25, 30), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=2, nrows=num_rows, figsize=(18, 21), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0
@@ -333,17 +355,18 @@ class Plotting:
             sns.boxplot(data=vae_r2_score, ax=axs[row, col])
             axs[row, col].set_title(f"{experiment_name} VAE")
             axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+            axs[row, col].set_ylim(0, 1)
             col += 1
 
             sns.boxplot(data=en_r2_score, ax=axs[row, col])
             axs[row, col].set_title(f"{experiment_name} EN")
             axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+            axs[row, col].set_ylim(0, 1)
             col += 1
 
             row += 1
             col = 0
 
-        plt.legend(title='Model', loc='upper left', labels=['VAE', 'EN'])
         fig.tight_layout()
         save_path = Path(self.__base_path, f"{file_name}.png")
         plt.savefig(save_path)
@@ -372,10 +395,13 @@ class Plotting:
 
         # Adjust columns based on items
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(25, 30), dpi=300,
-                                    sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(9, 12), dpi=300, sharex=False)
+        elif num_rows == 2:
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 15), dpi=300, sharex=False)
+        elif num_rows == 3:
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(15, 18), dpi=300, sharex=False)
         else:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(25, 30), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(18, 21), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0
@@ -391,16 +417,20 @@ class Plotting:
             sns.barplot(x='Marker', y='Score', data=vae_r2_score, ax=axs[row, col])
             axs[row, col].set_title(f"{experiment_name} VAE")
             axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+            axs[row, col].set_ylim(0, 1)
+
             col += 1
 
             sns.barplot(x='Marker', y='Score', data=ae_r2_score, ax=axs[row, col])
             axs[row, col].set_title(f"{experiment_name} AE")
             axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+            axs[row, col].set_ylim(0, 1)
             col += 1
 
             sns.barplot(x='Marker', y='Score', data=en_r2_score, ax=axs[row, col])
             axs[row, col].set_title(f"{experiment_name} EN")
             axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+            axs[row, col].set_ylim(0, 1)
             col += 1
 
             row += 1
@@ -423,16 +453,24 @@ class Plotting:
         """
         num_rows = 1
         if len(r2_scores.items()) > 3:
-            num_rows = int(len(r2_scores.items()) / 3)
+            num_rows = float(len(r2_scores.items()) / 3)
+            if not num_rows.is_integer():
+                num_rows += 1
+
+            num_rows = int(num_rows)
 
         n_cols = 3
 
         # Adjust columns based on items
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=len(r2_scores.keys()), nrows=num_rows, figsize=(25, 20), dpi=300,
+            fig, axs = plt.subplots(ncols=len(r2_scores.keys()), nrows=num_rows, figsize=(9, 21), dpi=300,
                                     sharex=False)
+        elif num_rows == 2:
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 15), dpi=300, sharex=False)
+        elif num_rows == 3:
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(15, 18), dpi=300, sharex=False)
         else:
-            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(25, 20), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(18, 21), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0
@@ -444,10 +482,12 @@ class Plotting:
                     sns.barplot(x='Marker', y='Score', data=r2_score, ax=axs)
                     axs.set_title(experiment_name)
                     axs.set_xticklabels(axs.get_xticklabels(), rotation=90)
+                    axs[row, col].set_ylim(0, 1)
                 else:
                     sns.boxplot(data=r2_score, ax=axs[col])
                     axs[col].set_title(experiment_name)
                     axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
+                    axs[col].set_ylim(0, 1)
                     col += 1
 
         else:
@@ -455,6 +495,7 @@ class Plotting:
                 sns.boxplot(data=r2_score, ax=axs[row, col])
                 axs[row, col].set_title(experiment_name)
                 axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+                axs[row, col].set_ylim(0, 1)
                 col += 1
 
                 if col == n_cols:
