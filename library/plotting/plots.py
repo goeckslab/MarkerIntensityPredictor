@@ -12,6 +12,8 @@ logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
 
 
+# Figsize (7,9) First is width, second is height
+
 class Plotting:
     # The base path such as AE or VAE. This is the path where the files will be stored
     __base_path: Path
@@ -116,14 +118,13 @@ class Plotting:
 
         # Adjust columns based on items
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=len(possible_combinations), nrows=num_rows, figsize=(9, 12), dpi=300,
-                                    sharex=False)
+            fig, axs = plt.subplots(ncols=len(r2_scores.keys()), nrows=num_rows, figsize=(12, 7), dpi=300, sharex=False)
         elif num_rows == 2:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 15), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 9), dpi=300, sharex=False)
         elif num_rows == 3:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(15, 18), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 11), dpi=300, sharex=False)
         else:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(18, 21), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 13), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0
@@ -194,14 +195,13 @@ class Plotting:
 
         # Adjust columns based on items
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=len(r2_scores.keys()), nrows=num_rows, figsize=(7, 7), dpi=300,
-                                    sharex=False)
+            fig, axs = plt.subplots(ncols=len(r2_scores.keys()), nrows=num_rows, figsize=(12, 7), dpi=300, sharex=False)
         elif num_rows == 2:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 15), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 9), dpi=300, sharex=False)
         elif num_rows == 3:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(15, 18), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 11), dpi=300, sharex=False)
         else:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(18, 21), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 13), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0
@@ -267,15 +267,14 @@ class Plotting:
 
         num_rows = int(len(vae_r2_scores.keys()))
 
-        # Adjust columns based on items
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(9, 12), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 7), dpi=300, sharex=False)
         elif num_rows == 2:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 15), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 9), dpi=300, sharex=False)
         elif num_rows == 3:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(15, 18), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 11), dpi=300, sharex=False)
         else:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(18, 21), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 13), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0
@@ -333,15 +332,14 @@ class Plotting:
 
         num_rows = int(len(vae_r2_scores.keys()))
 
-        # Adjust columns based on items
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=2, nrows=num_rows, figsize=(9, 12), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=2, nrows=num_rows, figsize=(12, 7), dpi=300, sharex=False)
         elif num_rows == 2:
-            fig, axs = plt.subplots(ncols=2, nrows=num_rows, figsize=(12, 15), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=2, nrows=num_rows, figsize=(12, 9), dpi=300, sharex=False)
         elif num_rows == 3:
-            fig, axs = plt.subplots(ncols=2, nrows=num_rows, figsize=(15, 18), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=2, nrows=num_rows, figsize=(12, 11), dpi=300, sharex=False)
         else:
-            fig, axs = plt.subplots(ncols=2, nrows=num_rows, figsize=(18, 21), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=2, nrows=num_rows, figsize=(12, 13), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0
@@ -393,15 +391,15 @@ class Plotting:
 
         num_rows = int(len(vae_r2_scores.keys()))
 
-        # Adjust columns based on items
+        # Adjust figure size
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(9, 12), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 7), dpi=300, sharex=False)
         elif num_rows == 2:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 15), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 9), dpi=300, sharex=False)
         elif num_rows == 3:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(15, 18), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 11), dpi=300, sharex=False)
         else:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(18, 21), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 13), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0
@@ -463,14 +461,13 @@ class Plotting:
 
         # Adjust columns based on items
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=len(r2_scores.keys()), nrows=num_rows, figsize=(9, 21), dpi=300,
-                                    sharex=False)
+            fig, axs = plt.subplots(ncols=len(r2_scores.keys()), nrows=num_rows, figsize=(12, 7), dpi=300, sharex=False)
         elif num_rows == 2:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 15), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 9), dpi=300, sharex=False)
         elif num_rows == 3:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(15, 18), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 11), dpi=300, sharex=False)
         else:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(18, 21), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 13), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0

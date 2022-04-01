@@ -2,7 +2,6 @@ import argparse
 from pathlib import Path
 from library.preprocessing.split import create_splits
 import pandas as pd
-import numpy as np
 from library.data.folder_management import FolderManagement
 from library.data.data_loader import DataLoader
 import mlflow
@@ -13,6 +12,7 @@ from library.plotting.plots import Plotting
 from typing import Optional
 from library.mlflow_helper.reporter import Reporter
 from library.predictions.predictions import Predictions
+from sklearn.metrics import f1_score
 
 base_path = Path("data_imputation_random_mean")
 
@@ -129,27 +129,27 @@ if __name__ == "__main__":
 
             ground_truth_data = test_data.copy()
 
-            ground_truth_r2_scores: pd.DataFrame = pd.DataFrame()
+            reconstructed_r2_scores: pd.DataFrame = pd.DataFrame()
             imputed_r2_scores: pd.DataFrame = pd.DataFrame()
 
             for marker_to_impute in markers:
                 # Make a fresh copy, to start with the ground truth data
-                test_data = ground_truth_data.copy()
+                working_data = ground_truth_data.copy()
 
-                marker_mean = test_data[marker_to_impute].mean()
-                marker_std = test_data[marker_to_impute].std()
+                marker_mean = working_data[marker_to_impute].mean()
+                marker_std = working_data[marker_to_impute].std()
 
                 # Replace % of the data provided by the args
-                test_data[marker_to_impute] = test_data[marker_to_impute].sample(frac=fraction, replace=False)
+                working_data[marker_to_impute] = working_data[marker_to_impute].sample(frac=fraction, replace=False)
 
-                indexes = test_data[test_data[marker_to_impute].isna()].index
+                indexes = working_data[working_data[marker_to_impute].isna()].index
 
                 # values = np.random.normal(loc=marker_mean, scale=marker_std,
                 #                          size=test_data[marker_to_impute].isna().sum())
-                values = [0] * test_data[marker_to_impute].isna().sum()
-                test_data[marker_to_impute].fillna(pd.Series(values, index=indexes), inplace=True)
+                values = [0] * working_data[marker_to_impute].isna().sum()
+                working_data[marker_to_impute].fillna(pd.Series(values, index=indexes), inplace=True)
 
-                imputed_data: pd.DataFrame = test_data.iloc[indexes].copy()
+                imputed_data: pd.DataFrame = working_data.iloc[indexes].copy()
 
                 # Iterate to impute
                 for i in range(iter_steps):
@@ -176,7 +176,7 @@ if __name__ == "__main__":
                                                                                       data=ground_truth_data,
                                                                                       markers=markers, use_mlflow=False)
 
-                ground_truth_r2_scores = ground_truth_r2_scores.append({
+                reconstructed_r2_scores = reconstructed_r2_scores.append({
                     "Marker": marker_to_impute,
                     "Score": r2_score(ground_truth_data[marker_to_impute].iloc[indexes],
                                       reconstructed_data[marker_to_impute].iloc[indexes]),
@@ -189,14 +189,15 @@ if __name__ == "__main__":
 
             # Report results
             plotter: Plotting = Plotting(base_path=base_path, args=args)
-            plotter.r2_scores(r2_scores={"Ground Truth vs. Reconstructed": ground_truth_r2_scores,
+            plotter.r2_scores(r2_scores={"Ground Truth vs. Reconstructed": reconstructed_r2_scores,
                                          "Ground Truth vs. Imputed": imputed_r2_scores},
                               file_name=f"R2 score comparison Steps {iter_steps} Percentage {args.percentage}")
 
-            Reporter.report_r2_scores(r2_scores=ground_truth_r2_scores, save_path=base_path, mlflow_folder="",
+            Reporter.report_r2_scores(r2_scores=reconstructed_r2_scores, save_path=base_path, mlflow_folder="",
                                       prefix="ground_truth")
             Reporter.report_r2_scores(r2_scores=imputed_r2_scores, save_path=base_path, mlflow_folder="",
                                       prefix="imputed")
+
 
 
     except:

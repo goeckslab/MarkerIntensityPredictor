@@ -32,10 +32,13 @@ def get_args():
                         default="http://127.0.0.1:5000")
     parser.add_argument("--folder", action="store", required=True,
                         help="The folder used to load the data")
+    parser.add_argument("--exclude", action="store", required=False,
+                        help="A file which can be excluded from training.", default=None)
     return parser.parse_args()
 
 
-def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, learning_rate: float = 0.001) -> list:
+def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, learning_rate: float = 0.001,
+                   embedding_dimension: int = 5) -> list:
     evaluation_data: list = []
 
     model_count: int = 0
@@ -48,7 +51,7 @@ def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, l
                                                                                               validation_data=validation,
                                                                                               input_dimensions=
                                                                                               train.shape[1],
-                                                                                              embedding_dimension=5,
+                                                                                              embedding_dimension=embedding_dimension,
                                                                                               learning_rate=learning_rate,
                                                                                               use_ml_flow=False,
                                                                                               amount_of_layers=amount_of_layers)
@@ -59,7 +62,7 @@ def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, l
                                     history.history['reconstruction_loss'][-1],
                                 "learning_rate": learning_rate, "optimizer": "adam",
                                 "model": model, "encoder": encoder, "decoder": decoder,
-                                "amount_of_layers": amount_of_layers})
+                                "amount_of_layers": amount_of_layers, "embedding_dimension": embedding_dimension})
         model_count += 1
 
     return evaluation_data
@@ -72,13 +75,12 @@ if __name__ == "__main__":
 
     args = get_args()
 
-    print(args.folder)
     files_used: list = []
     frames = []
     path_list = Path(args.folder).glob('**/*.csv')
     markers: list = []
     for path in path_list:
-        if "SARDANA" in path.stem:
+        if "SARDANA" in path.stem or args.exclude in path.stem:
             continue
 
         cells, markers = DataLoader.load_marker_data(file_name=str(path))
@@ -125,8 +127,12 @@ if __name__ == "__main__":
 
         print("Evaluating data set...")
         start = timer()
-        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=3, name="Data 3"))
-        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Data 5"))
+        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=3, name="Data 3 Embedding 5"))
+        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Data 5 Embedding 5"))
+        evaluation_data.extend(
+            evaluate_folds(train_data=train_data, amount_of_layers=3, name="Data 3 Embedding 8", embedding_dimension=8))
+        evaluation_data.extend(
+            evaluate_folds(train_data=train_data, amount_of_layers=5, name="Data 5 Embedding 8", embedding_dimension=8))
 
         end = timer()
         evaluation_duration = end - start
@@ -150,6 +156,9 @@ if __name__ == "__main__":
             mlflow.log_param("Evaluation Duration", evaluation_duration)
             mlflow.log_param("Number of cells", data_set.shape[0])
             mlflow.log_param("Number of markers", data_set.shape[1])
+
+            if args.exclude is not None:
+                mlflow.log_param("Excluded file", args.exclude)
 
             # Create train test split for real model training
             train_data, test_data = create_splits(cells=test_data, create_val=False)
