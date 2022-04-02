@@ -129,7 +129,13 @@ if __name__ == "__main__":
 
             ground_truth_data = test_data.copy()
 
+            # Reconstructed by using the vae
             reconstructed_r2_scores: pd.DataFrame = pd.DataFrame()
+
+            # Just using the replaced values
+            replaced_r2_scores: pd.DataFrame = pd.DataFrame()
+
+            # Imputed by using the VAE
             imputed_r2_scores: pd.DataFrame = pd.DataFrame()
 
             for marker_to_impute in markers:
@@ -187,10 +193,17 @@ if __name__ == "__main__":
                     "Score": r2_score(ground_truth_data[marker_to_impute].iloc[indexes], imputed_data[marker_to_impute])
                 }, ignore_index=True)
 
+                replaced_r2_scores = replaced_r2_scores.append({
+                    "Marker": marker_to_impute,
+                    "Score": r2_score(ground_truth_data[marker_to_impute].iloc[indexes],
+                                      working_data[marker_to_impute].iloc[indexes])
+                }, ignore_index=True)
+
             # Report results
             plotter: Plotting = Plotting(base_path=base_path, args=args)
             plotter.r2_scores(r2_scores={"Ground Truth vs. Reconstructed": reconstructed_r2_scores,
-                                         "Ground Truth vs. Imputed": imputed_r2_scores},
+                                         "Ground Truth vs. Imputed": imputed_r2_scores,
+                                         "Ground Truth vs. Replaced": replaced_r2_scores},
                               file_name=f"R2 score comparison Steps {iter_steps} Percentage {args.percentage}")
 
             Reporter.report_r2_scores(r2_scores=reconstructed_r2_scores, save_path=base_path, mlflow_folder="",
