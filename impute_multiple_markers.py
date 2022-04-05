@@ -32,6 +32,10 @@ def get_args():
                         help="Assigns the run to a particular experiment. "
                              "If the experiment does not exists it will create a new one.",
                         default="Default", type=str)
+    parser.add_argument("--description", "-d", action="store", required=False,
+                        help="A description for the experiment to give a broad overview. "
+                             "This is only used when a new experiment is being created. Ignored if experiment exists",
+                        type=str)
     parser.add_argument("--file", action="store", required=True, help="The file used for training the model")
     parser.add_argument("--morph", action="store_true", help="Include morphological data", default=True)
     parser.add_argument("--seed", "-s", action="store", help="Include morphological data", type=int, default=1)
@@ -41,6 +45,9 @@ def get_args():
     parser.add_argument("--percentage", "-p", action="store", help="The percentage of data being replaced",
                         default=0.2, required=False)
     parser.add_argument("--steps", action="store", help="The iterations for imputation",
+                        default=3, required=False)
+
+    parser.add_argument("--impute", "-i", action="store", help="The markers to impute",
                         default=3, required=False)
 
     return parser.parse_args()
@@ -111,6 +118,7 @@ if __name__ == "__main__":
             mlflow.log_param("File", args.file)
             mlflow.log_param("Seed", args.seed)
             mlflow.log_param("Iteration Steps", iter_steps)
+            mlflow.log_param("Markers to impute", args.impute)
 
             # load model
             model = mlflow.keras.load_model(f"./mlruns/{model_experiment_id}/{model_run_id}/artifacts/model")

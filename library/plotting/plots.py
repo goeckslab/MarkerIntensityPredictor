@@ -174,18 +174,18 @@ class Plotting:
         mlflow.log_artifact(str(save_path))
         plt.close()
 
-    def r2_scores(self, r2_scores: dict, file_name: str, mlflow_directory: str = None, prefix: str = None):
+    def plot_scores(self, scores: dict, file_name: str, mlflow_directory: str = None, prefix: str = None):
         """
-        Creates a bar plot for all r2 score values
-        @param r2_scores: A dict which contains all r2 scores. Keys are used as sub plot titles. Values are scores
+        Creates a bar plot for all provided score values
+        @param scores: A dict which contains all r2 scores. Keys are used as sub plot titles. Values are scores
         @param file_name: The file name to use for storing the file
         @param mlflow_directory: The mlflow directory to save the file
         @param prefix: An optional prefix for the file
         @return:
         """
         num_rows = 1
-        if len(r2_scores.items()) > 3:
-            num_rows = float(len(r2_scores.items()) / 3)
+        if len(scores.items()) > 3:
+            num_rows = float(len(scores.items()) / 3)
             if not num_rows.is_integer():
                 num_rows += 1
 
@@ -195,7 +195,7 @@ class Plotting:
 
         # Adjust columns based on items
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=len(r2_scores.keys()), nrows=num_rows, figsize=(12, 7), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=len(scores.keys()), nrows=num_rows, figsize=(12, 7), dpi=300, sharex=False)
         elif num_rows == 2:
             fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 9), dpi=300, sharex=False)
         elif num_rows == 3:
@@ -207,22 +207,22 @@ class Plotting:
         row: int = 0
 
         if num_rows == 1:
-            for experiment_name, r2_score in r2_scores.items():
-                if len(r2_scores.items()) == 1:
-                    sns.barplot(x='Marker', y='Score', data=r2_score, ax=axs)
+            for experiment_name, score in scores.items():
+                if len(scores.items()) == 1:
+                    sns.barplot(x='Marker', y='Score', data=score, ax=axs)
                     axs.set_title(experiment_name)
                     axs.set_xticklabels(axs.get_xticklabels(), rotation=90)
                     axs.set_ylim(0, 1)
                 else:
-                    sns.barplot(x='Marker', y='Score', data=r2_score, ax=axs[col])
+                    sns.barplot(x='Marker', y='Score', data=score, ax=axs[col])
                     axs[col].set_title(experiment_name)
                     axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
                     axs[col].set_ylim(0, 1)
                     col += 1
 
         else:
-            for experiment_name, r2_score in r2_scores.items():
-                sns.barplot(x='Marker', y='Score', data=r2_score, ax=axs[row, col])
+            for experiment_name, score in scores.items():
+                sns.barplot(x='Marker', y='Score', data=score, ax=axs[row, col])
                 axs[row, col].set_title(experiment_name)
                 axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
                 axs[row, col].set_ylim(0, 1)

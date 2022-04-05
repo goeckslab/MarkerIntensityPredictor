@@ -35,7 +35,8 @@ def get_args():
     return parser.parse_args()
 
 
-def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, learning_rate: float = 0.001) -> list:
+def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, learning_rate: float = 0.001,
+                   embedding_dimension: int = 5) -> list:
     evaluation_data: list = []
 
     model_count: int = 0
@@ -48,7 +49,7 @@ def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, l
                                                                                               validation_data=validation,
                                                                                               input_dimensions=
                                                                                               train.shape[1],
-                                                                                              embedding_dimension=5,
+                                                                                              embedding_dimension=embedding_dimension,
                                                                                               learning_rate=learning_rate,
                                                                                               use_ml_flow=False,
                                                                                               amount_of_layers=amount_of_layers)
@@ -59,7 +60,7 @@ def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, l
                                     history.history['reconstruction_loss'][-1],
                                 "learning_rate": learning_rate, "optimizer": "adam",
                                 "model": model, "encoder": encoder, "decoder": decoder,
-                                "amount_of_layers": amount_of_layers})
+                                "amount_of_layers": amount_of_layers, "embedding_dimension": embedding_dimension})
         model_count += 1
 
     return evaluation_data
@@ -208,7 +209,7 @@ if __name__ == "__main__":
             plotter = Plotting(base_path=base_path, args=args)
 
             # Save final model evaluation
-            plotter.r2_scores(r2_scores={"VAE": r2_scores}, file_name="r2_score", mlflow_directory="Evaluation")
+            plotter.plot_scores(scores={"VAE": r2_scores}, file_name="r2_score", mlflow_directory="Evaluation")
             Reporter.report_r2_scores(r2_scores=r2_scores, save_path=base_path, mlflow_folder="Evaluation")
 
             # Save fold evaluation
