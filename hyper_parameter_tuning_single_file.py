@@ -3,10 +3,9 @@ from library.mlflow_helper.experiment_handler import ExperimentHandler
 import mlflow
 from library.data.folder_management import FolderManagement
 from library.data.data_loader import DataLoader
-from library.preprocessing.split import create_splits, create_folds
+from library.preprocessing.split import SplitHandler
 from library.vae.vae import MarkerPredictionVAE
 from library.preprocessing.preprocessing import Preprocessing
-from library.predictions.predictions import Predictions
 import pandas as pd
 from sklearn.metrics import r2_score
 from library.plotting.plots import Plotting
@@ -60,7 +59,7 @@ if __name__ == "__main__":
         mlflow.set_experiment(experiment_id=associated_experiment_id)
 
         cells, markers = DataLoader.load_marker_data(args.file)
-        train_data, test_data = create_splits(cells=cells, create_val=False)
+        train_data, test_data = SplitHandler.create_splits(cells=cells, create_val=False)
 
         eval_data: list = []
         model_count: int = 0
@@ -90,7 +89,7 @@ if __name__ == "__main__":
 
         model_count: int = 0
         learning_rate: float = 0.001
-        for train, validation in create_folds(train_data.copy()):
+        for train, validation in SplitHandler.create_folds(train_data.copy()):
             train = Preprocessing.normalize(train)
             validation = Preprocessing.normalize(validation)
 

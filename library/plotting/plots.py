@@ -7,6 +7,7 @@ import seaborn as sns
 from itertools import combinations
 from typing import Tuple
 from tensorflow.keras.utils import plot_model
+import numpy as np
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
@@ -548,16 +549,35 @@ class Plotting:
         mlflow.log_artifact(str(save_path), mlflow_folder)
         plt.close()
 
-    def plot_model(self, model, file_name: str, mlflow_folder: str = None):
-        """
-        Plots the models summary
-        @param model:
-        @param file_name:
-        @param mlflow_folder:
-        @return:
-        """
+    def plot_model_architecture(self, model, file_name: str, mlflow_folder: str = None):
+
         save_path = Path(self.__base_path, f"{file_name}.png")
-        plot_model(model, to_file=save_path, show_layer_names=True)
+
+        plot_model(model, save_path)
+
+        if mlflow_folder is None:
+            mlflow.log_artifact(str(save_path))
+        else:
+            mlflow.log_artifact(str(save_path), mlflow_folder)
+
+    def plot_correlation(self, data_set: pd.DataFrame, file_name: str, mlflow_folder: str):
+        correlations: pd.DataFrame = data_set.corr(method='spearman')
+
+        mask = np.zeros_like(correlations)
+        mask[np.triu_indices_from(mask)] = True
+        with sns.axes_style("white"):
+            f, ax = plt.subplots(figsize=(7, 5))
+
+        ax = sns.heatmap(correlations, mask=mask, vmax=.3, square=True)
+        ax.set_title("Correlation")
+        fig = ax.get_figure()
+        fig.tight_layout()
+
+        plt.show()
+        print(correlations)
+        input()
+
+        save_path = Path(self.__base_path, f"{file_name}.png")
         if mlflow_folder is None:
             mlflow.log_artifact(str(save_path))
         else:
