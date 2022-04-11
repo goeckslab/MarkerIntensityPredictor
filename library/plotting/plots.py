@@ -145,7 +145,7 @@ class Plotting:
 
             if num_rows == 1:
                 if len(possible_combinations) == 1:
-                    sns.barplot(x='Marker', y='Score', data=differences, ax=axs)
+                    sns.barplot(x='Markers', y='Score', data=differences, ax=axs)
                     axs.set_title(f"Difference {experiment_name} vs. {compare_experiment_name}")
                     axs.set_xticklabels(axs.get_xticklabels(), rotation=90)
                     axs.set_ylim(0, 1)
@@ -512,11 +512,11 @@ class Plotting:
         for column, weights in weights.iteritems():
             for weight in weights.values:
                 df = df.append({
-                    "Markers": column,
+                    "Marker": column,
                     "Weights": weight
                 }, ignore_index=True)
 
-        sns.displot(df, x="Weights", hue="Markers", legend=True)
+        sns.displot(df, x="Weights", hue="Marker", legend=True)
         fig.tight_layout()
         plt.legend(loc='lower center')
 
@@ -560,7 +560,14 @@ class Plotting:
         else:
             mlflow.log_artifact(str(save_path), mlflow_folder)
 
-    def plot_correlation(self, data_set: pd.DataFrame, file_name: str, mlflow_folder: str):
+    def plot_correlation(self, data_set: pd.DataFrame, file_name: str, mlflow_folder: str = None):
+        """
+        Plots the correlation for the given dataset
+        @param data_set:
+        @param file_name:
+        @param mlflow_folder:
+        @return:
+        """
         correlations: pd.DataFrame = data_set.corr(method='spearman')
 
         mask = np.zeros_like(correlations)
@@ -568,17 +575,16 @@ class Plotting:
         with sns.axes_style("white"):
             f, ax = plt.subplots(figsize=(7, 5))
 
-        ax = sns.heatmap(correlations, mask=mask, vmax=.3, square=True)
+        ax = sns.heatmap(correlations, mask=mask, vmax=1, square=True)
         ax.set_title("Correlation")
         fig = ax.get_figure()
         fig.tight_layout()
 
-        plt.show()
-        print(correlations)
-        input()
-
         save_path = Path(self.__base_path, f"{file_name}.png")
+        plt.savefig(save_path)
         if mlflow_folder is None:
             mlflow.log_artifact(str(save_path))
         else:
             mlflow.log_artifact(str(save_path), mlflow_folder)
+
+        plt.close()

@@ -20,7 +20,7 @@ class Reporter:
         mlflow.log_artifact(str(markers_save_path), "base")
 
     @staticmethod
-    def report_r2_scores(r2_scores: pd.DataFrame, save_path: Path, mlflow_folder: str, prefix: str = None):
+    def report_r2_scores(r2_scores: pd.DataFrame, save_path: Path, mlflow_folder: str = None, prefix: str = None):
         """
         Report r2 scores
         @param r2_scores:
@@ -34,7 +34,11 @@ class Reporter:
         else:
             save_path = Path(save_path, "r2_score.csv")
         r2_scores.to_csv(save_path, index=False)
-        mlflow.log_artifact(str(save_path), mlflow_folder)
+
+        if mlflow_folder is None:
+            mlflow.log_artifact(str(save_path))
+        else:
+            mlflow.log_artifact(str(save_path), mlflow_folder)
 
     @staticmethod
     def report_weights(weights, markers: list, save_path: Path, mlflow_folder: str, file_name: str):

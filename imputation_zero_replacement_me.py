@@ -218,8 +218,6 @@ if __name__ == "__main__":
 
                 indexes = working_morph_data[working_morph_data[morphological_feature_to_impute].isna()].index
 
-                # values = np.random.normal(loc=marker_mean, scale=marker_std,
-                #                          size=test_data[marker_to_impute].isna().sum())
                 values = [0] * working_morph_data[morphological_feature_to_impute].isna().sum()
                 working_morph_data[morphological_feature_to_impute].fillna(pd.Series(values, index=indexes),
                                                                            inplace=True)

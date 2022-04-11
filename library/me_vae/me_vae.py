@@ -89,12 +89,12 @@ class MEMarkerPredictionVAE:
         @return:
         """
         encoder_inputs = keras.Input(shape=(input_dimensions,))
-        h1 = layers.Dense(input_dimensions, activation=activation, activity_regularizer=r, name="marker_h1")(
+        h1 = layers.Dense(input_dimensions, activation=activation, activity_regularizer=r, name="marker_1")(
             encoder_inputs)
-        h2 = layers.Dense(input_dimensions / 1.5, activation=activation, activity_regularizer=r, name="marker_h2")(h1)
-        h3 = layers.Dense(input_dimensions / 2, activation=activation, activity_regularizer=r, name="marker_h3")(h2)
-        h4 = layers.Dense(input_dimensions / 2.5, activation=activation, activity_regularizer=r, name="marker_h4")(h3)
-        h5 = layers.Dense(input_dimensions / 3, activation=activation, activity_regularizer=r, name="marker_h5")(h4)
+        h2 = layers.Dense(input_dimensions / 1.5, activation=activation, activity_regularizer=r, name="marker_2")(h1)
+        h3 = layers.Dense(input_dimensions / 2, activation=activation, activity_regularizer=r, name="marker_3")(h2)
+        h4 = layers.Dense(input_dimensions / 2.5, activation=activation, activity_regularizer=r, name="marker_4")(h3)
+        h5 = layers.Dense(input_dimensions / 3, activation=activation, activity_regularizer=r, name="marker_5")(h4)
 
         model = Model(encoder_inputs, h5)
 
@@ -109,10 +109,10 @@ class MEMarkerPredictionVAE:
         @return:
         """
         encoder_inputs = keras.Input(shape=(input_dimensions,))
-        h1 = layers.Dense(input_dimensions, activation=activation, activity_regularizer=r, name="marker_h1")(
+        h1 = layers.Dense(input_dimensions, activation=activation, activity_regularizer=r, name="marker_1")(
             encoder_inputs)
-        h2 = layers.Dense(input_dimensions / 2, activation=activation, activity_regularizer=r, name="marker_h3")(h1)
-        h3 = layers.Dense(input_dimensions / 3, activation=activation, activity_regularizer=r, name="marker_h5")(h2)
+        h2 = layers.Dense(input_dimensions / 2, activation=activation, activity_regularizer=r, name="marker_2")(h1)
+        h3 = layers.Dense(input_dimensions / 3, activation=activation, activity_regularizer=r, name="marker_3")(h2)
 
         model = Model(encoder_inputs, h3)
 
@@ -120,9 +120,9 @@ class MEMarkerPredictionVAE:
 
     def create_morpho_nn(self, input_dimensions, activation: str, r: int):
         encoder_inputs = keras.Input(shape=(input_dimensions,))
-        g1 = layers.Dense(input_dimensions, activation=activation, activity_regularizer=r, name="morph_g1")(
+        g1 = layers.Dense(input_dimensions, activation=activation, activity_regularizer=r, name="morph_1")(
             encoder_inputs)
-        g2 = layers.Dense(input_dimensions / 2, activation=activation, activity_regularizer=r, name="morph_g2")(g1)
+        g2 = layers.Dense(input_dimensions / 2, activation=activation, activity_regularizer=r, name="morph_2")(g1)
 
         model = Model(encoder_inputs, g2)
 
