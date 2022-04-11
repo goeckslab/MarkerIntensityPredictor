@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-from library.preprocessing.split import create_splits
+from library.preprocessing.split import SplitHandler
 import pandas as pd
 from library.data.folder_management import FolderManagement
 from library.data.data_loader import DataLoader
@@ -12,7 +12,6 @@ from library.plotting.plots import Plotting
 from typing import Optional
 from library.mlflow_helper.reporter import Reporter
 from library.predictions.predictions import Predictions
-from sklearn.metrics import f1_score
 
 base_path = Path("data_imputation_random_mean")
 
@@ -32,10 +31,6 @@ def get_args():
                         help="Assigns the run to a particular experiment. "
                              "If the experiment does not exists it will create a new one.",
                         default="Default", type=str)
-    parser.add_argument("--description", "-d", action="store", required=False,
-                        help="A description for the experiment to give a broad overview. "
-                             "This is only used when a new experiment is being created. Ignored if experiment exists",
-                        type=str)
     parser.add_argument("--file", action="store", required=True, help="The file used for training the model")
     parser.add_argument("--morph", action="store_true", help="Include morphological data", default=True)
     parser.add_argument("--seed", "-s", action="store", help="Include morphological data", type=int, default=1)
@@ -121,11 +116,8 @@ if __name__ == "__main__":
 
             # Load data
             cells, markers = DataLoader.load_marker_data(args.file)
-
-            train_data, test_data = create_splits(cells=cells, create_val=False, seed=args.seed)
-
-            train_data = pd.DataFrame(columns=markers, data=Preprocessing.normalize(train_data))
-            test_data = pd.DataFrame(columns=markers, data=Preprocessing.normalize(test_data))
+            # Use whole file
+            test_data = pd.DataFrame(columns=markers, data=Preprocessing.normalize(cells))
 
             ground_truth_data = test_data.copy()
 
@@ -201,10 +193,10 @@ if __name__ == "__main__":
 
             # Report results
             plotter: Plotting = Plotting(base_path=base_path, args=args)
-            plotter.r2_scores(r2_scores={"Ground Truth vs. Reconstructed": reconstructed_r2_scores,
-                                         "Ground Truth vs. Imputed": imputed_r2_scores,
-                                         "Ground Truth vs. Replaced": replaced_r2_scores},
-                              file_name=f"R2 score comparison Steps {iter_steps} Percentage {args.percentage}")
+            plotter.plot_scores(scores={"Ground Truth vs. Reconstructed": reconstructed_r2_scores,
+                                        "Ground Truth vs. Imputed": imputed_r2_scores,
+                                        "Ground Truth vs. Replaced": replaced_r2_scores},
+                                file_name=f"R2 score comparison Steps {iter_steps} Percentage {args.percentage}")
 
             Reporter.report_r2_scores(r2_scores=reconstructed_r2_scores, save_path=base_path, mlflow_folder="",
                                       prefix="ground_truth")

@@ -1,1 +1,0 @@
- python3 imputation_run_comparison.py -e "Imputation Model EX 9 2 2" --runs "9 2 2 Percentage 1 Steps 1" "9 2 2 Percentage 1 Steps 2" "9 2 2 Percentage 1 Steps 3" "9 2 2 Percentage 1 Steps 4"  "9 2 2 Percentage 1 Steps 5" -r "9 2 2 Percentage 1 Summary"   

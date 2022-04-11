@@ -7,6 +7,7 @@ import seaborn as sns
 from itertools import combinations
 from typing import Tuple
 from tensorflow.keras.utils import plot_model
+import numpy as np
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
@@ -147,7 +148,7 @@ class Plotting:
 
             if num_rows == 1:
                 if len(possible_combinations) == 1:
-                    sns.barplot(x='Marker', y='Score', data=differences, ax=axs)
+                    sns.barplot(x='Markers', y='Score', data=differences, ax=axs)
                     axs.set_title(f"Difference {experiment_name} vs. {compare_experiment_name}")
                     axs.set_xticklabels(axs.get_xticklabels(), rotation=90)
                     axs.set_ylim(0, 1)
@@ -181,18 +182,18 @@ class Plotting:
             mlflow.log_artifact(str(save_path))
         plt.close()
 
-    def r2_scores(self, r2_scores: dict, file_name: str, mlflow_directory: str = None, prefix: str = None):
+    def plot_scores(self, scores: dict, file_name: str, mlflow_directory: str = None, prefix: str = None):
         """
-        Creates a bar plot for all r2 score values
-        @param r2_scores: A dict which contains all r2 scores. Keys are used as sub plot titles. Values are scores
+        Creates a bar plot for all provided score values
+        @param scores: A dict which contains all r2 scores. Keys are used as sub plot titles. Values are scores
         @param file_name: The file name to use for storing the file
         @param mlflow_directory: The mlflow directory to save the file
         @param prefix: An optional prefix for the file
         @return:
         """
         num_rows = 1
-        if len(r2_scores.items()) > 3:
-            num_rows = float(len(r2_scores.items()) / 3)
+        if len(scores.items()) > 3:
+            num_rows = float(len(scores.items()) / 3)
             if not num_rows.is_integer():
                 num_rows += 1
 
@@ -202,7 +203,7 @@ class Plotting:
 
         # Adjust columns based on items
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=len(r2_scores.keys()), nrows=num_rows, figsize=(12, 7), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=len(scores.keys()), nrows=num_rows, figsize=(12, 7), dpi=300, sharex=False)
         elif num_rows == 2:
             fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 9), dpi=300, sharex=False)
         elif num_rows == 3:
@@ -214,22 +215,22 @@ class Plotting:
         row: int = 0
 
         if num_rows == 1:
-            for experiment_name, r2_score in r2_scores.items():
-                if len(r2_scores.items()) == 1:
-                    sns.barplot(x='Marker', y='Score', data=r2_score, ax=axs)
+            for experiment_name, score in scores.items():
+                if len(scores.items()) == 1:
+                    sns.barplot(x='Marker', y='Score', data=score, ax=axs)
                     axs.set_title(experiment_name)
                     axs.set_xticklabels(axs.get_xticklabels(), rotation=90)
                     axs.set_ylim(0, 1)
                 else:
-                    sns.barplot(x='Marker', y='Score', data=r2_score, ax=axs[col])
+                    sns.barplot(x='Marker', y='Score', data=score, ax=axs[col])
                     axs[col].set_title(experiment_name)
                     axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
                     axs[col].set_ylim(0, 1)
                     col += 1
 
         else:
-            for experiment_name, r2_score in r2_scores.items():
-                sns.barplot(x='Marker', y='Score', data=r2_score, ax=axs[row, col])
+            for experiment_name, score in scores.items():
+                sns.barplot(x='Marker', y='Score', data=score, ax=axs[row, col])
                 axs[row, col].set_title(experiment_name)
                 axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
                 axs[row, col].set_ylim(0, 1)
@@ -523,11 +524,11 @@ class Plotting:
         for column, weights in weights.iteritems():
             for weight in weights.values:
                 df = df.append({
-                    "Markers": column,
+                    "Marker": column,
                     "Weights": weight
                 }, ignore_index=True)
 
-        sns.displot(df, x="Weights", hue="Markers", legend=True)
+        sns.displot(df, x="Weights", hue="Marker", legend=True)
         fig.tight_layout()
         plt.legend(loc='lower center')
 
@@ -561,17 +562,42 @@ class Plotting:
         mlflow.log_artifact(str(save_path), mlflow_folder)
         plt.close()
 
-    def plot_model(self, model, file_name: str, mlflow_folder: str = None):
-        """
-        Plots the models summary
-        @param model:
-        @param file_name:
-        @param mlflow_folder:
-        @return:
-        """
+    def plot_model_architecture(self, model, file_name: str, mlflow_folder: str = None):
+
         save_path = Path(self.__base_path, f"{file_name}.png")
-        plot_model(model, to_file=save_path, show_layer_names=True)
+
+        plot_model(model, save_path)
+
         if mlflow_folder is None:
             mlflow.log_artifact(str(save_path))
         else:
             mlflow.log_artifact(str(save_path), mlflow_folder)
+
+    def plot_correlation(self, data_set: pd.DataFrame, file_name: str, mlflow_folder: str = None):
+        """
+        Plots the correlation for the given dataset
+        @param data_set:
+        @param file_name:
+        @param mlflow_folder:
+        @return:
+        """
+        correlations: pd.DataFrame = data_set.corr(method='spearman')
+
+        mask = np.zeros_like(correlations)
+        mask[np.triu_indices_from(mask)] = True
+        with sns.axes_style("white"):
+            f, ax = plt.subplots(figsize=(7, 5))
+
+        ax = sns.heatmap(correlations, mask=mask, vmax=1, square=True)
+        ax.set_title("Correlation")
+        fig = ax.get_figure()
+        fig.tight_layout()
+
+        save_path = Path(self.__base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+        if mlflow_folder is None:
+            mlflow.log_artifact(str(save_path))
+        else:
+            mlflow.log_artifact(str(save_path), mlflow_folder)
+
+        plt.close()

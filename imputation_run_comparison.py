@@ -94,7 +94,7 @@ if __name__ == "__main__":
                 r2_scores[run_name] = data
 
             plotter: Plotting = Plotting(base_path=base_path, args=args)
-            plotter.r2_scores(r2_scores=r2_scores, file_name="Imputation Performance")
+            plotter.plot_scores(scores=r2_scores, file_name="Imputation Performance")
 
 
 

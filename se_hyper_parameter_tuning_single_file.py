@@ -3,10 +3,9 @@ from library.mlflow_helper.experiment_handler import ExperimentHandler
 import mlflow
 from library.data.folder_management import FolderManagement
 from library.data.data_loader import DataLoader
-from library.preprocessing.split import create_splits, create_folds
+from library.preprocessing.split import SplitHandler
 from library.vae.vae import MarkerPredictionVAE
 from library.preprocessing.preprocessing import Preprocessing
-from library.predictions.predictions import Predictions
 import pandas as pd
 from sklearn.metrics import r2_score
 from library.plotting.plots import Plotting
@@ -96,75 +95,15 @@ if __name__ == "__main__":
         mlflow.set_experiment(experiment_id=associated_experiment_id)
 
         cells, markers = DataLoader.load_marker_data(args.file)
-        train_data, test_data = create_splits(cells=cells, create_val=False)
+        train_data, test_data = SplitHandler.create_splits(cells=cells, create_val=False)
 
-<<<<<<< Updated upstream:hyper_parameter_tuning_single_file.py
-        eval_data: list = []
-        model_count: int = 0
-        learning_rate: float = 0.001
-        for train, validation in create_folds(train_data.copy()):
-            train = Preprocessing.normalize(train)
-            validation = Preprocessing.normalize(validation)
-
-            model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(training_data=train,
-                                                                                                  validation_data=validation,
-                                                                                                  input_dimensions=
-                                                                                                  train.shape[1],
-                                                                                                  embedding_dimension=5,
-                                                                                                  learning_rate=learning_rate,
-                                                                                                  use_ml_flow=False,
-                                                                                                  amount_of_layers=3)
-
-            eval_data.append({"name": f"3_{model_count}", "loss": history.history['loss'][-1],
-                              "kl_loss": history.history['kl_loss'][-1],
-                              "reconstruction_loss": history.history['reconstruction_loss'][-1],
-                              "learning_rate": learning_rate, "optimizer": "adam",
-                              "model": model, "encoder": encoder, "decoder": decoder,
-                              "amount_of_layers": 3})
-
-            learning_rate += 0.002
-            model_count += 1
-
-        model_count: int = 0
-        learning_rate: float = 0.001
-        for train, validation in create_folds(train_data.copy()):
-            train = Preprocessing.normalize(train)
-            validation = Preprocessing.normalize(validation)
-
-            model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(training_data=train,
-                                                                                                  validation_data=validation,
-                                                                                                  input_dimensions=
-                                                                                                  train.shape[1],
-                                                                                                  embedding_dimension=5,
-                                                                                                  learning_rate=learning_rate,
-                                                                                                  use_ml_flow=False,
-                                                                                                  amount_of_layers=5)
-
-            eval_data.append({"name": f"5_{model_count}", "loss": history.history['loss'][-1],
-                              "kl_loss": history.history['kl_loss'][-1],
-                              "reconstruction_loss": history.history['reconstruction_loss'][-1],
-                              "learning_rate": learning_rate, "optimizer": "adam",
-                              "model": model, "encoder": encoder, "decoder": decoder,
-                              "amount_of_layers": 5})
-
-            learning_rate += 0.002
-            model_count += 1
-
-        reconstruction_loss: float = 999999
-        selected_fold = {}
-        for evaluation in eval_data:
-            if evaluation["loss"] < reconstruction_loss:
-                selected_fold = evaluation
-                reconstruction_loss = evaluation["loss"]
-=======
         evaluation_data: list = []
 
         evaluation_data.extend(evaluate_folds(train_data=train_data.copy(), amount_of_layers=3, name="3 Layer"))
         evaluation_data.extend(evaluate_folds(train_data=train_data.copy(), amount_of_layers=5, name="5 Layer"))
 
         # Select fold
-        selected_fold: {} = ModelSelector.select_model_by_lowest_loss(evaluation_data=evaluation_data)
->>>>>>> Stashed changes:se_hyper_parameter_tuning_single_file.py
+        selected_fold: dict = ModelSelector.select_model_by_lowest_loss(evaluation_data=evaluation_data)
 
         # Normalize
         train_data = Preprocessing.normalize(train_data.copy())
@@ -208,14 +147,10 @@ if __name__ == "__main__":
                 )
 
             plotter = Plotting(base_path=base_path, args=args)
-<<<<<<< Updated upstream:hyper_parameter_tuning_single_file.py
-            plotter.r2_scores(r2_scores={"VAE": r2_scores}, file_name="r2_score", mlflow_directory="Evaluation")
-=======
             plotter.plot_scores(scores={"VAE": r2_scores}, file_name="r2_score", mlflow_directory="Evaluation")
             plotter.plot_model_architecture(model=encoder, file_name="VAE Encoder", mlflow_folder="Evaluation")
             plotter.plot_model_architecture(model=decoder, file_name="VAE Decoder", mlflow_folder="Evaluation")
             plotter.plot_correlation(data_set=cells, file_name="Correlation", mlflow_folder="Evaluation")
->>>>>>> Stashed changes:se_hyper_parameter_tuning_single_file.py
             Reporter.report_r2_scores(r2_scores=r2_scores, save_path=base_path, mlflow_folder="Evaluation")
 
     except:

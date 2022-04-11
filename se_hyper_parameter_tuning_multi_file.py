@@ -11,7 +11,7 @@ from library.mlflow_helper.experiment_handler import ExperimentHandler
 from library.mlflow_helper.reporter import Reporter
 from library.plotting.plots import Plotting
 from library.preprocessing.preprocessing import Preprocessing
-from library.preprocessing.split import create_splits, create_folds
+from library.preprocessing.split import SplitHandler
 from library.vae.vae import MarkerPredictionVAE
 
 base_path = Path("hyper_parameter_tuning")
@@ -35,12 +35,13 @@ def get_args():
     return parser.parse_args()
 
 
-def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, learning_rate: float = 0.001) -> list:
+def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, learning_rate: float = 0.001,
+                   embedding_dimension: int = 5) -> list:
     evaluation_data: list = []
 
     model_count: int = 0
 
-    for train, validation in create_folds(train_data.copy()):
+    for train, validation in SplitHandler.create_folds(train_data.copy()):
         train = Preprocessing.normalize(train)
         validation = Preprocessing.normalize(validation)
 
@@ -48,7 +49,7 @@ def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, l
                                                                                               validation_data=validation,
                                                                                               input_dimensions=
                                                                                               train.shape[1],
-                                                                                              embedding_dimension=5,
+                                                                                              embedding_dimension=embedding_dimension,
                                                                                               learning_rate=learning_rate,
                                                                                               use_ml_flow=False,
                                                                                               amount_of_layers=amount_of_layers)
@@ -59,7 +60,7 @@ def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, l
                                     history.history['reconstruction_loss'][-1],
                                 "learning_rate": learning_rate, "optimizer": "adam",
                                 "model": model, "encoder": encoder, "decoder": decoder,
-                                "amount_of_layers": amount_of_layers})
+                                "amount_of_layers": amount_of_layers, "embedding_dimension": embedding_dimension})
         model_count += 1
 
     return evaluation_data
@@ -114,36 +115,36 @@ if __name__ == "__main__":
         test_cells, markers = DataLoader.load_marker_data(test_file)
 
         # Create train test split using the train file data
-        train_data, _ = create_splits(cells=train_cells, create_val=False)
+        train_data, _ = SplitHandler.create_splits(cells=train_cells.copy(), create_val=False)
 
         print("Evaluating training data set...")
         start = timer()
-        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=3, name="Train Data 3"))
-        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Train Data 5"))
+        evaluation_data.extend(evaluate_folds(train_data=train_data.copy(), amount_of_layers=3, name="Train Data 3"))
+        evaluation_data.extend(evaluate_folds(train_data=train_data.copy(), amount_of_layers=5, name="Train Data 5"))
         end = timer()
         train_file_evaluation_duration = end - start
 
         # Create train test split using the test file data
-        train_data, _ = create_splits(cells=test_cells, create_val=False)
+        train_data, _ = SplitHandler.create_splits(cells=test_cells.copy(), create_val=False)
 
         print("Evaluating testing set...")
         start = timer()
-        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=3, name="Test Data 3"))
-        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Test Data 5"))
+        evaluation_data.extend(evaluate_folds(train_data=train_data.copy(), amount_of_layers=3, name="Test Data 3"))
+        evaluation_data.extend(evaluate_folds(train_data=train_data.copy(), amount_of_layers=5, name="Test Data 5"))
         end = timer()
         test_file_evaluation_duration = end - start
 
         # Create combined data of both files
         frames = [train_cells, test_cells]
         combined_data = pd.concat(frames)
-        combined_train_data, _ = create_splits(cells=combined_data, create_val=False)
+        combined_train_data, combined_test_data = SplitHandler.create_splits(cells=combined_data, create_val=False)
 
         print("Evaluating combined data set...")
         start = timer()
         evaluation_data.extend(
-            evaluate_folds(train_data=combined_train_data, amount_of_layers=3, name="Combined Data 3"))
+            evaluate_folds(train_data=combined_train_data.copy(), amount_of_layers=3, name="Combined Data 3"))
         evaluation_data.extend(
-            evaluate_folds(train_data=combined_train_data, amount_of_layers=5, name="Combined Data 5"))
+            evaluate_folds(train_data=combined_train_data.copy(), amount_of_layers=5, name="Combined Data 5"))
 
         end = timer()
         combined_files_evaluation_duration = end - start
@@ -168,12 +169,10 @@ if __name__ == "__main__":
             mlflow.log_param("Test File Evaluation Duration", test_file_evaluation_duration)
             mlflow.log_param("Combined Files Evaluation Duration", combined_files_evaluation_duration)
 
-            # Create train test split for real model training
-            train_data, test_data = create_splits(cells=combined_data, create_val=False)
 
             # Normalize
-            train_data = Preprocessing.normalize(train_data)
-            test_data = Preprocessing.normalize(test_data)
+            train_data = Preprocessing.normalize(combined_train_data.copy())
+            test_data = Preprocessing.normalize(combined_test_data.copy())
 
             model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(
                 training_data=train_data,
@@ -208,9 +207,6 @@ if __name__ == "__main__":
             plotter = Plotting(base_path=base_path, args=args)
 
             # Save final model evaluation
-<<<<<<< Updated upstream:hyper_parameter_tuning_multi_file.py
-            plotter.r2_scores(r2_scores={"VAE": r2_scores}, file_name="r2_score", mlflow_directory="Evaluation")
-=======
             plotter.plot_scores(scores={"VAE": r2_scores}, file_name="r2_score", mlflow_directory="Evaluation")
             plotter.plot_correlation(data_set=combined_data, file_name="Evaluation", mlflow_folder="Evaluation")
 
@@ -218,7 +214,6 @@ if __name__ == "__main__":
             plotter.plot_model_architecture(model=encoder, file_name="VAE Encoder", mlflow_folder="Evaluation")
             plotter.plot_model_architecture(model=decoder, file_name="VAE Decoder", mlflow_folder="Evaluation")
 
->>>>>>> Stashed changes:se_hyper_parameter_tuning_multi_file.py
             Reporter.report_r2_scores(r2_scores=r2_scores, save_path=base_path, mlflow_folder="Evaluation")
 
             # Save fold evaluation
