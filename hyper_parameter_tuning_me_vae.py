@@ -78,14 +78,122 @@ def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, l
     return evaluation_data
 
 
+def final_model(data_set: pd.DataFrame, files_used: list, evaluation_duration: float, selected_fold: {}):
+    """
+    Evaluate the final model
+    @param data_set:
+    @param files_used:
+    @param evaluation_duration:
+    @param selected_fold:
+    @return:
+    """
+    learning_rate: float = float(selected_fold["learning_rate"])
+    amount_of_layers: int = selected_fold["amount_of_layers"]
+    print(f"Using learning rate {learning_rate}")
+
+    mlflow.log_param("Selected Fold", selected_fold)
+    mlflow.log_param("Number of Files", len(files_used))
+    mlflow.log_param("Files", files_used)
+    mlflow.log_param("Evaluation Duration", evaluation_duration)
+    mlflow.log_param("Number of cells", data_set.shape[0])
+    mlflow.log_param("Number of markers", data_set.shape[1])
+
+    if args.exclude is not None:
+        mlflow.log_param("Excluded file", args.exclude)
+
+    original_train_data, original_test_data = SplitHandler.create_splits(cells=data_set,
+                                                                         create_val=False)
+
+    # Create copies of original data
+    train_data = original_train_data.copy()
+    test_data = original_test_data.copy()
+
+    # Split data into marker and morph features
+    marker_train_data, morph_train_data = SplitHandler.split_dataset_into_markers_and_morph_features(
+        train_data)
+    marker_test_data, morph_test_data = SplitHandler.split_dataset_into_markers_and_morph_features(
+        test_data)
+
+    marker_columns = marker_train_data.columns
+    morph_columns = morph_train_data.columns
+
+    # Normalize
+    marker_train_data = Preprocessing.normalize(marker_train_data)
+    morph_train_data = Preprocessing.normalize(morph_train_data)
+
+    # Normalize
+    marker_test_data = Preprocessing.normalize(marker_test_data)
+    morph_test_data = Preprocessing.normalize(morph_test_data)
+
+    vae_builder = MEMarkerPredictionVAE()
+    model, encoder, decoder, history = vae_builder.build_me_variational_auto_encoder(
+        marker_training_data=marker_train_data,
+        morph_training_data=morph_train_data,
+        validation_data=train_data,
+        input_dimensions=
+        train_data.shape[1],
+        embedding_dimension=5,
+        learning_rate=learning_rate,
+        amount_of_layers=amount_of_layers)
+
+    mean, log_var, z = encoder.predict([marker_test_data, morph_test_data])
+    encoded_data = pd.DataFrame(z)
+    reconstructed_data = pd.DataFrame(columns=markers, data=decoder.predict(encoded_data))
+
+    r2_scores = pd.DataFrame()
+
+    recon_test = pd.DataFrame(data=reconstructed_data, columns=markers)
+
+    # Use the normalized data to create a new ground truth dataset, to achieve real comparison
+    frames = [pd.DataFrame(data=marker_test_data, columns=marker_columns),
+              pd.DataFrame(data=morph_test_data, columns=morph_columns)]
+
+    ground_truth_data: pd.DataFrame = pd.concat(frames, axis=1)
+    ground_truth_data.columns = markers
+
+    for marker in markers:
+        ground_truth_marker = ground_truth_data[f"{marker}"]
+        reconstructed_marker = recon_test[f"{marker}"]
+
+        score = r2_score(ground_truth_marker, reconstructed_marker)
+        r2_scores = r2_scores.append(
+            {
+                "Marker": marker,
+                "Score": score
+            }, ignore_index=True
+        )
+
+    # Save final model evaluation
+    plotter.plot_scores(scores={"ME-VAE": r2_scores}, file_name="r2_score",
+                        mlflow_directory="Evaluation")
+    Reporter.report_r2_scores(r2_scores=r2_scores, save_path=base_path, mlflow_folder="Evaluation")
+
+    # Save fold evaluation
+    Reporter.report_evaluation(evaluations=evaluation_data, file_name="evaluation_data",
+                               mlflow_folder="Fold Evaluation", save_path=base_path)
+    plotter.cross_fold_evaluation(evaluation_data=evaluation_data, value_to_display="loss",
+                                  file_name="Loss Distribution", mlflow_folder="Fold Evaluation")
+    plotter.cross_fold_evaluation(evaluation_data=evaluation_data, value_to_display="kl_loss",
+                                  file_name="KL Loss Distribution", mlflow_folder="Fold Evaluation")
+    plotter.cross_fold_evaluation(evaluation_data=evaluation_data,
+                                  value_to_display="reconstruction_loss",
+                                  file_name="Reconstructed Loss Distribution",
+                                  mlflow_folder="Fold Evaluation")
+    plotter.plot_model_architecture(model=encoder, file_name="Encoder Architecture",
+                                    mlflow_folder="Evaluation")
+    plotter.plot_model_architecture(model=decoder, file_name="Decoder Architecture",
+                                    mlflow_folder="Evaluation")
+
+
 if __name__ == "__main__":
     # Check whether gpu is available
     if len(tf.config.list_physical_devices('GPU')) > 0:
         print("GPU detected. Using gpu training")
 
     args = get_args()
-
+    # Which files were used
     files_used: list = []
+
     frames = []
     path_list = Path(args.folder).glob('**/*.csv')
     markers: list = []
@@ -103,9 +211,6 @@ if __name__ == "__main__":
 
     data_set: pd.DataFrame = pd.concat(frames)
     data_set.columns = markers
-
-    plotting: Plotting = Plotting(base_path=base_path, args=args)
-    plotting.plot_correlation(data_set=data_set, file_name="correaltion", mlflow_folder="Evaluation")
 
     evaluation_duration: float = 0
 
@@ -133,125 +238,42 @@ if __name__ == "__main__":
 
         mlflow.set_experiment(experiment_id=associated_experiment_id)
 
-        # Model evaluations are being stored here
-        evaluation_data: list = []
-
-        # Create train test split using the train file data
-        train_data, _ = SplitHandler.create_splits(cells=data_set, create_val=False)
-
-        print("Evaluating data set...")
-        start = timer()
-        evaluation_data.extend(
-            evaluate_folds(train_data=train_data.copy(), amount_of_layers=3, name="Data 3 Embedding 5"))
-        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Data 5 Embedding 5"))
-        # evaluation_data.extend(
-        #    evaluate_folds(train_data=train_data, amount_of_layers=3, name="Data 3 Embedding 8", embedding_dimension=8))
-        # evaluation_data.extend(
-        #    evaluate_folds(train_data=train_data, amount_of_layers=5, name="Data 5 Embedding 8", embedding_dimension=8))
-
-        end = timer()
-        evaluation_duration = end - start
-
-        reconstruction_loss: float = 999999
-        selected_fold = {}
-        for validation_data in evaluation_data:
-            if validation_data["loss"] < reconstruction_loss:
-                selected_fold = validation_data
-                reconstruction_loss = validation_data["loss"]
-
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=args.run) as run:
-            # Set hyper parameters
-            learning_rate: float = float(selected_fold["learning_rate"])
-            amount_of_layers: int = selected_fold["amount_of_layers"]
-            print(f"Using learning rate {learning_rate}")
-
-            mlflow.log_param("Selected Fold", selected_fold)
-            mlflow.log_param("Number of Files", len(files_used))
-            mlflow.log_param("Files", files_used)
-            mlflow.log_param("Evaluation Duration", evaluation_duration)
-            mlflow.log_param("Number of cells", data_set.shape[0])
-            mlflow.log_param("Number of markers", data_set.shape[1])
-
-            if args.exclude is not None:
-                mlflow.log_param("Excluded file", args.exclude)
-
-            original_train_data, original_test_data = SplitHandler.create_splits(cells=data_set, create_val=False)
-
-            # Create copies of original data
-            train_data = original_train_data.copy()
-            test_data = original_test_data.copy()
-
-            # Split data into marker and morph features
-            marker_train_data, morph_train_data = SplitHandler.split_dataset_into_markers_and_morph_features(train_data)
-            marker_test_data, morph_test_data = SplitHandler.split_dataset_into_markers_and_morph_features(test_data)
-
-            marker_columns = marker_train_data.columns
-            morph_columns = morph_train_data.columns
-
-            # Normalize
-            marker_train_data = Preprocessing.normalize(marker_train_data)
-            morph_train_data = Preprocessing.normalize(morph_train_data)
-
-            # Normalize
-            marker_test_data = Preprocessing.normalize(marker_test_data)
-            morph_test_data = Preprocessing.normalize(morph_test_data)
-
-            vae_builder = MEMarkerPredictionVAE()
-            model, encoder, decoder, history = vae_builder.build_me_variational_auto_encoder(
-                marker_training_data=marker_train_data,
-                morph_training_data=morph_train_data,
-                validation_data=train_data,
-                input_dimensions=
-                train_data.shape[1],
-                embedding_dimension=5,
-                learning_rate=learning_rate,
-                amount_of_layers=amount_of_layers)
-
-            mean, log_var, z = encoder.predict([marker_test_data, morph_test_data])
-            encoded_data = pd.DataFrame(z)
-            reconstructed_data = pd.DataFrame(columns=markers, data=decoder.predict(encoded_data))
-
-            r2_scores = pd.DataFrame()
-
-            recon_test = pd.DataFrame(data=reconstructed_data, columns=markers)
-
-            # Use the normalized data to create a new ground truth dataset, to achieve real comparison
-            frames = [pd.DataFrame(data=marker_test_data, columns=marker_columns),
-                      pd.DataFrame(data=morph_test_data, columns=morph_columns)]
-
-            ground_truth_data: pd.DataFrame = pd.concat(frames, axis=1)
-            ground_truth_data.columns = markers
-
-            for marker in markers:
-                ground_truth_marker = ground_truth_data[f"{marker}"]
-                reconstructed_marker = recon_test[f"{marker}"]
-
-                score = r2_score(ground_truth_marker, reconstructed_marker)
-                r2_scores = r2_scores.append(
-                    {
-                        "Marker": marker,
-                        "Score": score
-                    }, ignore_index=True
-                )
-
             plotter = Plotting(base_path=base_path, args=args)
 
-            # Save final model evaluation
-            plotter.plot_scores(scores={"ME-VAE": r2_scores}, file_name="r2_score", mlflow_directory="Evaluation")
-            Reporter.report_r2_scores(r2_scores=r2_scores, save_path=base_path, mlflow_folder="Evaluation")
+            plotter.plot_correlation(data_set=data_set, file_name="Correlation", mlflow_folder="Evaluation")
 
-            # Save fold evaluation
-            Reporter.report_evaluation(evaluations=evaluation_data, file_name="evaluation_data",
-                                       mlflow_folder="Fold Evaluation", save_path=base_path)
-            plotter.cross_fold_evaluation(evaluation_data=evaluation_data, value_to_display="loss",
-                                          file_name="Loss Distribution", mlflow_folder="Fold Evaluation")
-            plotter.cross_fold_evaluation(evaluation_data=evaluation_data, value_to_display="kl_loss",
-                                          file_name="KL Loss Distribution", mlflow_folder="Fold Evaluation")
-            plotter.cross_fold_evaluation(evaluation_data=evaluation_data, value_to_display="reconstruction_loss",
-                                          file_name="Reconstructed Loss Distribution", mlflow_folder="Fold Evaluation")
-            plotter.plot_model_architecture(model=encoder, file_name="Encoder Architecture", mlflow_folder="Evaluation")
-            plotter.plot_model_architecture(model=decoder, file_name="Decoder Architecture", mlflow_folder="Evaluation")
+            # Model evaluations are being stored here
+            evaluation_data: list = []
 
+            # Create train test split using the train file data
+            train_data, _ = SplitHandler.create_splits(cells=data_set, create_val=False)
+
+            print("Evaluating data set...")
+            start = timer()
+            evaluation_data.extend(
+                evaluate_folds(train_data=train_data.copy(), amount_of_layers=3, name="Data 3 Embedding 5"))
+            evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Data 5 Embedding 5"))
+            # evaluation_data.extend(
+            #    evaluate_folds(train_data=train_data, amount_of_layers=3, name="Data 3 Embedding 8", embedding_dimension=8))
+            # evaluation_data.extend(
+            #    evaluate_folds(train_data=train_data, amount_of_layers=5, name="Data 5 Embedding 8", embedding_dimension=8))
+
+            end = timer()
+            evaluation_duration = end - start
+
+            # Select best performing model
+            reconstruction_loss: float = 999999
+            selected_fold = {}
+            for validation_data in evaluation_data:
+                if validation_data["loss"] < reconstruction_loss:
+                    selected_fold = validation_data
+                    reconstruction_loss = validation_data["loss"]
+
+            print("Evaluating final model")
+            # Final model training
+            final_model(data_set=data_set, files_used=files_used, evaluation_duration=evaluation_duration,
+                        selected_fold=selected_fold)
 
 
     except:
