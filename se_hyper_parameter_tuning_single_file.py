@@ -12,6 +12,7 @@ from sklearn.metrics import r2_score
 from library.plotting.plots import Plotting
 from pathlib import Path
 from library.mlflow_helper.reporter import Reporter
+from library.postprocessing.model_selector import ModelSelector
 
 base_path = Path("hyper_parameter_tuning")
 
@@ -31,6 +32,41 @@ def get_args():
                         default="http://127.0.0.1:5000")
     parser.add_argument("--file", action="store", required=True, help="The file used for training the model")
     return parser.parse_args()
+
+
+def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, learning_rate: float = 0.001,
+                   embedding_dimension: int = 5) -> list:
+    if len(name) == 0:
+        raise ValueError("Name must not be empty!")
+
+    evaluation_data: list = []
+
+    model_count: int = 0
+
+    for train, validation in SplitHandler.create_folds(train_data.copy()):
+        train = Preprocessing.normalize(train)
+        validation = Preprocessing.normalize(validation)
+
+        model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(training_data=train,
+                                                                                              validation_data=validation,
+                                                                                              input_dimensions=
+                                                                                              train.shape[1],
+                                                                                              embedding_dimension=embedding_dimension,
+                                                                                              learning_rate=learning_rate,
+                                                                                              use_ml_flow=False,
+                                                                                              amount_of_layers=amount_of_layers)
+
+        evaluation_data.append({"name": f"{name}_{model_count}", "loss": history.history['loss'][-1],
+                                "kl_loss": history.history['kl_loss'][-1],
+                                "reconstruction_loss":
+                                    history.history['reconstruction_loss'][-1],
+                                "learning_rate": learning_rate, "optimizer": "adam",
+                                "model": model, "encoder": encoder, "decoder": decoder,
+                                "amount_of_layers": amount_of_layers, "embedding_dimension": embedding_dimension})
+        model_count += 1
+        learning_rate += 0.002
+
+    return evaluation_data
 
 
 if __name__ == "__main__":
@@ -62,6 +98,7 @@ if __name__ == "__main__":
         cells, markers = DataLoader.load_marker_data(args.file)
         train_data, test_data = create_splits(cells=cells, create_val=False)
 
+<<<<<<< Updated upstream:hyper_parameter_tuning_single_file.py
         eval_data: list = []
         model_count: int = 0
         learning_rate: float = 0.001
@@ -119,10 +156,19 @@ if __name__ == "__main__":
             if evaluation["loss"] < reconstruction_loss:
                 selected_fold = evaluation
                 reconstruction_loss = evaluation["loss"]
+=======
+        evaluation_data: list = []
+
+        evaluation_data.extend(evaluate_folds(train_data=train_data.copy(), amount_of_layers=3, name="3 Layer"))
+        evaluation_data.extend(evaluate_folds(train_data=train_data.copy(), amount_of_layers=5, name="5 Layer"))
+
+        # Select fold
+        selected_fold: {} = ModelSelector.select_model_by_lowest_loss(evaluation_data=evaluation_data)
+>>>>>>> Stashed changes:se_hyper_parameter_tuning_single_file.py
 
         # Normalize
-        train_data = Preprocessing.normalize(train_data)
-        test_data = Preprocessing.normalize(test_data)
+        train_data = Preprocessing.normalize(train_data.copy())
+        test_data = Preprocessing.normalize(test_data.copy())
 
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=args.run) as run:
             # Set hyper parameters
@@ -162,7 +208,14 @@ if __name__ == "__main__":
                 )
 
             plotter = Plotting(base_path=base_path, args=args)
+<<<<<<< Updated upstream:hyper_parameter_tuning_single_file.py
             plotter.r2_scores(r2_scores={"VAE": r2_scores}, file_name="r2_score", mlflow_directory="Evaluation")
+=======
+            plotter.plot_scores(scores={"VAE": r2_scores}, file_name="r2_score", mlflow_directory="Evaluation")
+            plotter.plot_model_architecture(model=encoder, file_name="VAE Encoder", mlflow_folder="Evaluation")
+            plotter.plot_model_architecture(model=decoder, file_name="VAE Decoder", mlflow_folder="Evaluation")
+            plotter.plot_correlation(data_set=cells, file_name="Correlation", mlflow_folder="Evaluation")
+>>>>>>> Stashed changes:se_hyper_parameter_tuning_single_file.py
             Reporter.report_r2_scores(r2_scores=r2_scores, save_path=base_path, mlflow_folder="Evaluation")
 
     except:

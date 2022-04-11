@@ -11,7 +11,7 @@ from library.vae.vae import MarkerPredictionVAE
 from library.plotting.plots import Plotting
 from library.preprocessing.preprocessing import Preprocessing
 from library.mlflow_helper.reporter import Reporter
-from library.preprocessing.split import create_splits
+from library.preprocessing.split import SplitHandler
 from library.evalation.evaluation import Evaluation
 from library.predictions.predictions import Predictions
 from library.linear.elastic_net import ElasticNet
@@ -66,8 +66,8 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.Da
         Reporter.report_cells_and_markers(save_path=results_folder, cells=test_cells, markers=markers,
                                           prefix="test")
 
-        train_data, val_data, _ = create_splits(train_cells, seed=args.seed)
-        _, _, test_data = create_splits(test_cells, seed=args.seed)
+        train_data, val_data, _ = SplitHandler.create_splits(train_cells, seed=args.seed)
+        _, _, test_data = SplitHandler.create_splits(test_cells, seed=args.seed)
 
         # Normalize
         train_data = Preprocessing.normalize(train_data)
@@ -91,11 +91,12 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.Da
         Reporter.report_r2_scores(r2_scores=r2_scores, save_path=Path(results_folder), mlflow_folder="Evaluation")
 
         plotter = Plotting(results_folder, args)
-        plotter.plot_model(model=model, file_name="AE Model", mlflow_folder="Evaluation")
+        plotter.plot_model_architecture(model=encoder, file_name="AE Encoder", mlflow_folder="Evaluation")
+        plotter.plot_model_architecture(model=decoder, file_name="AE Decoder", mlflow_folder="Evaluation")
         plotter.plot_model_performance(history, "AE", "Model performance")
         plotter.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data, markers=markers,
                                            mlflow_directory="Evaluation", file_name="Input v Reconstructed")
-        plotter.r2_scores(r2_scores={"AE": r2_scores}, mlflow_directory="Evaluation", file_name="R2 scores")
+        plotter.plot_scores(scores={"AE": r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
         plotter.plot_markers(train_data=train_data, test_data=test_data,
                              val_data=val_data, markers=markers,
                              mlflow_directory="Evaluation",
@@ -139,8 +140,8 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.D
                                           prefix="test")
 
         # Create train and val from train cells
-        train_data, val_data, _ = create_splits(train_cells, seed=args.seed)
-        _, _, test_data = create_splits(test_cells, seed=args.seed)
+        train_data, val_data, _ = SplitHandler.create_splits(train_cells, seed=args.seed)
+        _, _, test_data = SplitHandler.create_splits(test_cells, seed=args.seed)
 
         # Normalize
         train_data = Preprocessing.normalize(train_data)
@@ -168,12 +169,13 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.D
                                   mlflow_folder="Evaluation")
 
         vae_plotting = Plotting(results_folder, args)
-        vae_plotting.plot_model(model=model, file_name="VAE Model", mlflow_folder="Evaluation")
+        vae_plotting.plot_model_architecture(model=encoder, file_name="VAE Encoder", mlflow_folder="Evaluation")
+        vae_plotting.plot_model_architecture(model=decoder, file_name="VAE Decoder", mlflow_folder="Evaluation")
         vae_plotting.plot_model_performance(model.history, "VAE", "model_performance")
         vae_plotting.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data,
                                                 markers=markers, mlflow_directory="Evaluation",
                                                 file_name="Initial vs. Reconstructed markers")
-        vae_plotting.r2_scores(r2_scores={"VAE": r2_scores}, mlflow_directory="Evaluation", file_name="R^2 Scores")
+        vae_plotting.plot_scores(scores={"VAE": r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
         vae_plotting.plot_markers(train_data=train_data, test_data=test_data,
                                   val_data=val_data, markers=markers,
                                   mlflow_directory="Evaluation",
@@ -215,8 +217,8 @@ def start_elastic_net(args, experiment_id: str, results_folder: Path) -> pd.Data
                                           prefix="test")
 
         # Create train and val from train cells
-        train_data, _ = create_splits(train_cells, seed=args.seed, create_val=False)
-        _, test_data = create_splits(test_cells, seed=args.seed, create_val=False)
+        train_data, _ = SplitHandler.create_splits(train_cells, seed=args.seed, create_val=False)
+        _, test_data = SplitHandler.create_splits(test_cells, seed=args.seed, create_val=False)
 
         # Normalize
         train_data = Preprocessing.normalize(train_data)
@@ -229,7 +231,7 @@ def start_elastic_net(args, experiment_id: str, results_folder: Path) -> pd.Data
         Reporter.report_r2_scores(r2_scores=r2_scores, save_path=results_folder, mlflow_folder="Evaluation")
 
         plotter = Plotting(results_folder, args)
-        plotter.r2_scores(r2_scores={"EN": r2_scores}, mlflow_directory="Evaluation", file_name="R^2 Scores")
+        plotter.plot_scores(scores={"EN": r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
 
         return r2_scores
 
@@ -303,10 +305,10 @@ if __name__ == "__main__":
                                   experiment_id=associated_experiment_id) as comparison:
                 print("Comparing models.")
                 plotter = Plotting(base_path=base_results_path, args=args)
-                plotter.r2_scores(r2_scores={"AE": ae_r2_scores, "VAE": vae_r2_scores, "EN": en_r2_scores},
-                                  file_name="r2_scores")
+                plotter.plot_scores(scores={"AE": ae_r2_scores, "VAE": vae_r2_scores, "EN": en_r2_scores},
+                                    file_name="R2 Scores")
                 plotter.r2_score_comparison(r2_scores={"AE": ae_r2_scores, "VAE": vae_r2_scores, "EN": en_r2_scores},
-                                            file_name="r2_score_differences")
+                                            file_name="R2 score differences")
 
 
 

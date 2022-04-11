@@ -30,15 +30,12 @@ def get_args():
     parser.add_argument("--tracking_url", "-t", action="store", required=False,
                         help="The tracking url for the mlflow tracking server", type=str,
                         default="http://127.0.0.1:5000")
-    parser.add_argument("--folder", action="store", required=True,
-                        help="The folder used to load the data")
-    parser.add_argument("--exclude", action="store", required=False,
-                        help="A file which can be excluded from training.", default=None)
+    parser.add_argument("--file", action="store", nargs='+', required=True,
+                        help="The files used for training the model")
     return parser.parse_args()
 
 
-def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, learning_rate: float = 0.001,
-                   embedding_dimension: int = 5) -> list:
+def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, learning_rate: float = 0.001) -> list:
     evaluation_data: list = []
 
     model_count: int = 0
@@ -51,7 +48,7 @@ def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, l
                                                                                               validation_data=validation,
                                                                                               input_dimensions=
                                                                                               train.shape[1],
-                                                                                              embedding_dimension=embedding_dimension,
+                                                                                              embedding_dimension=5,
                                                                                               learning_rate=learning_rate,
                                                                                               use_ml_flow=False,
                                                                                               amount_of_layers=amount_of_layers)
@@ -62,7 +59,7 @@ def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, l
                                     history.history['reconstruction_loss'][-1],
                                 "learning_rate": learning_rate, "optimizer": "adam",
                                 "model": model, "encoder": encoder, "decoder": decoder,
-                                "amount_of_layers": amount_of_layers, "embedding_dimension": embedding_dimension})
+                                "amount_of_layers": amount_of_layers})
         model_count += 1
 
     return evaluation_data
@@ -75,25 +72,15 @@ if __name__ == "__main__":
 
     args = get_args()
 
-    files_used: list = []
-    frames = []
-    path_list = Path(args.folder).glob('**/*.csv')
-    markers: list = []
-    for path in path_list:
-        if "SARDANA" in path.stem or args.exclude in path.stem:
-            continue
+    if len(args.file) != 2:
+        raise ValueError("Please provide exactly two files. First is the train file, second is the test file")
 
-        cells, markers = DataLoader.load_marker_data(file_name=str(path))
-        frames.append(cells)
-        files_used.append(path.stem)
+    train_file = args.file[0]
+    test_file = args.file[1]
 
-    if len(frames) == 0 or len(markers) == 0:
-        raise ValueError("No files found")
-
-    data_set = pd.concat(frames)
-    data_set.columns = markers
-
-    evaluation_duration: float = 0
+    test_file_evaluation_duration: float = 0
+    train_file_evaluation_duration: float = 0
+    combined_files_evaluation_duration: float = 0
 
     FolderManagement.create_directory(base_path)
     try:
@@ -122,20 +109,44 @@ if __name__ == "__main__":
         # Model evaluations are being stored here
         evaluation_data: list = []
 
-        # Create train test split using the train file data
-        train_data, test_data = create_splits(cells=data_set, create_val=False)
+        # Load train and test cells
+        train_cells, _ = DataLoader.load_marker_data(train_file)
+        test_cells, markers = DataLoader.load_marker_data(test_file)
 
-        print("Evaluating data set...")
+        # Create train test split using the train file data
+        train_data, _ = create_splits(cells=train_cells, create_val=False)
+
+        print("Evaluating training data set...")
         start = timer()
-        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=3, name="Data 3 Embedding 5"))
-        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Data 5 Embedding 5"))
+        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=3, name="Train Data 3"))
+        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Train Data 5"))
+        end = timer()
+        train_file_evaluation_duration = end - start
+
+        # Create train test split using the test file data
+        train_data, _ = create_splits(cells=test_cells, create_val=False)
+
+        print("Evaluating testing set...")
+        start = timer()
+        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=3, name="Test Data 3"))
+        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Test Data 5"))
+        end = timer()
+        test_file_evaluation_duration = end - start
+
+        # Create combined data of both files
+        frames = [train_cells, test_cells]
+        combined_data = pd.concat(frames)
+        combined_train_data, _ = create_splits(cells=combined_data, create_val=False)
+
+        print("Evaluating combined data set...")
+        start = timer()
         evaluation_data.extend(
-            evaluate_folds(train_data=train_data, amount_of_layers=3, name="Data 3 Embedding 8", embedding_dimension=8))
+            evaluate_folds(train_data=combined_train_data, amount_of_layers=3, name="Combined Data 3"))
         evaluation_data.extend(
-            evaluate_folds(train_data=train_data, amount_of_layers=5, name="Data 5 Embedding 8", embedding_dimension=8))
+            evaluate_folds(train_data=combined_train_data, amount_of_layers=5, name="Combined Data 5"))
 
         end = timer()
-        evaluation_duration = end - start
+        combined_files_evaluation_duration = end - start
 
         reconstruction_loss: float = 999999
         selected_fold = {}
@@ -151,17 +162,14 @@ if __name__ == "__main__":
             print(f"Using learning rate {learning_rate}")
 
             mlflow.log_param("Selected Fold", selected_fold)
-            mlflow.log_param("Number of Files", len(files_used))
-            mlflow.log_param("Files", files_used)
-            mlflow.log_param("Evaluation Duration", evaluation_duration)
-            mlflow.log_param("Number of cells", data_set.shape[0])
-            mlflow.log_param("Number of markers", data_set.shape[1])
-
-            if args.exclude is not None:
-                mlflow.log_param("Excluded file", args.exclude)
+            mlflow.log_param("Train File", train_file)
+            mlflow.log_param("Test File", test_file)
+            mlflow.log_param("Train File Evaluation Duration", train_file_evaluation_duration)
+            mlflow.log_param("Test File Evaluation Duration", test_file_evaluation_duration)
+            mlflow.log_param("Combined Files Evaluation Duration", combined_files_evaluation_duration)
 
             # Create train test split for real model training
-            train_data, test_data = create_splits(cells=test_data, create_val=False)
+            train_data, test_data = create_splits(cells=combined_data, create_val=False)
 
             # Normalize
             train_data = Preprocessing.normalize(train_data)
@@ -200,7 +208,17 @@ if __name__ == "__main__":
             plotter = Plotting(base_path=base_path, args=args)
 
             # Save final model evaluation
+<<<<<<< Updated upstream:hyper_parameter_tuning_multi_file.py
             plotter.r2_scores(r2_scores={"VAE": r2_scores}, file_name="r2_score", mlflow_directory="Evaluation")
+=======
+            plotter.plot_scores(scores={"VAE": r2_scores}, file_name="r2_score", mlflow_directory="Evaluation")
+            plotter.plot_correlation(data_set=combined_data, file_name="Evaluation", mlflow_folder="Evaluation")
+
+            # Plot model architecture
+            plotter.plot_model_architecture(model=encoder, file_name="VAE Encoder", mlflow_folder="Evaluation")
+            plotter.plot_model_architecture(model=decoder, file_name="VAE Decoder", mlflow_folder="Evaluation")
+
+>>>>>>> Stashed changes:se_hyper_parameter_tuning_multi_file.py
             Reporter.report_r2_scores(r2_scores=r2_scores, save_path=base_path, mlflow_folder="Evaluation")
 
             # Save fold evaluation

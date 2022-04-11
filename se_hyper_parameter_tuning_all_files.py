@@ -11,7 +11,8 @@ from library.mlflow_helper.experiment_handler import ExperimentHandler
 from library.mlflow_helper.reporter import Reporter
 from library.plotting.plots import Plotting
 from library.preprocessing.preprocessing import Preprocessing
-from library.preprocessing.split import create_splits, create_folds
+from library.preprocessing.split import SplitHandler
+from library.postprocessing.model_selector import ModelSelector
 from library.vae.vae import MarkerPredictionVAE
 
 base_path = Path("hyper_parameter_tuning")
@@ -30,17 +31,20 @@ def get_args():
     parser.add_argument("--tracking_url", "-t", action="store", required=False,
                         help="The tracking url for the mlflow tracking server", type=str,
                         default="http://127.0.0.1:5000")
-    parser.add_argument("--file", action="store", nargs='+', required=True,
-                        help="The files used for training the model")
+    parser.add_argument("--folder", action="store", required=True,
+                        help="The folder used to load the data")
+    parser.add_argument("--exclude", action="store", required=False,
+                        help="A file which can be excluded from training.", default=None)
     return parser.parse_args()
 
 
-def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, learning_rate: float = 0.001) -> list:
+def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, learning_rate: float = 0.001,
+                   embedding_dimension: int = 5) -> list:
     evaluation_data: list = []
 
     model_count: int = 0
 
-    for train, validation in create_folds(train_data.copy()):
+    for train, validation in SplitHandler.create_folds(train_data.copy()):
         train = Preprocessing.normalize(train)
         validation = Preprocessing.normalize(validation)
 
@@ -48,7 +52,7 @@ def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, l
                                                                                               validation_data=validation,
                                                                                               input_dimensions=
                                                                                               train.shape[1],
-                                                                                              embedding_dimension=5,
+                                                                                              embedding_dimension=embedding_dimension,
                                                                                               learning_rate=learning_rate,
                                                                                               use_ml_flow=False,
                                                                                               amount_of_layers=amount_of_layers)
@@ -59,7 +63,7 @@ def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, l
                                     history.history['reconstruction_loss'][-1],
                                 "learning_rate": learning_rate, "optimizer": "adam",
                                 "model": model, "encoder": encoder, "decoder": decoder,
-                                "amount_of_layers": amount_of_layers})
+                                "amount_of_layers": amount_of_layers, "embedding_dimension": embedding_dimension})
         model_count += 1
 
     return evaluation_data
@@ -72,15 +76,25 @@ if __name__ == "__main__":
 
     args = get_args()
 
-    if len(args.file) != 2:
-        raise ValueError("Please provide exactly two files. First is the train file, second is the test file")
+    files_used: list = []
+    frames = []
+    path_list = Path(args.folder).glob('**/*.csv')
+    markers: list = []
+    for path in path_list:
+        if "SARDANA" in path.stem or args.exclude in path.stem:
+            continue
 
-    train_file = args.file[0]
-    test_file = args.file[1]
+        cells, markers = DataLoader.load_marker_data(file_name=str(path))
+        frames.append(cells)
+        files_used.append(path.stem)
 
-    test_file_evaluation_duration: float = 0
-    train_file_evaluation_duration: float = 0
-    combined_files_evaluation_duration: float = 0
+    if len(frames) == 0 or len(markers) == 0:
+        raise ValueError("No files found")
+
+    data_set = pd.concat(frames)
+    data_set.columns = markers
+
+    evaluation_duration: float = 0
 
     FolderManagement.create_directory(base_path)
     try:
@@ -109,78 +123,53 @@ if __name__ == "__main__":
         # Model evaluations are being stored here
         evaluation_data: list = []
 
-        # Load train and test cells
-        train_cells, _ = DataLoader.load_marker_data(train_file)
-        test_cells, markers = DataLoader.load_marker_data(test_file)
-
         # Create train test split using the train file data
-        train_data, _ = create_splits(cells=train_cells, create_val=False)
+        train_data, test_data = SplitHandler.create_splits(cells=data_set, create_val=False)
 
-        print("Evaluating training data set...")
+        print("Evaluating data set...")
         start = timer()
-        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=3, name="Train Data 3"))
-        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Train Data 5"))
-        end = timer()
-        train_file_evaluation_duration = end - start
-
-        # Create train test split using the test file data
-        train_data, _ = create_splits(cells=test_cells, create_val=False)
-
-        print("Evaluating testing set...")
-        start = timer()
-        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=3, name="Test Data 3"))
-        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Test Data 5"))
-        end = timer()
-        test_file_evaluation_duration = end - start
-
-        # Create combined data of both files
-        frames = [train_cells, test_cells]
-        combined_data = pd.concat(frames)
-        combined_train_data, _ = create_splits(cells=combined_data, create_val=False)
-
-        print("Evaluating combined data set...")
-        start = timer()
+        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=3, name="Data 3 Embedding 5"))
+        evaluation_data.extend(evaluate_folds(train_data=train_data, amount_of_layers=5, name="Data 5 Embedding 5"))
         evaluation_data.extend(
-            evaluate_folds(train_data=combined_train_data, amount_of_layers=3, name="Combined Data 3"))
+            evaluate_folds(train_data=train_data, amount_of_layers=3, name="Data 3 Embedding 8", embedding_dimension=8))
         evaluation_data.extend(
-            evaluate_folds(train_data=combined_train_data, amount_of_layers=5, name="Combined Data 5"))
+            evaluate_folds(train_data=train_data, amount_of_layers=5, name="Data 5 Embedding 8", embedding_dimension=8))
 
         end = timer()
-        combined_files_evaluation_duration = end - start
+        evaluation_duration = end - start
 
-        reconstruction_loss: float = 999999
-        selected_fold = {}
-        for validation_data in evaluation_data:
-            if validation_data["loss"] < reconstruction_loss:
-                selected_fold = validation_data
-                reconstruction_loss = validation_data["loss"]
+        selected_fold: {} = ModelSelector.select_model_by_lowest_loss(evaluation_data=evaluation_data)
 
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=args.run) as run:
             # Set hyper parameters
             learning_rate: float = float(selected_fold["learning_rate"])
             amount_of_layers: int = selected_fold["amount_of_layers"]
+            embedding_dimension: int = selected_fold["embedding_dimension"]
             print(f"Using learning rate {learning_rate}")
 
             mlflow.log_param("Selected Fold", selected_fold)
-            mlflow.log_param("Train File", train_file)
-            mlflow.log_param("Test File", test_file)
-            mlflow.log_param("Train File Evaluation Duration", train_file_evaluation_duration)
-            mlflow.log_param("Test File Evaluation Duration", test_file_evaluation_duration)
-            mlflow.log_param("Combined Files Evaluation Duration", combined_files_evaluation_duration)
+            mlflow.log_param("Number of Files", len(files_used))
+            mlflow.log_param("Files", files_used)
+            mlflow.log_param("Evaluation Duration", evaluation_duration)
+            mlflow.log_param("Number of cells", data_set.shape[0])
+            mlflow.log_param("Number of markers", data_set.shape[1])
+
+            if args.exclude is not None:
+                mlflow.log_param("Excluded file", args.exclude)
 
             # Create train test split for real model training
-            train_data, test_data = create_splits(cells=combined_data, create_val=False)
+            train_data, test_data = SplitHandler.create_splits(cells=data_set, create_val=False)
 
             # Normalize
-            train_data = Preprocessing.normalize(train_data)
-            test_data = Preprocessing.normalize(test_data)
+            train_data = Preprocessing.normalize(train_data.copy())
+            test_data = Preprocessing.normalize(test_data.copy())
 
             model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(
                 training_data=train_data,
                 validation_data=train_data,
                 input_dimensions=
                 train_data.shape[1],
-                embedding_dimension=5,
+                embedding_dimension=embedding_dimension,
                 learning_rate=learning_rate,
                 amount_of_layers=amount_of_layers)
 

@@ -84,6 +84,10 @@ class ExperimentComparer:
                 # self.client.delete_run(run.info.run_id)
                 return
 
+            mlflow.log_param("Included Runs", len(self.runs))
+            mlflow.log_param("Used Run Ids",
+                             [x.info.run_id for x in self.runs])
+
             print(f"Found {len(self.runs)} runs.")
 
             # Select all auto encoder runs
@@ -108,11 +112,11 @@ class ExperimentComparer:
             if len(en_runs) != 0:
                 en_mean_scores, en_combined_scores = DataLoader.load_r2_scores_for_model(self.en_directory)
 
-            mlflow.log_param("AE_marker_count", ae_mean_scores.shape[0])
-            mlflow.log_param("VAE_marker_count", vae_mean_scores.shape[0])
+            mlflow.log_param("AE marker count", ae_mean_scores.shape[0])
+            mlflow.log_param("VAE marker count", vae_mean_scores.shape[0])
 
             if len(en_runs) != 0:
-                mlflow.log_param("EN_marker_count", vae_mean_scores.shape[0])
+                mlflow.log_param("EN marker count", vae_mean_scores.shape[0])
 
             # Report mean differences
             ae_mean_difference_scores = pd.DataFrame(columns=["Markers", "Score"])
@@ -159,73 +163,62 @@ class ExperimentComparer:
 
             plotter = Plotting(self.base_path, args=args)
 
-            # plotter.r2_score_comparison(r2_scores=ae_mean_scores, compare_score=vae_mean_scores, r2_score_title="AE",
-            #                            compare_title="VAE", file_name="r2_scores_comparison_plot")
-
             if len(en_runs) != 0:
                 plotter.r2_score_comparison(
                     r2_scores={"AE": ae_mean_scores, "VAE": vae_mean_scores, "EN": en_mean_scores},
-                    file_name="r2_mean_differences")
+                    file_name="R2 mean difference", mlflow_directory="Plots")
             else:
                 plotter.r2_score_comparison(r2_scores={"AE": ae_mean_scores, "VAE": vae_mean_scores},
-                                            file_name="r2_mean_differences")
+                                            file_name="R2 mean difference", mlflow_directory="Plots")
 
             # Plot mean scores
             if len(en_runs) != 0:
-                plotter.r2_scores(r2_scores={"AE": ae_mean_scores, "VAE": vae_mean_scores, "EN": en_mean_scores},
-                                  file_name="r2_mean_scores")
+                plotter.plot_scores(scores={"AE": ae_mean_scores, "VAE": vae_mean_scores, "EN": en_mean_scores},
+                                    file_name="R2 Mean Scores", mlflow_directory="Plots")
             else:
-                plotter.r2_scores(r2_scores={"AE": ae_mean_scores, "VAE": vae_mean_scores},
-                                  file_name="r2_mean_scores")
+                plotter.plot_scores(scores={"AE": ae_mean_scores, "VAE": vae_mean_scores},
+                                    file_name="R2 Mean Scores", mlflow_directory="Plots")
 
             # Plot distribution
 
             if len(en_runs) != 0:
                 plotter.r2_scores_distribution(
                     {"AE": ae_combined_scores, "VAE": vae_combined_scores, "EN": en_combined_scores},
-                    file_name="r2_score_distribution")
+                    file_name="R2 Score Distribution", mlflow_directory="Plots")
             else:
                 plotter.r2_scores_distribution({"AE": ae_combined_scores, "VAE": vae_combined_scores},
-                                               file_name="r2_score_distribution")
+                                               file_name="R2 Score Distribution", mlflow_directory="Plots")
 
-            plotter.plot_weights_distribution(weights=encoding_layer_weights, layer="encoding")
-            plotter.plot_weights_distribution(weights=decoding_layer_weights, layer="decoding")
+            plotter.plot_scores(scores={"AE": pd.DataFrame(columns=["Marker", "Score"],
+                                                           data={
+                                                               'Marker': ae_combined_scores.columns,
+                                                               'Score': ae_combined_scores.diff().mean().values})},
+                                prefix="ae", file_name="Mean Difference", mlflow_directory="Plots")
 
-            plotter.r2_scores(r2_scores={"AE": pd.DataFrame(columns=["Marker", "Score"],
+            plotter.plot_scores(scores={"VAE": pd.DataFrame(columns=["Marker", "Score"],
                                                             data={
-                                                                'Marker': ae_combined_scores.columns,
-                                                                'Score': ae_combined_scores.diff().mean().values})},
-                              prefix="ae", file_name="mean_difference", mlflow_directory="")
-
-            plotter.r2_scores(r2_scores={"VAE": pd.DataFrame(columns=["Marker", "Score"],
-                                                             data={
-                                                                 'Marker': vae_combined_scores.columns,
-                                                                 'Score': vae_combined_scores.diff().mean().values})},
-                              prefix="vae", file_name="mean_difference", mlflow_directory="")
-
-            self.__log_information()
-
-    def __log_information(self):
-        mlflow.log_param("Included Runs", len(self.runs))
-        mlflow.log_param("Used Run Ids",
-                         [x.info.run_id for x in self.runs])
+                                                                'Marker': vae_combined_scores.columns,
+                                                                'Score': vae_combined_scores.diff().mean().values})},
+                                prefix="vae", file_name="Mean Difference", mlflow_directory="Plots")
 
     def __download_artifacts(self, ae_runs: [], vae_runs: [], en_runs: [] = None):
         # Download ae evaluation files
-        self.experiment_handler.download_artifacts(save_path=self.ae_directory, runs=ae_runs,
+        self.experiment_handler.download_artifacts(base_save_path=self.ae_directory, runs=ae_runs,
                                                    mlflow_folder="Evaluation")
 
-        self.experiment_handler.download_artifacts(save_path=self.vae_directory, runs=vae_runs,
+        # Download vae evaluation files
+        self.experiment_handler.download_artifacts(base_save_path=self.vae_directory, runs=vae_runs,
                                                    mlflow_folder="Evaluation")
 
-        self.experiment_handler.download_artifacts(save_path=self.ae_directory, runs=ae_runs,
+        # Download ae files
+        self.experiment_handler.download_artifacts(base_save_path=self.ae_directory, runs=ae_runs,
                                                    mlflow_folder="AE")
 
-        self.experiment_handler.download_artifacts(save_path=self.vae_directory, runs=vae_runs,
+        self.experiment_handler.download_artifacts(base_save_path=self.vae_directory, runs=vae_runs,
                                                    mlflow_folder="VAE")
 
         if en_runs is not None:
-            self.experiment_handler.download_artifacts(save_path=self.en_directory, runs=en_runs,
+            self.experiment_handler.download_artifacts(base_save_path=self.en_directory, runs=en_runs,
                                                        mlflow_folder="Evaluation")
 
     def __report_r2_scores(self, scores: {}):

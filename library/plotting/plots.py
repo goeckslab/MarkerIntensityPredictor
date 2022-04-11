@@ -23,7 +23,7 @@ class Plotting:
         if args.tracking_url is not None:
             mlflow.set_tracking_uri = args.tracking_url
 
-    def plot_model_performance(self, history, sub_directory: str, file_name: str):
+    def plot_model_performance(self, history, file_name: str, mlflow_directory: str = None):
         logger.info("Plotting model performance")
         plt.figure(num=None, figsize=(6, 4), dpi=90)
         for key in history.history:
@@ -35,7 +35,10 @@ class Plotting:
 
         save_path = Path(self.__base_path, f"{file_name}.png")
         plt.savefig(save_path)
-        mlflow.log_artifact(str(save_path), sub_directory)
+        if mlflow_directory is not None:
+            mlflow.log_artifact(str(save_path), mlflow_directory)
+        else:
+            mlflow.log_artifact(str(save_path))
         plt.close()
 
     def plot_reconstructed_markers(self, test_data, reconstructed_data, markers, mlflow_directory: str,
@@ -99,7 +102,7 @@ class Plotting:
         mlflow.log_artifact(str(save_path), mlflow_directory)
         plt.close()
 
-    def r2_score_comparison(self, r2_scores: dict, file_name: str):
+    def r2_score_comparison(self, r2_scores: dict, file_name: str, mlflow_directory: str = None):
         if len(r2_scores.items()) < 2:
             return
 
@@ -171,7 +174,11 @@ class Plotting:
         fig.tight_layout()
         save_path = Path(self.__base_path, f"{file_name}.png")
         plt.savefig(save_path)
-        mlflow.log_artifact(str(save_path))
+
+        if mlflow_directory is not None:
+            mlflow.log_artifact(str(save_path), mlflow_directory)
+        else:
+            mlflow.log_artifact(str(save_path))
         plt.close()
 
     def r2_scores(self, r2_scores: dict, file_name: str, mlflow_directory: str = None, prefix: str = None):
@@ -442,11 +449,12 @@ class Plotting:
         mlflow.log_artifact(str(save_path))
         plt.close()
 
-    def r2_scores_distribution(self, r2_scores: dict, file_name: str):
+    def r2_scores_distribution(self, r2_scores: dict, file_name: str, mlflow_directory: str = None):
         """
         Plots a graph using a dictionary
         @param r2_scores: The scores to plot. Keys are sub plot names, values are scores
         @param file_name: The file name
+        @param mlflow_directory: The mlflow directory
         @return:
         """
         num_rows = 1
@@ -502,7 +510,11 @@ class Plotting:
         fig.tight_layout()
         save_path = Path(self.__base_path, f"{file_name}.png")
         plt.savefig(save_path)
-        mlflow.log_artifact(str(save_path))
+
+        if mlflow_directory is not None:
+            mlflow.log_artifact(str(save_path), mlflow_directory)
+        else:
+            mlflow.log_artifact(str(save_path))
         plt.close()
 
     def plot_weights_distribution(self, weights: pd.DataFrame, layer: str, prefix: str = None):
@@ -524,6 +536,7 @@ class Plotting:
         else:
             save_path = Path(self.__base_path, f"{layer}_weights_distribution.png")
         plt.savefig(save_path)
+
         mlflow.log_artifact(str(save_path))
         plt.close()
 

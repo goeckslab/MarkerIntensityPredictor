@@ -84,28 +84,18 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.Da
                                   mlflow_folder="Evaluation")
 
         plotter = Plotting(results_folder, args)
-        plotter.plot_model(model, "AE Model", "Evaluation")
-        plotter.plot_model_performance(history, "AE", "Model performance")
+        plotter.plot_model_architecture(model=encoder, file_name="AE Encoder", mlflow_folder="Evaluation")
+        plotter.plot_model_architecture(model=decoder, file_name="AE Decoder", mlflow_folder="Evaluation")
+        plotter.plot_model_performance(history=history, mlflow_directory="AE", file_name="Model performance")
         plotter.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data, markers=markers,
                                            mlflow_directory="Evaluation", file_name="Input v Reconstructed")
-        plotter.r2_scores(r2_scores={"AE": r2_scores}, mlflow_directory="Evaluation", file_name="R2 scores")
+        plotter.plot_scores(scores={"AE": r2_scores}, mlflow_directory="Evaluation", file_name="R2 scores")
         plotter.plot_markers(train_data=train_data, test_data=test_data,
                              val_data=val_data, markers=markers,
                              mlflow_directory="Evaluation",
                              file_name="Marker Expression")
 
-        encoding_h1_weights = encoder.get_layer('encoding_h1').get_weights()[0]
-        decoding_output_weights = decoder.get_layer('decoder_output').get_weights()[0]
-
-        Reporter.report_weights(encoding_h1_weights, markers=markers, save_path=results_folder,
-                                mlflow_folder="AE", file_name="layer_encoding_h1_weights")
-
-        Reporter.report_weights(decoding_output_weights, markers=markers, save_path=results_folder,
-                                mlflow_folder="AE", file_name="layer_decoding_output_weights")
-
-        # Plot weights
-        plotter.plot_weights(encoding_h1_weights, markers, "AE", "Encoding layer")
-        plotter.plot_weights(decoding_output_weights, markers, "AE", "Decoding layer")
+        plotter.plot_correlation(data_set=data_set, file_name="Correlation", mlflow_folder="Evaluation")
 
         return r2_scores
 
@@ -151,29 +141,19 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.D
                                   mlflow_folder="Evaluation")
 
         vae_plotting = Plotting(results_folder, args)
-        vae_plotting.plot_model(model=encoder, file_name="VAE Encoder", mlflow_folder="Evaluation")
-        vae_plotting.plot_model(model=decoder, file_name="VAE Decoder", mlflow_folder="Evaluation")
-        vae_plotting.plot_model_performance(model.history, "VAE", "model_performance")
+        vae_plotting.plot_model_architecture(model=encoder, file_name="VAE Encoder", mlflow_folder="Evaluation")
+        vae_plotting.plot_model_architecture(model=decoder, file_name="VAE Decoder", mlflow_folder="Evaluation")
+        vae_plotting.plot_model_performance(history=model.history, mlflow_directory="VAE",
+                                            file_name="Model Performance")
         vae_plotting.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data,
                                                 markers=markers, mlflow_directory="Evaluation",
                                                 file_name="Initial vs. Reconstructed markers")
-        vae_plotting.r2_scores(r2_scores={"VAE": r2_scores}, mlflow_directory="Evaluation", file_name="R^2 Scores")
+        vae_plotting.plot_scores(scores={"VAE": r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
         vae_plotting.plot_markers(train_data=train_data, test_data=test_data,
                                   val_data=val_data, markers=markers,
                                   mlflow_directory="Evaluation",
                                   file_name="Marker Expression")
-
-        encoding_h1_weights = encoder.get_layer('encoding_h1').get_weights()[0]
-        decoding_output_weights = decoder.get_layer('decoder_output').get_weights()[0]
-
-        Reporter.report_weights(encoding_h1_weights, markers=markers, save_path=results_folder,
-                                mlflow_folder="VAE", file_name="layer_encoding_h1_weights")
-
-        Reporter.report_weights(decoding_output_weights, markers=markers, save_path=results_folder,
-                                mlflow_folder="VAE", file_name="layer_decoding_output_weights")
-
-        vae_plotting.plot_weights(encoding_h1_weights, markers, "VAE", "Encoding layer")
-        vae_plotting.plot_weights(decoding_output_weights, markers, "VAE", "Decoding layer")
+        plotter.plot_correlation(data_set=data_set, file_name="Correlation", mlflow_folder="Evaluation")
 
         return r2_scores
 
@@ -204,8 +184,8 @@ def start_elastic_net(args, experiment_id: str, results_folder: Path) -> pd.Data
         Reporter.report_r2_scores(r2_scores=r2_scores, save_path=results_folder, mlflow_folder="Evaluation")
 
         plotter = Plotting(results_folder, args)
-        plotter.r2_scores(r2_scores={"EN": r2_scores}, mlflow_directory="Evaluation", file_name="R^2 Scores")
-
+        plotter.plot_scores(scores={"EN": r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
+        plotter.plot_correlation(data_set=data_set, file_name="Correlation", mlflow_folder="Evaluation")
         return r2_scores
 
 
@@ -260,20 +240,22 @@ if __name__ == "__main__":
             en_r2_scores = start_elastic_net(args, experiment_id=associated_experiment_id,
                                              results_folder=en_base_result_path)
 
-            # Start experiment which compares AE and VAE
+            cells, markers = DataLoader.load_marker_data(file_name=args.file)
+            data_set = pd.DataFrame(data=cells, columns=markers)
+
+            plotter = Plotting(base_results_path, args)
+            plotter.plot_correlation(data_set=data_set, file_name="Correlation")
+
+            # Start experiment which compares the ml models
             with mlflow.start_run(run_name="Comparison", nested=True,
                                   experiment_id=associated_experiment_id) as comparison:
-                print("Comparing vae with ae.")
-                plotter = Plotting(base_results_path, args)
+                print("Comparing ml models...")
                 plotter.r2_score_comparison(r2_scores={"AE": ae_r2_scores, "VAE": vae_r2_scores, "EN": en_r2_scores},
-                                            file_name="r2_score_differences")
+                                            file_name="R2 score difference")
 
 
     except BaseException as ex:
         raise
     finally:
         # Cleanup resources
-        FolderManagement.delete_directory(ae_base_result_path)
-        FolderManagement.delete_directory(vae_base_result_path)
-        FolderManagement.delete_directory(en_base_result_path)
         FolderManagement.delete_directory(base_results_path)
