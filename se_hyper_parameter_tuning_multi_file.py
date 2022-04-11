@@ -13,6 +13,7 @@ from library.plotting.plots import Plotting
 from library.preprocessing.preprocessing import Preprocessing
 from library.preprocessing.split import SplitHandler
 from library.vae.vae import MarkerPredictionVAE
+from library.postprocessing.evaluation import PerformanceEvaluator
 
 base_path = Path("hyper_parameter_tuning")
 
@@ -169,7 +170,6 @@ if __name__ == "__main__":
             mlflow.log_param("Test File Evaluation Duration", test_file_evaluation_duration)
             mlflow.log_param("Combined Files Evaluation Duration", combined_files_evaluation_duration)
 
-
             # Normalize
             train_data = Preprocessing.normalize(combined_train_data.copy())
             test_data = Preprocessing.normalize(combined_test_data.copy())
@@ -187,22 +187,12 @@ if __name__ == "__main__":
             encoded_data = pd.DataFrame(z)
             reconstructed_data = pd.DataFrame(columns=markers, data=decoder.predict(encoded_data))
 
-            r2_scores = pd.DataFrame()
-
             recon_test = pd.DataFrame(data=reconstructed_data, columns=markers)
             ground_truth_data = pd.DataFrame(data=test_data, columns=markers)
 
-            for marker in markers:
-                ground_truth_marker = ground_truth_data[f"{marker}"]
-                reconstructed_marker = recon_test[f"{marker}"]
-
-                score = r2_score(ground_truth_marker, reconstructed_marker)
-                r2_scores = r2_scores.append(
-                    {
-                        "Marker": marker,
-                        "Score": score
-                    }, ignore_index=True
-                )
+            # Calculate r2 scores
+            r2_scores = PerformanceEvaluator.calculate_r2_scores(features=markers, ground_truth_data=ground_truth_data,
+                                                                 compare_data=recon_test)
 
             plotter = Plotting(base_path=base_path, args=args)
 
