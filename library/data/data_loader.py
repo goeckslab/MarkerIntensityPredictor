@@ -7,7 +7,7 @@ from typing import Tuple, Optional
 
 class DataLoader:
     @staticmethod
-    def load_marker_data(file_name: str, keep_morph: bool = True):
+    def load_single_cell_data(file_name: str, keep_morph: bool = True):
         """
         Loads the marker data, given the provided information
         @param file_name: The file name to load from the os
@@ -21,7 +21,6 @@ class DataLoader:
 
         # Keeps only the 'interesting' columns with morphological features
         if keep_morph:
-            print("Including morphological data")
             morph_data = pd.DataFrame(
                 columns=["Area", "MajorAxisLength", "MinorAxisLength", "Solidity", "Extent"])
 
@@ -44,16 +43,16 @@ class DataLoader:
             if column in cells.columns:
                 del cells[f"{column}"]
 
-        markers = cells.columns
-        markers = [re.sub("_nucleiMasks", "", x) for x in markers]
-        cells.columns = markers
-        assert 'ERK1_2' not in markers, 'ERK1_2 should not be in markers'
-        assert 'CellId' not in markers, 'CellId should not be in markers'
-        assert 'Orientation' not in markers, 'Orientation should not be in markers'
-        assert 'Eccentricity' not in markers, 'Eccentricity should not be in markers'
+        features = cells.columns
+        features = [re.sub("_nucleiMasks", "", x) for x in features]
+        cells.columns = features
+        assert 'ERK1_2' not in features, 'ERK1_2 should not be in markers'
+        assert 'CellId' not in features, 'CellId should not be in markers'
+        assert 'Orientation' not in features, 'Orientation should not be in markers'
+        assert 'Eccentricity' not in features, 'Eccentricity should not be in markers'
 
         # return cells, markers
-        return cells.iloc[:, :], markers
+        return cells.iloc[:, :], features
 
     @staticmethod
     def load_r2_scores_for_model(load_path: Path) -> Tuple[pd.DataFrame, pd.DataFrame]:

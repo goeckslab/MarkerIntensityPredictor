@@ -12,7 +12,7 @@ from library.plotting.plots import Plotting
 from typing import Optional
 from library.mlflow_helper.reporter import Reporter
 from library.predictions.predictions import Predictions
-from sklearn.metrics import accuracy_score, precision_score
+from library.helper.selector import Selector
 
 base_path = Path("data_imputation_random_mean")
 
@@ -119,7 +119,7 @@ if __name__ == "__main__":
             model = mlflow.keras.load_model(f"./mlruns/{model_experiment_id}/{model_run_id}/artifacts/model")
 
             # Load data
-            cells, markers = DataLoader.load_marker_data(args.file)
+            cells, markers = DataLoader.load_single_cell_data(args.file)
 
             # Split and normalize ground truth values for reference
             ground_truth_data = cells.copy()

@@ -202,7 +202,7 @@ if __name__ == "__main__":
         if "SARDANA" in path.stem or args.exclude in path.stem:
             continue
 
-        cells, markers = DataLoader.load_marker_data(file_name=str(path))
+        cells, markers = DataLoader.load_single_cell_data(file_name=str(path))
         frames.append(cells)
         files_used.append(path.stem)
 

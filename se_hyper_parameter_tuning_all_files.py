@@ -14,7 +14,7 @@ from library.preprocessing.preprocessing import Preprocessing
 from library.preprocessing.split import SplitHandler
 from library.postprocessing.model_selector import ModelSelector
 from library.vae.vae import MarkerPredictionVAE
-from library.postprocessing.evaluation import PerformanceEvaluator
+from library.evalation.evaluation import Evaluation
 
 base_path = Path("hyper_parameter_tuning")
 
@@ -85,7 +85,7 @@ if __name__ == "__main__":
         if "SARDANA" in path.stem or args.exclude in path.stem:
             continue
 
-        cells, markers = DataLoader.load_marker_data(file_name=str(path))
+        cells, markers = DataLoader.load_single_cell_data(file_name=str(path))
         frames.append(cells)
         files_used.append(path.stem)
 
@@ -125,7 +125,7 @@ if __name__ == "__main__":
         evaluation_data: list = []
 
         # Create train test split using the train file data
-        train_data, test_data = SplitHandler.create_splits(cells=data_set, create_val=False)
+        train_data, holdout_data_set = SplitHandler.create_splits(cells=data_set, create_val=False, features=markers)
 
         print("Evaluating data set...")
         start = timer()
@@ -158,16 +158,18 @@ if __name__ == "__main__":
             if args.exclude is not None:
                 mlflow.log_param("Excluded file", args.exclude)
 
-            # Create train test split for real model training
-            train_data, test_data = SplitHandler.create_splits(cells=data_set, create_val=False)
+            # Create train validation split for real model training and use holdout set for model performance evaluation
+            train_data, validation_data = SplitHandler.create_splits(cells=train_data,
+                                                                     create_val=False, features=markers)
 
             # Normalize
             train_data = Preprocessing.normalize(train_data.copy())
-            test_data = Preprocessing.normalize(test_data.copy())
+            validation_data = Preprocessing.normalize(validation_data.copy())
+            test_data = Preprocessing.normalize(holdout_data_set.copy())
 
             model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(
                 training_data=train_data,
-                validation_data=train_data,
+                validation_data=validation_data,
                 input_dimensions=
                 train_data.shape[1],
                 embedding_dimension=embedding_dimension,
@@ -182,9 +184,9 @@ if __name__ == "__main__":
             ground_truth_data = pd.DataFrame(data=test_data, columns=markers)
 
             # Calculate r2 scores
-            r2_scores: pd.DataFrame = PerformanceEvaluator.calculate_r2_scores(features=markers,
-                                                                               ground_truth_data=ground_truth_data,
-                                                                               compare_data=recon_test)
+            r2_scores: pd.DataFrame = Evaluation.calculate_r2_scores(features=markers,
+                                                                     ground_truth_data=ground_truth_data,
+                                                                     compare_data=recon_test)
 
             plotter = Plotting(base_path=base_path, args=args)
 

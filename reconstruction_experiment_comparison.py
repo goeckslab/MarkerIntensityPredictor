@@ -93,8 +93,7 @@ if __name__ == "__main__":
                 file_name="ae_combined_r2_score.csv")
 
         # The new experiment which is used to store the evaluation data
-        evaluation_experiment_id: str = experiment_handler.create_experiment("Experiment Comparison Test",
-                                                                             "Evaluation of multiple experiments wll be listed here")
+        evaluation_experiment_id: str = experiment_handler.create_experiment(name="Experiment Comparison Test")
 
         # Create experiment and evaluation data
         with mlflow.start_run(experiment_id=evaluation_experiment_id,

@@ -6,7 +6,7 @@ from typing import Tuple
 
 class Predictions:
     @staticmethod
-    def encode_decode_vae_data(encoder, decoder, data: pd.DataFrame, markers: list, save_path: Path = None,
+    def encode_decode_vae_data(encoder, decoder, data: pd.DataFrame, features: list, save_path: Path = None,
                                mlflow_directory: str = None, use_mlflow: bool = True) -> Tuple:
         """
         Encodes and decodes the remaining test dataset. Is then further used for evaluation of performance
@@ -18,7 +18,7 @@ class Predictions:
 
         mean, log_var, z = encoder.predict(data)
         encoded_data = pd.DataFrame(z)
-        reconstructed_data = pd.DataFrame(columns=markers, data=decoder.predict(encoded_data))
+        reconstructed_data = pd.DataFrame(columns=features, data=decoder.predict(encoded_data))
 
         if use_mlflow:
             encoded_data_save_path = Path(save_path, "encoded_data.csv")
@@ -32,7 +32,7 @@ class Predictions:
         return encoded_data, reconstructed_data
 
     @staticmethod
-    def encode_decode_me_vae_data(encoder, decoder, data: list, markers: list, save_path: Path = None,
+    def encode_decode_me_vae_data(encoder, decoder, data: list, features: list, save_path: Path = None,
                                   mlflow_directory: str = None, use_mlflow: bool = True) -> Tuple:
         """
         Encodes and decodes the remaining test dataset. Is then further used for evaluation of performance
@@ -44,7 +44,7 @@ class Predictions:
 
         mean, log_var, z = encoder.predict(data)
         encoded_data = pd.DataFrame(z)
-        reconstructed_data = pd.DataFrame(columns=markers, data=decoder.predict(encoded_data))
+        reconstructed_data = pd.DataFrame(columns=features, data=decoder.predict(encoded_data))
 
         if use_mlflow:
             encoded_data_save_path = Path(save_path, "encoded_data.csv")

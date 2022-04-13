@@ -1,6 +1,5 @@
 import argparse
 from pathlib import Path
-from library.preprocessing.split import SplitHandler
 import pandas as pd
 from library.data.folder_management import FolderManagement
 from library.data.data_loader import DataLoader
@@ -12,6 +11,7 @@ from library.plotting.plots import Plotting
 from typing import Optional
 from library.mlflow_helper.reporter import Reporter
 from library.predictions.predictions import Predictions
+from library.preprocessing.replacements import Replacer
 
 base_path = Path("data_imputation_random_mean")
 
@@ -83,8 +83,6 @@ def get_model_run_id(args, model_experiment_id: str) -> str:
 
 if __name__ == "__main__":
     args = get_args()
-    # Percentage of data replaced by random sampling
-    fraction: float = 1 - float(args.percentage)
 
     if len(args.model) != 2:
         raise ValueError("Please specify the experiment as the first parameter and the run name as the second one!")
@@ -115,7 +113,7 @@ if __name__ == "__main__":
             model = mlflow.keras.load_model(f"./mlruns/{model_experiment_id}/{model_run_id}/artifacts/model")
 
             # Load data
-            cells, markers = DataLoader.load_marker_data(args.file)
+            cells, markers = DataLoader.load_single_cell_data(args.file)
             # Use whole file
             test_data = pd.DataFrame(columns=markers, data=Preprocessing.normalize(cells))
 
@@ -130,22 +128,12 @@ if __name__ == "__main__":
             # Imputed by using the VAE
             imputed_r2_scores: pd.DataFrame = pd.DataFrame()
 
-            for marker_to_impute in markers:
+            for feature_to_impute in markers:
                 # Make a fresh copy, to start with the ground truth data
                 working_data = ground_truth_data.copy()
 
-                marker_mean = working_data[marker_to_impute].mean()
-                marker_std = working_data[marker_to_impute].std()
-
-                # Replace % of the data provided by the args
-                working_data[marker_to_impute] = working_data[marker_to_impute].sample(frac=fraction, replace=False)
-
-                indexes = working_data[working_data[marker_to_impute].isna()].index
-
-                # values = np.random.normal(loc=marker_mean, scale=marker_std,
-                #                          size=test_data[marker_to_impute].isna().sum())
-                values = [0] * working_data[marker_to_impute].isna().sum()
-                working_data[marker_to_impute].fillna(pd.Series(values, index=indexes), inplace=True)
+                working_data, indexes = Replacer.replace_values(data=working_data, feature_to_replace=feature_to_impute,
+                                                                percentage=args.percentage)
 
                 imputed_data: pd.DataFrame = working_data.iloc[indexes].copy()
 
@@ -165,7 +153,7 @@ if __name__ == "__main__":
                 new_imputed_data.loc[imputed_data.index, :] = imputed_data[:]
 
                 # Calculate differences
-                differences = pd.DataFrame(ground_truth_data[marker_to_impute] - test_data[marker_to_impute])
+                differences = pd.DataFrame(ground_truth_data[feature_to_impute] - test_data[feature_to_impute])
                 differences = differences.loc[(differences != 0).any(1)]
 
                 # Reconstruct unmodified test data
@@ -175,20 +163,20 @@ if __name__ == "__main__":
                                                                                       markers=markers, use_mlflow=False)
 
                 reconstructed_r2_scores = reconstructed_r2_scores.append({
-                    "Marker": marker_to_impute,
-                    "Score": r2_score(ground_truth_data[marker_to_impute].iloc[indexes],
-                                      reconstructed_data[marker_to_impute].iloc[indexes]),
+                    "Marker": feature_to_impute,
+                    "Score": r2_score(ground_truth_data[feature_to_impute].iloc[indexes],
+                                      reconstructed_data[feature_to_impute].iloc[indexes]),
                 }, ignore_index=True)
 
                 imputed_r2_scores = imputed_r2_scores.append({
-                    "Marker": marker_to_impute,
-                    "Score": r2_score(ground_truth_data[marker_to_impute].iloc[indexes], imputed_data[marker_to_impute])
+                    "Marker": feature_to_impute,
+                    "Score": r2_score(ground_truth_data[feature_to_impute].iloc[indexes], imputed_data[feature_to_impute])
                 }, ignore_index=True)
 
                 replaced_r2_scores = replaced_r2_scores.append({
-                    "Marker": marker_to_impute,
-                    "Score": r2_score(ground_truth_data[marker_to_impute].iloc[indexes],
-                                      working_data[marker_to_impute].iloc[indexes])
+                    "Marker": feature_to_impute,
+                    "Score": r2_score(ground_truth_data[feature_to_impute].iloc[indexes],
+                                      working_data[feature_to_impute].iloc[indexes])
                 }, ignore_index=True)
 
             # Report results

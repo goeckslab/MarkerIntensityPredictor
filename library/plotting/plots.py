@@ -58,17 +58,18 @@ class Plotting:
         mlflow.log_artifact(str(save_path), mlflow_directory)
         plt.close()
 
-    def plot_markers(self, train_data, test_data, markers, mlflow_directory: str, file_name: str, val_data=None):
+    def plot_feature_intensities(self, train_data: pd.DataFrame, test_data: pd.DataFrame, features: list,
+                                 mlflow_directory: str, file_name: str, val_data=None):
         if val_data is not None:
             fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(9, 10), dpi=300, sharex=True)
         else:
             fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 10), dpi=300, sharex=True)
 
-        sns.heatmap(train_data, ax=ax1, xticklabels=markers)
-        sns.heatmap(test_data, ax=ax2, xticklabels=markers)
+        sns.heatmap(train_data, ax=ax1, xticklabels=features)
+        sns.heatmap(test_data, ax=ax2, xticklabels=features)
 
         if val_data is not None:
-            sns.heatmap(val_data, ax=ax3, xticklabels=markers)
+            sns.heatmap(val_data, ax=ax3, xticklabels=features)
 
         ax1.set_title("X Train")
         ax2.set_title("X Test")
@@ -83,27 +84,70 @@ class Plotting:
         mlflow.log_artifact(str(save_path), mlflow_directory)
         plt.close()
 
-    def plot_weights(self, weights, markers: list, mlflow_directory: str, fig_name: str):
-        df = pd.DataFrame(weights, columns=markers)
+    def plot_weights(self, weights, features: list, file_name: str, mlflow_directory: str = None):
+        df = pd.DataFrame(weights, columns=features)
         ax = sns.heatmap(df)
 
         # Markers count is 26. As all are present we can change the labels
         if len(df) == 25:
             ax.set_yticks(range(len(df)))
-            ax.set_yticklabels(markers)
+            ax.set_yticklabels(features)
             ax.set_xticks(range(len(df)))
-            ax.set_xticklabels(markers)
+            ax.set_xticklabels(features)
 
         ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
 
         fig = ax.get_figure()
         fig.tight_layout()
-        save_path = Path(self.__base_path, f"{fig_name}.png")
+        save_path = Path(self.__base_path, f"{file_name}.png")
         plt.savefig(save_path)
-        mlflow.log_artifact(str(save_path), mlflow_directory)
+
+        if mlflow_directory is not None:
+            mlflow.log_artifact(str(save_path), mlflow_directory)
+        else:
+            mlflow.log_artifact(str(save_path))
         plt.close()
 
-    def r2_score_comparison(self, r2_scores: dict, file_name: str, mlflow_directory: str = None):
+    def r2_scores_relative_difference_percentage(self, relative_score_performance: pd.DataFrame, features: list,
+                                                 file_name: str,
+                                                 mlflow_directory: str = None):
+        """
+        Calculates the relative performance using EN as a baseline
+        @param relative_score_performance:
+        @param features:
+        @param file_name:
+        @param mlflow_directory:
+        @return:
+        """
+
+        fig, ax = plt.subplots(ncols=1, figsize=(7, 5), dpi=300)
+        # Draw a nested barplot by species and sex
+        ax = sns.catplot(
+            data=relative_score_performance, kind="bar",
+            x="Feature", y="Score", hue="Model",
+            ci="sd", palette="dark", alpha=.6, height=6
+        )
+        ax.despine(left=True)
+        ax.set_axis_labels("Features", "Relative Difference R2 Score")
+        # Rotate labels
+        for axes in ax.axes.flat:
+            _ = axes.set_xticklabels(axes.get_xticklabels(), rotation=90)
+
+        # Put a legend below current axis
+        fig.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05),
+                   fancybox=True, shadow=True, ncol=len(relative_score_performance["Model"].unique()))
+        plt.tight_layout()
+
+        save_path = Path(self.__base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+
+        if mlflow_directory is not None:
+            mlflow.log_artifact(str(save_path), mlflow_directory)
+        else:
+            mlflow.log_artifact(str(save_path))
+        plt.close()
+
+    def r2_score_differences(self, r2_scores: dict, file_name: str, mlflow_directory: str = None):
         if len(r2_scores.items()) < 2:
             return
 

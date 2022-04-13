@@ -3,7 +3,6 @@ from pathlib import Path
 import mlflow
 import pandas as pd
 import tensorflow as tf
-from sklearn.metrics import r2_score
 from timeit import default_timer as timer
 from library.data.data_loader import DataLoader
 from library.data.folder_management import FolderManagement
@@ -14,6 +13,7 @@ from library.preprocessing.preprocessing import Preprocessing
 from library.preprocessing.split import SplitHandler
 from library.vae.vae import MarkerPredictionVAE
 from library.postprocessing.evaluation import PerformanceEvaluator
+from library.postprocessing.model_selector import ModelSelector
 
 base_path = Path("hyper_parameter_tuning")
 
@@ -80,8 +80,6 @@ if __name__ == "__main__":
     train_file = args.file[0]
     test_file = args.file[1]
 
-    test_file_evaluation_duration: float = 0
-    train_file_evaluation_duration: float = 0
     combined_files_evaluation_duration: float = 0
 
     FolderManagement.create_directory(base_path)
@@ -112,33 +110,14 @@ if __name__ == "__main__":
         evaluation_data: list = []
 
         # Load train and test cells
-        train_cells, _ = DataLoader.load_marker_data(train_file)
-        test_cells, markers = DataLoader.load_marker_data(test_file)
-
-        # Create train test split using the train file data
-        train_data, _ = SplitHandler.create_splits(cells=train_cells.copy(), create_val=False)
-
-        print("Evaluating training data set...")
-        start = timer()
-        evaluation_data.extend(evaluate_folds(train_data=train_data.copy(), amount_of_layers=3, name="Train Data 3"))
-        evaluation_data.extend(evaluate_folds(train_data=train_data.copy(), amount_of_layers=5, name="Train Data 5"))
-        end = timer()
-        train_file_evaluation_duration = end - start
-
-        # Create train test split using the test file data
-        train_data, _ = SplitHandler.create_splits(cells=test_cells.copy(), create_val=False)
-
-        print("Evaluating testing set...")
-        start = timer()
-        evaluation_data.extend(evaluate_folds(train_data=train_data.copy(), amount_of_layers=3, name="Test Data 3"))
-        evaluation_data.extend(evaluate_folds(train_data=train_data.copy(), amount_of_layers=5, name="Test Data 5"))
-        end = timer()
-        test_file_evaluation_duration = end - start
+        train_cells, _ = DataLoader.load_single_cell_data(train_file)
+        test_cells, markers = DataLoader.load_single_cell_data(test_file)
 
         # Create combined data of both files
         frames = [train_cells, test_cells]
         combined_data = pd.concat(frames)
-        combined_train_data, combined_test_data = SplitHandler.create_splits(cells=combined_data, create_val=False)
+
+        combined_train_data, holdout_data_set = SplitHandler.create_splits(cells=combined_data.copy(), features=markers)
 
         print("Evaluating combined data set...")
         start = timer()
@@ -150,12 +129,8 @@ if __name__ == "__main__":
         end = timer()
         combined_files_evaluation_duration = end - start
 
-        reconstruction_loss: float = 999999
-        selected_fold = {}
-        for validation_data in evaluation_data:
-            if validation_data["loss"] < reconstruction_loss:
-                selected_fold = validation_data
-                reconstruction_loss = validation_data["loss"]
+        # Select best performing fold
+        selected_fold: dict = ModelSelector.select_model_by_lowest_loss(evaluation_data=evaluation_data)
 
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=args.run) as run:
             # Set hyper parameters
@@ -164,19 +139,23 @@ if __name__ == "__main__":
             print(f"Using learning rate {learning_rate}")
 
             mlflow.log_param("Selected Fold", selected_fold)
-            mlflow.log_param("Train File", train_file)
-            mlflow.log_param("Test File", test_file)
-            mlflow.log_param("Train File Evaluation Duration", train_file_evaluation_duration)
-            mlflow.log_param("Test File Evaluation Duration", test_file_evaluation_duration)
+            mlflow.log_param("Files Used", [train_file, test_file])
             mlflow.log_param("Combined Files Evaluation Duration", combined_files_evaluation_duration)
 
+            # Use training set to create train and validation split. Use holdout set to create final model test
+            train_data, validation_data = SplitHandler.create_splits(
+                cells=combined_train_data.copy(), create_val=False, features=markers)
+
             # Normalize
-            train_data = Preprocessing.normalize(combined_train_data.copy())
-            test_data = Preprocessing.normalize(combined_test_data.copy())
+            train_data = Preprocessing.normalize(train_data.copy())
+            validation_data = Preprocessing.normalize(validation_data.copy())
+
+            # Create the completely unseen model test set
+            test_data = Preprocessing.normalize(holdout_data_set.copy())
 
             model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(
                 training_data=train_data,
-                validation_data=train_data,
+                validation_data=validation_data,
                 input_dimensions=
                 train_data.shape[1],
                 embedding_dimension=5,

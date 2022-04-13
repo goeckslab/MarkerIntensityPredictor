@@ -5,19 +5,20 @@ import pandas as pd
 
 class Reporter:
     @staticmethod
-    def report_cells_and_markers(save_path: Path, cells, markers: list, prefix: str = None):
+    def report_cells_and_features(save_path: Path, cells, features: list, prefix: str = None,
+                                  mlflow_folder: str = None):
 
         if prefix is None:
             cell_save_path = Path(save_path, "cells.csv")
-            markers_save_path = Path(save_path, "markers.csv")
+            features_save_path = Path(save_path, "features.csv")
         else:
             cell_save_path = Path(save_path, f"{prefix}_cells.csv")
-            markers_save_path = Path(save_path, f"{prefix}_markers.csv")
+            features_save_path = Path(save_path, f"{prefix}_features.csv")
 
         cells.to_csv(cell_save_path, index=False)
-        pd.DataFrame(markers).to_csv(markers_save_path, index=False)
+        pd.DataFrame(features).to_csv(features_save_path, index=False)
         mlflow.log_artifact(str(cell_save_path), "base")
-        mlflow.log_artifact(str(markers_save_path), "base")
+        mlflow.log_artifact(str(features_save_path), "base")
 
     @staticmethod
     def report_r2_scores(r2_scores: pd.DataFrame, save_path: Path, mlflow_folder: str = None, prefix: str = None):
@@ -71,3 +72,13 @@ class Reporter:
         save_path = Path(save_path, f"{file_name}.csv")
         df.to_csv(save_path, index=False)
         mlflow.log_artifact(str(save_path), mlflow_folder)
+
+    @staticmethod
+    def upload_csv(data: pd.DataFrame, save_path: Path, file_name: str, mlflow_folder: str = None):
+        save_path = Path(save_path, f"{file_name}.csv")
+        data.to_csv(save_path, index=False)
+        if mlflow_folder is not None:
+            mlflow.log_artifact(str(save_path), mlflow_folder)
+        else:
+            mlflow.log_artifact(str(save_path))
+

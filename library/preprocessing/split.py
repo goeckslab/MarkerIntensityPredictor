@@ -7,10 +7,11 @@ from sklearn.model_selection import train_test_split, KFold
 class SplitHandler:
 
     @staticmethod
-    def create_splits(cells: pd.DataFrame, create_val: bool = True, seed: int = 1) -> Tuple:
+    def create_splits(cells: pd.DataFrame, features: list, create_val: bool = True, seed: int = 1) -> Tuple:
         """
         Creates train val test split of the data provided
         @param cells: The cells to split
+        @param features: The feature list
         @param create_val: Should a validation set be created?
         @param seed: The seed to use
         @return: A tuple containing all the test sets.
@@ -19,12 +20,13 @@ class SplitHandler:
         # No validation set will be created
         if not create_val:
             X_train, X_test = train_test_split(cells, test_size=0.2, random_state=seed, shuffle=True)
-            return X_train, X_test
+            return pd.DataFrame(data=X_train, columns=features), pd.DataFrame(data=X_test, columns=features)
 
         # Create validation set
         X_dev, X_val = train_test_split(cells, test_size=0.05, random_state=seed, shuffle=True)
         X_train, X_test = train_test_split(X_dev, test_size=0.25, random_state=seed, shuffle=True)
-        return X_train, X_val, X_test
+        return pd.DataFrame(data=X_train, columns=features), pd.DataFrame(data=X_val, columns=features), pd.DataFrame(
+            data=X_test, columns=features)
 
     @staticmethod
     def create_folds(data_to_split: pd.DataFrame, splits: int = 5, seed: int = 1) -> Tuple:

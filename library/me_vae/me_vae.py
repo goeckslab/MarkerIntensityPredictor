@@ -9,14 +9,16 @@ import mlflow
 import mlflow.tensorflow
 from library.me_vae.custom_callbacks import CustomCallback, WeightsForBatch
 from tensorflow.keras.models import Model
+from typing import Tuple
 
 
 # https://towardsdatascience.com/intuitively-understanding-variational-autoencoders-1bfe67eb5daf
 
 
 class MEMarkerPredictionVAE:
-    def build_me_variational_auto_encoder(self, marker_training_data: pd.DataFrame,
-                                          morph_training_data: pd.DataFrame,
+
+    @staticmethod
+    def build_me_variational_auto_encoder(training_data: Tuple,
                                           validation_data: pd.DataFrame,
                                           input_dimensions: int,
                                           embedding_dimension: int, activation='relu',
@@ -25,24 +27,27 @@ class MEMarkerPredictionVAE:
                                           optimizer: str = "adam",
                                           use_ml_flow: bool = True):
         """
-            Sets up a 5 layer vae and trains it
-            """
+        Sets up a 5 layer vae and trains it
+        """
+
+        if len(training_data) != 2:
+            raise ValueError("Training and validation data must contain two datasets!")
+
+        marker_training_data = training_data[0]
+        morph_training_data = training_data[1]
 
         if use_ml_flow:
             mlflow.tensorflow.autolog()
 
         r = regularizers.l1_l2(10e-5)
 
-        if use_ml_flow:
-            mlflow.log_param("regularizer", r)
-
         # Switch network when layers are redefined
         if amount_of_layers == 5:
-            marker_nn = self.create_marker_nn_5_layers(marker_training_data.shape[1], activation, r)
+            marker_nn = MEMarkerPredictionVAE.__create_marker_nn_5_layers(marker_training_data.shape[1], activation, r)
         else:
-            marker_nn = self.create_marker_nn_3_layers(marker_training_data.shape[1], activation, r)
+            marker_nn = MEMarkerPredictionVAE.__create_marker_nn_3_layers(marker_training_data.shape[1], activation, r)
 
-        morph_nn = self.create_morpho_nn(morph_training_data.shape[1], activation, r)
+        morph_nn = MEMarkerPredictionVAE.__create_morpho_nn(morph_training_data.shape[1], activation, r)
         combined_input = concatenate([marker_nn.output, morph_nn.output])
 
         # Latent space
@@ -80,7 +85,8 @@ class MEMarkerPredictionVAE:
 
         return vae, encoder, decoder, history
 
-    def create_marker_nn_5_layers(self, input_dimensions: int, activation: str, r: int):
+    @staticmethod
+    def __create_marker_nn_5_layers(input_dimensions: int, activation: str, r: int):
         """
         Create the model for the markers
         @param input_dimensions:
@@ -100,7 +106,8 @@ class MEMarkerPredictionVAE:
 
         return model
 
-    def create_marker_nn_3_layers(self, input_dimensions: int, activation: str, r: int):
+    @staticmethod
+    def __create_marker_nn_3_layers(input_dimensions: int, activation: str, r: int):
         """
         Create the model for the markers
         @param input_dimensions:
@@ -118,7 +125,8 @@ class MEMarkerPredictionVAE:
 
         return model
 
-    def create_morpho_nn(self, input_dimensions, activation: str, r: int):
+    @staticmethod
+    def __create_morpho_nn(input_dimensions, activation: str, r: int):
         encoder_inputs = keras.Input(shape=(input_dimensions,))
         g1 = layers.Dense(input_dimensions, activation=activation, activity_regularizer=r, name="morph_1")(
             encoder_inputs)

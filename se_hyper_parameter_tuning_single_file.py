@@ -95,8 +95,8 @@ if __name__ == "__main__":
 
         mlflow.set_experiment(experiment_id=associated_experiment_id)
 
-        cells, markers = DataLoader.load_marker_data(args.file)
-        train_data, test_data = SplitHandler.create_splits(cells=cells, create_val=False)
+        cells, markers = DataLoader.load_single_cell_data(args.file)
+        train_data, holdout_data_set = SplitHandler.create_splits(cells=cells, create_val=False, features=markers)
 
         evaluation_data: list = []
 
@@ -106,10 +106,6 @@ if __name__ == "__main__":
         # Select fold
         selected_fold: dict = ModelSelector.select_model_by_lowest_loss(evaluation_data=evaluation_data)
 
-        # Normalize
-        train_data = Preprocessing.normalize(train_data.copy())
-        test_data = Preprocessing.normalize(test_data.copy())
-
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=args.run) as run:
             # Set hyper parameters
             learning_rate = float(selected_fold["learning_rate"])
@@ -118,9 +114,18 @@ if __name__ == "__main__":
             mlflow.log_param("Selected Fold", selected_fold)
             mlflow.log_param("File", args.file)
 
+            # Create train and validation set for final model training using the train data.
+            train_data, validation_data = SplitHandler.create_splits(cells=train_data, create_val=False,
+                                                                     features=markers)
+
+            # Normalize
+            train_data = Preprocessing.normalize(train_data.copy())
+            validation_data = Preprocessing.normalize(validation_data.copy())
+            test_data = Preprocessing.normalize(holdout_data_set.copy())
+
             model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(
                 training_data=train_data,
-                validation_data=train_data,
+                validation_data=validation_data,
                 input_dimensions=
                 train_data.shape[1],
                 embedding_dimension=5,

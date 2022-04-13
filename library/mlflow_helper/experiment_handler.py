@@ -39,7 +39,7 @@ class ExperimentHandler:
 
         return found_experiment_id
 
-    def create_experiment(self, name: str, description: str) -> str:
+    def create_experiment(self, name: str, description: str = "") -> str:
         """
         Creates a new experiment with the given name
         @param name: The name of the experiment

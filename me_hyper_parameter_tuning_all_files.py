@@ -13,6 +13,8 @@ from library.plotting.plots import Plotting
 from library.preprocessing.preprocessing import Preprocessing
 from library.preprocessing.split import SplitHandler
 from library.me_vae.me_vae import MEMarkerPredictionVAE
+from library.postprocessing.evaluation import PerformanceEvaluator
+from library.postprocessing.model_selector import ModelSelector
 
 base_path = Path("hyper_parameter_tuning")
 
@@ -50,14 +52,10 @@ def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, l
         morph_train_data = Preprocessing.normalize(morph_train_data)
         validation = Preprocessing.normalize(validation)
 
-        # marker_train_data = marker_train_data.reshape(marker_train_data.shape[0], marker_train_data.shape[1])
-        # morph_train_data = morph_train_data.reshape(morph_train_data.shape[0], morph_train_data.shape[1])
-
         vae_builder = MEMarkerPredictionVAE()
 
         model, encoder, decoder, history = vae_builder.build_me_variational_auto_encoder(
-            marker_training_data=marker_train_data,
-            morph_training_data=morph_train_data,
+            training_data=(marker_train_data, morph_train_data),
             validation_data=validation,
             input_dimensions=
             train.shape[1],
@@ -78,10 +76,14 @@ def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, l
     return evaluation_data
 
 
-def final_model(data_set: pd.DataFrame, files_used: list, evaluation_duration: float, selected_fold: {}):
+def final_model(train_set: pd.DataFrame, holdout_data_set: pd.DataFrame, features: list, files_used: list,
+                evaluation_duration: float,
+                selected_fold: {}):
     """
     Evaluate the final model
-    @param data_set:
+    @param train_set:
+    @param holdout_data_set:
+    @param features:
     @param files_used:
     @param evaluation_duration:
     @param selected_fold:
@@ -95,22 +97,23 @@ def final_model(data_set: pd.DataFrame, files_used: list, evaluation_duration: f
     mlflow.log_param("Number of Files", len(files_used))
     mlflow.log_param("Files", files_used)
     mlflow.log_param("Evaluation Duration", evaluation_duration)
-    mlflow.log_param("Number of cells", data_set.shape[0])
-    mlflow.log_param("Number of markers", data_set.shape[1])
+    mlflow.log_param("Number of cells", train_set.shape[0])
+    mlflow.log_param("Number of markers", train_set.shape[1])
 
     if args.exclude is not None:
         mlflow.log_param("Excluded file", args.exclude)
 
-    original_train_data, original_test_data = SplitHandler.create_splits(cells=data_set,
-                                                                         create_val=False)
+    train_data, validation_data = SplitHandler.create_splits(cells=train_set, create_val=False, features=features)
 
     # Create copies of original data
-    train_data = original_train_data.copy()
-    test_data = original_test_data.copy()
+    train_data = train_data.copy()
+    validation_data = validation_data.copy()
+    test_data = holdout_data_set.copy()
 
     # Split data into marker and morph features
     marker_train_data, morph_train_data = SplitHandler.split_dataset_into_markers_and_morph_features(
         train_data)
+
     marker_test_data, morph_test_data = SplitHandler.split_dataset_into_markers_and_morph_features(
         test_data)
 
@@ -122,14 +125,16 @@ def final_model(data_set: pd.DataFrame, files_used: list, evaluation_duration: f
     morph_train_data = Preprocessing.normalize(morph_train_data)
 
     # Normalize
+    validation_data = Preprocessing.normalize(validation_data)
+
+    # Normalize
     marker_test_data = Preprocessing.normalize(marker_test_data)
     morph_test_data = Preprocessing.normalize(morph_test_data)
 
     vae_builder = MEMarkerPredictionVAE()
     model, encoder, decoder, history = vae_builder.build_me_variational_auto_encoder(
-        marker_training_data=marker_train_data,
-        morph_training_data=morph_train_data,
-        validation_data=train_data,
+        training_data=(marker_train_data, morph_train_data),
+        validation_data=validation_data,
         input_dimensions=
         train_data.shape[1],
         embedding_dimension=5,
@@ -140,10 +145,6 @@ def final_model(data_set: pd.DataFrame, files_used: list, evaluation_duration: f
     encoded_data = pd.DataFrame(z)
     reconstructed_data = pd.DataFrame(columns=markers, data=decoder.predict(encoded_data))
 
-    r2_scores = pd.DataFrame()
-
-    recon_test = pd.DataFrame(data=reconstructed_data, columns=markers)
-
     # Use the normalized data to create a new ground truth dataset, to achieve real comparison
     frames = [pd.DataFrame(data=marker_test_data, columns=marker_columns),
               pd.DataFrame(data=morph_test_data, columns=morph_columns)]
@@ -151,17 +152,10 @@ def final_model(data_set: pd.DataFrame, files_used: list, evaluation_duration: f
     ground_truth_data: pd.DataFrame = pd.concat(frames, axis=1)
     ground_truth_data.columns = markers
 
-    for marker in markers:
-        ground_truth_marker = ground_truth_data[f"{marker}"]
-        reconstructed_marker = recon_test[f"{marker}"]
-
-        score = r2_score(ground_truth_marker, reconstructed_marker)
-        r2_scores = r2_scores.append(
-            {
-                "Marker": marker,
-                "Score": score
-            }, ignore_index=True
-        )
+    # Calculate r2 scores
+    r2_scores: pd.DataFrame = PerformanceEvaluator.calculate_r2_scores(features=markers,
+                                                                       ground_truth_data=ground_truth_data,
+                                                                       compare_data=reconstructed_data)
 
     # Save final model evaluation
     plotter.plot_scores(scores={"ME-VAE": r2_scores}, file_name="r2_score",
@@ -202,7 +196,7 @@ if __name__ == "__main__":
         if "SARDANA" in path.stem or args.exclude in path.stem:
             continue
 
-        cells, markers = DataLoader.load_marker_data(file_name=str(path))
+        cells, markers = DataLoader.load_single_cell_data(file_name=str(path))
         frames.append(cells)
         files_used.append(path.stem)
 
@@ -247,7 +241,8 @@ if __name__ == "__main__":
             evaluation_data: list = []
 
             # Create train test split using the train file data
-            train_data, _ = SplitHandler.create_splits(cells=data_set, create_val=False)
+            train_data, holdout_data_set = SplitHandler.create_splits(cells=data_set, create_val=False,
+                                                                      features=markers)
 
             print("Evaluating data set...")
             start = timer()
@@ -263,16 +258,13 @@ if __name__ == "__main__":
             evaluation_duration = end - start
 
             # Select best performing model
-            reconstruction_loss: float = 999999
-            selected_fold = {}
-            for validation_data in evaluation_data:
-                if validation_data["loss"] < reconstruction_loss:
-                    selected_fold = validation_data
-                    reconstruction_loss = validation_data["loss"]
+            selected_fold: dict = ModelSelector.select_model_by_lowest_loss(evaluation_data=evaluation_data)
 
             print("Evaluating final model")
             # Final model training
-            final_model(data_set=data_set, files_used=files_used, evaluation_duration=evaluation_duration,
+            final_model(train_set=data_set.copy(), holdout_data_set=holdout_data_set.copy(), features=markers,
+                        files_used=files_used,
+                        evaluation_duration=evaluation_duration,
                         selected_fold=selected_fold)
 
 

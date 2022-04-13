@@ -124,7 +124,7 @@ if __name__ == "__main__":
             model = mlflow.keras.load_model(f"./mlruns/{model_experiment_id}/{model_run_id}/artifacts/model")
 
             # Load data
-            cells, markers = DataLoader.load_marker_data(args.file)
+            cells, markers = DataLoader.load_single_cell_data(args.file)
 
             train_data, test_data = create_splits(cells=cells, create_val=False, seed=args.seed)
 

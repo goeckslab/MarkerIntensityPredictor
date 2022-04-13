@@ -71,12 +71,12 @@ if __name__ == "__main__":
             mlflow.log_param("Seed", args.seed)
 
             if len(args.files) == 1:
-                cells, markers = DataLoader.load_marker_data(args.files[0])
+                cells, markers = DataLoader.load_single_cell_data(args.files[0])
             else:
                 frames: list = []
                 markers = []
                 for file in args.files:
-                    cells, markers = DataLoader.load_marker_data(file)
+                    cells, markers = DataLoader.load_single_cell_data(file)
                     frames.append(cells)
 
                 cells = pd.concat(frames)

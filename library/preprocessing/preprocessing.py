@@ -5,7 +5,7 @@ import pandas as pd
 
 class Preprocessing:
     @staticmethod
-    def normalize(data: np.array, set_negative_to_zero: bool = False):
+    def normalize(data: pd.DataFrame, set_negative_to_zero: bool = False):
         """
         Normalizes the data. Mean is close to 0 and std is close to 1
         @param data:

@@ -74,7 +74,7 @@ class ExperimentComparer:
             print(f"Could not find an experiment with the given name: {self.experiment_name}")
             return
 
-        with mlflow.start_run(run_name="Run Comparison", experiment_id=self.experiment_id) as run:
+        with mlflow.start_run(run_name="Summary", experiment_id=self.experiment_id) as run:
             # Collect all experiments based on the search tag
             self.runs = self.experiment_handler.get_vae_ae_runs(experiment_id=self.experiment_id)
 
@@ -156,38 +156,20 @@ class ExperimentComparer:
                     "vae_combined": vae_combined_scores,
                 })
 
-            encoding_layer_weights: pd.DataFrame = DataLoader.load_layer_weights(self.ae_directory,
-                                                                                 "layer_encoding_h1_weights.csv")
-            decoding_layer_weights: pd.DataFrame = DataLoader.load_layer_weights(self.ae_directory,
-                                                                                 "layer_decoding_output_weights.csv")
-
             plotter = Plotting(self.base_path, args=args)
 
-            if len(en_runs) != 0:
-                plotter.r2_score_comparison(
-                    r2_scores={"AE": ae_mean_scores, "VAE": vae_mean_scores, "EN": en_mean_scores},
-                    file_name="R2 mean difference", mlflow_directory="Plots")
-            else:
-                plotter.r2_score_comparison(r2_scores={"AE": ae_mean_scores, "VAE": vae_mean_scores},
-                                            file_name="R2 mean difference", mlflow_directory="Plots")
+            plotter.r2_score_differences(
+                r2_scores={"EN": en_mean_scores, "AE": ae_mean_scores, "VAE": vae_mean_scores},
+                file_name="R2 Mean Difference", mlflow_directory="Plots")
 
             # Plot mean scores
-            if len(en_runs) != 0:
-                plotter.plot_scores(scores={"AE": ae_mean_scores, "VAE": vae_mean_scores, "EN": en_mean_scores},
-                                    file_name="R2 Mean Scores", mlflow_directory="Plots")
-            else:
-                plotter.plot_scores(scores={"AE": ae_mean_scores, "VAE": vae_mean_scores},
-                                    file_name="R2 Mean Scores", mlflow_directory="Plots")
+            plotter.plot_scores(scores={"EN": en_mean_scores, "AE": ae_mean_scores, "VAE": vae_mean_scores},
+                                file_name="R2 Mean Scores", mlflow_directory="Plots")
 
             # Plot distribution
-
-            if len(en_runs) != 0:
-                plotter.r2_scores_distribution(
-                    {"AE": ae_combined_scores, "VAE": vae_combined_scores, "EN": en_combined_scores},
-                    file_name="R2 Score Distribution", mlflow_directory="Plots")
-            else:
-                plotter.r2_scores_distribution({"AE": ae_combined_scores, "VAE": vae_combined_scores},
-                                               file_name="R2 Score Distribution", mlflow_directory="Plots")
+            plotter.r2_scores_distribution(
+                {"EN": en_combined_scores, "AE": ae_combined_scores, "VAE": vae_combined_scores, },
+                file_name="R2 Score Distribution", mlflow_directory="Plots")
 
             plotter.plot_scores(scores={"AE": pd.DataFrame(columns=["Marker", "Score"],
                                                            data={
@@ -209,13 +191,6 @@ class ExperimentComparer:
         # Download vae evaluation files
         self.experiment_handler.download_artifacts(base_save_path=self.vae_directory, runs=vae_runs,
                                                    mlflow_folder="Evaluation")
-
-        # Download ae files
-        self.experiment_handler.download_artifacts(base_save_path=self.ae_directory, runs=ae_runs,
-                                                   mlflow_folder="AE")
-
-        self.experiment_handler.download_artifacts(base_save_path=self.vae_directory, runs=vae_runs,
-                                                   mlflow_folder="VAE")
 
         if en_runs is not None:
             self.experiment_handler.download_artifacts(base_save_path=self.en_directory, runs=en_runs,

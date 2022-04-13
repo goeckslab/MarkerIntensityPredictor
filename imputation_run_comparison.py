@@ -103,5 +103,4 @@ if __name__ == "__main__":
     except BaseException as ex:
         print(ex)
     finally:
-        # FolderManagement.delete_directory(base_path)
-        pass
+        FolderManagement.delete_directory(base_path)

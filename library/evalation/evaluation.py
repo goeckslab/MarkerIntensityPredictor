@@ -7,28 +7,53 @@ import mlflow
 class Evaluation:
 
     @staticmethod
-    def calculate_r2_score(ground_truth: pd.DataFrame, reconstructed_data: pd.DataFrame, markers: list) -> pd.DataFrame:
+    def calculate_r2_scores(features: list, ground_truth_data: pd.DataFrame,
+                            compare_data: pd.DataFrame) -> pd.DataFrame:
         """
-        Calculates the r2 scores for the given parameters
-        @param ground_truth: The input data to evaluate
-        @param reconstructed_data: The reconstructed data to evaluate
-        @param markers: The markers of the dataset
-        @return: Returns a dataframe containing all r2 scores
+        Creates a dataframe containing the r2 scores for all features provided by the feature list
+        @param features:
+        @param ground_truth_data:
+        @param compare_data:
+        @return:
         """
-        r2_scores = pd.DataFrame(columns=["Marker", "Score"])
-        recon_test = pd.DataFrame(data=reconstructed_data, columns=markers)
-        test_data = pd.DataFrame(data=ground_truth, columns=markers)
+        r2_scores: pd.DataFrame = pd.DataFrame()
 
-        for marker in markers:
-            ground_truth_marker = test_data[f"{marker}"]
-            reconstructed_marker = recon_test[f"{marker}"]
+        for feature in features:
+            ground_truth_feature = ground_truth_data[f"{feature}"]
+            compare_feature = compare_data[f"{feature}"]
 
-            score = r2_score(ground_truth_marker, reconstructed_marker)
+            score = r2_score(ground_truth_feature, compare_feature)
             r2_scores = r2_scores.append(
                 {
-                    "Marker": marker,
+                    "Marker": feature,
                     "Score": score
                 }, ignore_index=True
             )
 
         return r2_scores
+
+    @staticmethod
+    def create_relative_score_performance(r2_scores: dict, features: list, reference_model: str) -> pd.DataFrame:
+        relative_score_performance: pd.DataFrame = pd.DataFrame()
+        reference_r2_scores = r2_scores.get(reference_model)
+        if reference_r2_scores is None:
+            raise ValueError(f"{reference_model} is not stored in dict")
+
+        for feature in features:
+
+            base_performance = reference_r2_scores.loc[reference_r2_scores['Marker'] == feature]["Score"].tolist()[0]
+
+            for model in r2_scores.keys():
+                model_scores = r2_scores.get(model)
+                model_performance = model_scores.loc[model_scores['Marker'] == feature]["Score"].tolist()[0]
+
+                # Calculate relative performance
+                relative_performance = model_performance / base_performance if base_performance > 0 else 0
+
+                relative_score_performance = relative_score_performance.append({
+                    "Feature": feature,
+                    "Score": relative_performance,
+                    "Model": model,
+                }, ignore_index=True)
+
+        return relative_score_performance

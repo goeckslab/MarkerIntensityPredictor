@@ -7,7 +7,7 @@ class Replacer:
 
     @staticmethod
     def replace_values(data: pd.DataFrame, feature_to_replace: str, percentage: float,
-                       value_to_replace_with: any) -> Tuple[pd.DataFrame, list]:
+                       value_to_replace_with: any = 0) -> Tuple[pd.DataFrame, list]:
         """
         Replaces a specific
         @param data:
