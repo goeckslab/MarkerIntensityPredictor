@@ -3,6 +3,7 @@ import argparse
 from library.plotting.plots import Plotting
 import pandas as pd
 from library.mlflow_helper.experiment_handler import ExperimentHandler
+from library.mlflow_helper.run_handler import RunHandler
 from pathlib import Path
 import mlflow
 from mlflow.entities import Run, Experiment
@@ -42,7 +43,8 @@ if __name__ == "__main__":
 
     try:
         client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
-        experiment_handler = ExperimentHandler(client=client)
+        experiment_handler: ExperimentHandler = ExperimentHandler(client=client)
+        run_handler: RunHandler = RunHandler(client=client)
 
         vae_r2_mean_scores: {} = {}
         vae_r2_combined_scores: {} = {}
@@ -53,6 +55,9 @@ if __name__ == "__main__":
         ae_r2_mean_scores: {} = {}
         ae_r2_combined_scores: {} = {}
 
+        me_vae_r2_mean_scores: {} = {}
+        me_vae_r2_combined_scores: {} = {}
+
         for experiment_name in args.experiments:
             experiment_id: str = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name,
                                                                               create_experiment=False)
@@ -61,7 +66,7 @@ if __name__ == "__main__":
                 print(f"Could not find experiment with name {experiment_name}. Skipping..")
                 continue
 
-            run: Run = experiment_handler.get_run_comparison_run(experiment_id=experiment_id)
+            run: Run = run_handler.get_inter_run_summary(experiment_id=experiment_id)
 
             if run is None:
                 print("Could not found a run labeled 'Run Comparison'. "
@@ -77,6 +82,13 @@ if __name__ == "__main__":
             vae_r2_combined_scores[experiment_name] = DataLoader.load_file(
                 load_path=Path(base_path, run.info.run_id),
                 file_name="vae_combined_r2_score.csv")
+
+            me_vae_r2_mean_scores[experiment_name] = DataLoader.load_file(
+                load_path=Path(base_path, run.info.run_id),
+                file_name="me_vae_mean_r2_score.csv")
+            me_vae_r2_combined_scores[experiment_name] = DataLoader.load_file(
+                load_path=Path(base_path, run.info.run_id),
+                file_name="me_vae_combined_r2_score.csv")
 
             en_r2_mean_scores[experiment_name] = DataLoader.load_file(
                 load_path=Path(base_path, run.info.run_id),
@@ -102,13 +114,18 @@ if __name__ == "__main__":
             plotting.r2_scores_distribution(r2_scores=vae_r2_combined_scores, file_name="VAE R2 Score Distribution")
             plotting.r2_scores_distribution(r2_scores=en_r2_combined_scores, file_name="EN R2 Score Distribution")
             plotting.r2_scores_distribution(r2_scores=ae_r2_combined_scores, file_name="AE R2 Score Distribution")
+            plotting.r2_scores_distribution(r2_scores=me_vae_r2_combined_scores,
+                                            file_name="ME VAE R2 Score Distribution")
+
             plotting.r2_score_model_distribution(vae_r2_scores=vae_r2_combined_scores,
                                                  ae_r2_scores=ae_r2_combined_scores,
                                                  en_r2_scores=en_r2_combined_scores,
+                                                 me_vae_r2_scores=me_vae_r2_combined_scores,
                                                  file_name="VAE vs. AE vs. EN Score Distribution")
-            plotting.r2_score_model_distribution_vae_vs_en(vae_r2_scores=vae_r2_combined_scores,
-                                                           en_r2_scores=en_r2_combined_scores,
-                                                           file_name="VAE vs. EN Score Distribution")
+
+            plotting.r2_score_model_distribution_comparison(r2_scores=vae_r2_combined_scores,
+                                                            compare_r2_scores=en_r2_combined_scores,
+                                                            file_name="VAE vs. EN Score Distribution")
 
             plotting.r2_score_model_mean(vae_r2_scores=vae_r2_mean_scores, ae_r2_scores=ae_r2_mean_scores,
                                          en_r2_scores=en_r2_mean_scores, file_name="Mean R2 score comparison")

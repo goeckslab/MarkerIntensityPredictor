@@ -1,6 +1,6 @@
 from pathlib import Path
 import argparse
-from library.knn.knn_imputation import KNNImputation
+from library.simple_imputer.simple_imputer import SimpleImputation
 import pandas as pd
 from library.data.folder_management import FolderManagement
 import mlflow
@@ -41,8 +41,8 @@ def get_args():
 
 
 if __name__ == "__main__":
-    base_path = Path(f"{base_path}_{str(int( time.time_ns() / 1000 ))}")
     args = get_args()
+    base_path = Path(f"{base_path}_{str(int( time.time_ns() / 1000 ))}")
 
     # Create mlflow tracking client
     client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
@@ -95,7 +95,7 @@ if __name__ == "__main__":
                 selected_ground_truth_values = normalized_cells[feature].iloc[indexes].copy()
 
                 # Impute missing values
-                imputed_values = KNNImputation.impute(working_data)
+                imputed_values = SimpleImputation.impute(working_data)
 
                 # Select imputed values for marker and indexes
                 selected_imputed_values = imputed_values[feature].iloc[indexes].copy()
@@ -108,7 +108,7 @@ if __name__ == "__main__":
                 )
 
             plotter = Plotting(base_path=base_path, args=args)
-            plotter.plot_scores(scores={"KNN": r2_scores}, file_name="R2 Scores")
+            plotter.plot_scores(scores={"Simple Imputation": r2_scores}, file_name="R2 Scores")
             plotter.plot_correlation(data_set=cells, file_name="Correlation")
             Reporter.report_r2_scores(r2_scores=r2_scores, save_path=base_path)
 

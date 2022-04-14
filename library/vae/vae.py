@@ -69,9 +69,6 @@ class MarkerPredictionVAE:
 
         r = regularizers.l1_l2(10e-5)
 
-        if use_ml_flow:
-            mlflow.log_param("regularizer", r)
-
         encoder_inputs = keras.Input(shape=(input_dimensions,))
         h1 = layers.Dense(input_dimensions, activation=activation, activity_regularizer=r, name="encoding_h1")(
             encoder_inputs)
@@ -128,9 +125,6 @@ class MarkerPredictionVAE:
             mlflow.tensorflow.autolog()
 
         r = regularizers.l1_l2(10e-5)
-
-        if use_ml_flow:
-            mlflow.log_param("regularizer", r)
 
         encoder_inputs = keras.Input(shape=(input_dimensions,))
         h1 = layers.Dense(input_dimensions, activation=activation, activity_regularizer=r, name="encoding_h1")(

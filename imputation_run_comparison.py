@@ -9,7 +9,7 @@ from library.data.folder_management import FolderManagement
 from library.data.data_loader import DataLoader
 from library.plotting.plots import Plotting
 from library.mlflow_helper.run_handler import RunHandler
-
+from library.evalation.evaluation import Evaluation
 base_path = Path("imputation_score_comparison")
 
 
@@ -59,6 +59,7 @@ if __name__ == "__main__":
     # Create mlflow tracking client
     client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
     experiment_handler: ExperimentHandler = ExperimentHandler(client=client)
+    run_handler: RunHandler = RunHandler(client=client)
 
     associated_experiment_id: str = get_associated_experiment_id(args)
     try:
@@ -68,8 +69,8 @@ if __name__ == "__main__":
             runs: [] = []
             for run_name in args.runs:
                 run_name = run_name.strip()
-                run: Run = experiment_handler.get_run_by_name(experiment_id=associated_experiment_id,
-                                                              run_name=run_name)
+                run: Run = run_handler.get_run_by_name(experiment_id=associated_experiment_id,
+                                                       run_name=run_name)
                 if run is None:
                     continue
                 runs.append(run)
@@ -86,7 +87,7 @@ if __name__ == "__main__":
                 if data is None:
                     continue
 
-                run_name: str = RunHandler.get_run_name_by_run_id(run_id=directory.stem, runs=runs)
+                run_name: str = run_handler.get_run_name_by_run_id(run_id=directory.stem, runs=runs)
 
                 if run_name is None:
                     raise ValueError(f"Run name for id {directory.stem} is none")
@@ -95,6 +96,10 @@ if __name__ == "__main__":
 
             plotter: Plotting = Plotting(base_path=base_path, args=args)
             plotter.plot_scores(scores=r2_scores, file_name="Imputation Performance")
+
+            # absolute_r2_score_performance: pd.DataFrame = Evaluation.create_absolute_score_performance(r2_scores=r2_scores, features=)
+
+
 
 
 

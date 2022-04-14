@@ -57,3 +57,25 @@ class Evaluation:
                 }, ignore_index=True)
 
         return relative_score_performance
+
+    @staticmethod
+    def create_absolute_score_performance(r2_scores: dict, features: list) -> pd.DataFrame:
+        """
+        Converts the data into the format required to use it for further plotting
+        @param r2_scores:
+        @param features:
+        @return:
+        """
+        absolute_score_performance: pd.DataFrame = pd.DataFrame()
+        for feature in features:
+            for model in r2_scores.keys():
+                model_scores = r2_scores.get(model)
+                model_performance = model_scores.loc[model_scores['Marker'] == feature]["Score"].tolist()[0]
+
+                absolute_score_performance = absolute_score_performance.append({
+                    "Feature": feature,
+                    "Score": model_performance,
+                    "Model": model,
+                }, ignore_index=True)
+
+        return absolute_score_performance

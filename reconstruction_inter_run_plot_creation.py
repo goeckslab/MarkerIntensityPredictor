@@ -5,9 +5,11 @@ import pandas as pd
 from library.data.folder_management import FolderManagement
 import argparse
 from library.mlflow_helper.experiment_handler import ExperimentHandler
+from library.mlflow_helper.run_handler import RunHandler
 from library.mlflow_helper.reporter import Reporter
 from library.plotting.plots import Plotting
 from library.data.data_loader import DataLoader
+from library.evalation.evaluation import Evaluation
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
@@ -31,23 +33,22 @@ class ExperimentComparer:
     # All runs to compare
     runs: list = []
     client = mlflow.tracking.MlflowClient()
-    base_path = Path("run_comparison")
+    base_path = Path("inter_run_comparison")
     # The user given experiment name
     experiment_name: str
     # The experiment id
     experiment_id: str
     experiment_handler: ExperimentHandler
+    run_handler: RunHandler
 
     download_directory: Path
-    ae_directory: Path
-    vae_directory: Path
-    en_directory: Path
 
     def __init__(self, experiment_name: str):
 
         # Create mlflow tracking client
         client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
         self.experiment_handler: ExperimentHandler = ExperimentHandler(client=client)
+        self.run_handler: RunHandler = RunHandler(client=client)
 
         self.experiment_name = experiment_name
         self.experiment_id = self.experiment_handler.get_experiment_id_by_name(experiment_name=self.experiment_name,
@@ -57,9 +58,6 @@ class ExperimentComparer:
             raise ValueError(f"Could not find experiment with name {experiment_name}")
 
         self.download_directory = FolderManagement.create_directory(Path(self.base_path, "runs"))
-        self.ae_directory = FolderManagement.create_directory(Path(self.download_directory, "AE"))
-        self.vae_directory = FolderManagement.create_directory(Path(self.download_directory, "VAE"))
-        self.en_directory = FolderManagement.create_directory(Path(self.download_directory, "EN"))
 
     def __enter__(self):
         return self
@@ -74,14 +72,13 @@ class ExperimentComparer:
             print(f"Could not find an experiment with the given name: {self.experiment_name}")
             return
 
-        with mlflow.start_run(run_name="Summary", experiment_id=self.experiment_id) as run:
+        with mlflow.start_run(run_name="Inter Run Summary", experiment_id=self.experiment_id) as run:
             # Collect all experiments based on the search tag
-            self.runs = self.experiment_handler.get_vae_ae_runs(experiment_id=self.experiment_id)
+            self.runs = self.run_handler.get_summary_runs(experiment_id=self.experiment_id)
 
             if len(self.runs) == 0:
                 print(f"No runs found.")
                 print("Resources are being cleaned up.")
-                # self.client.delete_run(run.info.run_id)
                 return
 
             mlflow.log_param("Included Runs", len(self.runs))
@@ -90,111 +87,141 @@ class ExperimentComparer:
 
             print(f"Found {len(self.runs)} runs.")
 
-            # Select all auto encoder runs
-            ae_runs = [run for run in self.runs if
-                       run.data.tags.get("Model") == "AE" and run.data.tags.get('mlflow.parentRunId') is not None]
+            self.experiment_handler.download_artifacts(base_save_path=self.download_directory, runs=self.runs)
 
-            # Select all vae runs
-            vae_runs = [run for run in self.runs if
-                        run.data.tags.get("Model") == "VAE" and run.data.tags.get('mlflow.parentRunId') is not None]
+            ae_mean_scores, ae_combined_scores = DataLoader.load_r2_scores_for_model(self.download_directory,
+                                                                                     "ae_r2_score.csv")
+            vae_mean_scores, vae_combined_scores = DataLoader.load_r2_scores_for_model(self.download_directory,
+                                                                                       "vae_r2_score.csv")
+            en_mean_scores, en_combined_scores = DataLoader.load_r2_scores_for_model(self.download_directory,
+                                                                                     "en_r2_score.csv")
+            me_vae_mean_scores, me_vae_combined_scores = DataLoader.load_r2_scores_for_model(self.download_directory,
+                                                                                             "me_vae_r2_score.csv")
 
-            # Select all vae runs
-            en_runs = [run for run in self.runs if
-                       run.data.tags.get("Model") == "ElasticNet" and run.data.tags.get(
-                           'mlflow.parentRunId') is not None]
-
-            # Download all artifacts
-            self.__download_artifacts(ae_runs=ae_runs, vae_runs=vae_runs, en_runs=en_runs)
-
-            ae_mean_scores, ae_combined_scores = DataLoader.load_r2_scores_for_model(self.ae_directory)
-            vae_mean_scores, vae_combined_scores = DataLoader.load_r2_scores_for_model(self.vae_directory)
-
-            if len(en_runs) != 0:
-                en_mean_scores, en_combined_scores = DataLoader.load_r2_scores_for_model(self.en_directory)
-
-            mlflow.log_param("AE marker count", ae_mean_scores.shape[0])
-            mlflow.log_param("VAE marker count", vae_mean_scores.shape[0])
-
-            if len(en_runs) != 0:
-                mlflow.log_param("EN marker count", vae_mean_scores.shape[0])
+            mlflow.log_param("AE feature count", ae_mean_scores.shape[0])
+            mlflow.log_param("VAE feature count", vae_mean_scores.shape[0])
+            mlflow.log_param("EN feature count", en_mean_scores.shape[0])
+            mlflow.log_param("ME VAE feature count", me_vae_mean_scores.shape[0])
 
             # Report mean differences
             ae_mean_difference_scores = pd.DataFrame(columns=["Markers", "Score"])
             ae_mean_difference_scores["Markers"] = ae_combined_scores.columns
             ae_mean_difference_scores["Score"] = ae_combined_scores.diff().mean().values
+
             Reporter.report_r2_score_mean_difference(r2score_difference=ae_mean_difference_scores,
-                                                     save_path=self.ae_directory, prefix="ae")
+                                                     save_path=self.base_path, prefix="ae")
 
             vae_mean_difference_scores = pd.DataFrame(columns=["Markers", "Score"])
             vae_mean_difference_scores["Markers"] = vae_combined_scores.columns
             vae_mean_difference_scores["Score"] = vae_combined_scores.diff().mean().values
-            Reporter.report_r2_score_mean_difference(r2score_difference=ae_mean_difference_scores,
-                                                     save_path=self.vae_directory, prefix="vae")
+            Reporter.report_r2_score_mean_difference(r2score_difference=vae_mean_difference_scores,
+                                                     save_path=self.base_path, prefix="vae")
 
-            if len(en_runs) != 0:
-                en_mean_difference_scores = pd.DataFrame(columns=["Markers", "Score"])
-                en_mean_difference_scores["Markers"] = en_combined_scores.columns
-                en_mean_difference_scores["Score"] = en_combined_scores.diff().mean().values
-                Reporter.report_r2_score_mean_difference(r2score_difference=en_mean_difference_scores,
-                                                         save_path=self.en_directory, prefix="en")
+            en_mean_difference_scores = pd.DataFrame(columns=["Markers", "Score"])
+            en_mean_difference_scores["Markers"] = en_combined_scores.columns
+            en_mean_difference_scores["Score"] = en_combined_scores.diff().mean().values
+            Reporter.report_r2_score_mean_difference(r2score_difference=en_mean_difference_scores,
+                                                     save_path=self.base_path, prefix="en")
 
-            # Report r2 scores
-            if len(en_runs) != 0:
-                self.__report_r2_scores({
-                    "ae_mean": ae_mean_scores,
-                    "ae_combined": ae_combined_scores,
-                    "vae_mean": vae_mean_scores,
-                    "vae_combined": vae_combined_scores,
-                    "en_mean": en_mean_scores,
-                    "en_combined": en_combined_scores,
-                })
-            else:
-                self.__report_r2_scores({
-                    "ae_mean": ae_mean_scores,
-                    "ae_combined": ae_combined_scores,
-                    "vae_mean": vae_mean_scores,
-                    "vae_combined": vae_combined_scores,
-                })
+            me_vae_mean_difference_scores = pd.DataFrame(columns=["Markers", "Score"])
+            me_vae_mean_difference_scores["Markers"] = me_vae_combined_scores.columns
+            me_vae_mean_difference_scores["Score"] = me_vae_combined_scores.diff().mean().values
+            Reporter.report_r2_score_mean_difference(r2score_difference=me_vae_mean_difference_scores,
+                                                     save_path=self.base_path, prefix="me_vae")
+
+            self.__report_r2_scores({
+                "ae_mean": ae_mean_scores,
+                "ae_combined": ae_combined_scores,
+                "vae_mean": vae_mean_scores,
+                "vae_combined": vae_combined_scores,
+                "en_mean": en_mean_scores,
+                "en_combined": en_combined_scores,
+                "me_vae_mean": me_vae_mean_scores,
+                "me_vae_combined": me_vae_combined_scores
+            })
 
             plotter = Plotting(self.base_path, args=args)
 
-            plotter.r2_score_differences(
-                r2_scores={"EN": en_mean_scores, "AE": ae_mean_scores, "VAE": vae_mean_scores},
-                file_name="R2 Mean Difference", mlflow_directory="Plots")
+            r2_mean_scores = {"EN": en_mean_scores, "AE": ae_mean_scores, "VAE": vae_mean_scores,
+                              "ME VAE": me_vae_mean_scores}
+
+            plotter.r2_score_differences(r2_scores=r2_mean_scores, file_name="R2 Mean Difference",
+                                         mlflow_directory="Plots")
 
             # Plot mean scores
-            plotter.plot_scores(scores={"EN": en_mean_scores, "AE": ae_mean_scores, "VAE": vae_mean_scores},
-                                file_name="R2 Mean Scores", mlflow_directory="Plots")
+            plotter.plot_scores(scores=r2_mean_scores, file_name="R2 Mean Scores", mlflow_directory="Plots")
 
             # Plot distribution
             plotter.r2_scores_distribution(
-                {"EN": en_combined_scores, "AE": ae_combined_scores, "VAE": vae_combined_scores, },
-                file_name="R2 Score Distribution", mlflow_directory="Plots")
+                {"EN": en_combined_scores, "AE": ae_combined_scores, "VAE": vae_combined_scores,
+                 "ME VAE": me_vae_combined_scores},
+                file_name=f"{args.experiment} R2 Score Distribution", mlflow_directory="Plots")
 
             plotter.plot_scores(scores={"AE": pd.DataFrame(columns=["Marker", "Score"],
                                                            data={
                                                                'Marker': ae_combined_scores.columns,
                                                                'Score': ae_combined_scores.diff().mean().values})},
-                                prefix="ae", file_name="Mean Difference", mlflow_directory="Plots")
+                                file_name=f"{args.experiment} AE Mean Difference", mlflow_directory="Plots")
 
             plotter.plot_scores(scores={"VAE": pd.DataFrame(columns=["Marker", "Score"],
                                                             data={
                                                                 'Marker': vae_combined_scores.columns,
                                                                 'Score': vae_combined_scores.diff().mean().values})},
-                                prefix="vae", file_name="Mean Difference", mlflow_directory="Plots")
+                                file_name=f"{args.experiment} VAE Mean Difference", mlflow_directory="Plots")
 
-    def __download_artifacts(self, ae_runs: [], vae_runs: [], en_runs: [] = None):
-        # Download ae evaluation files
-        self.experiment_handler.download_artifacts(base_save_path=self.ae_directory, runs=ae_runs,
-                                                   mlflow_folder="Evaluation")
+            plotter.plot_scores(scores={"EN": pd.DataFrame(columns=["Marker", "Score"],
+                                                           data={
+                                                               'Marker': en_combined_scores.columns,
+                                                               'Score': en_combined_scores.diff().mean().values})},
+                                file_name=f"{args.experiment} EN Mean Difference", mlflow_directory="Plots")
 
-        # Download vae evaluation files
-        self.experiment_handler.download_artifacts(base_save_path=self.vae_directory, runs=vae_runs,
-                                                   mlflow_folder="Evaluation")
+            plotter.plot_scores(scores={"ME VAE": pd.DataFrame(columns=["Marker", "Score"],
+                                                               data={
+                                                                   'Marker': me_vae_combined_scores.columns,
+                                                                   'Score': me_vae_combined_scores.diff().mean().values})},
+                                file_name=f"{args.experiment} ME VAE Mean Difference", mlflow_directory="Plots")
 
-        if en_runs is not None:
-            self.experiment_handler.download_artifacts(base_save_path=self.en_directory, runs=en_runs,
-                                                       mlflow_folder="Evaluation")
+            features: list = DataLoader.load_file(load_path=Path(self.download_directory, self.runs[0].info.run_id),
+                                                  file_name="Features.csv")["Features"].to_list()
+
+            relative_en_performance_scores = Evaluation.create_relative_score_performance(r2_scores=r2_mean_scores,
+                                                                                          features=features,
+                                                                                          reference_model="EN")
+            relative_ae_performance_scores = Evaluation.create_relative_score_performance(r2_scores=r2_mean_scores,
+                                                                                          features=features,
+                                                                                          reference_model="AE")
+
+            relative_me_vae_performance_scores = Evaluation.create_relative_score_performance(r2_scores=r2_mean_scores,
+                                                                                              features=features,
+                                                                                              reference_model="ME VAE")
+
+            plotter.r2_scores_relative_performance(
+                relative_score_performance=relative_en_performance_scores,
+                features=features,
+                file_name=f"{args.experiment} Relative EN Performance Difference",
+                mlflow_directory="Plots"
+            )
+
+            plotter.r2_scores_relative_performance(
+                relative_score_performance=relative_ae_performance_scores,
+                features=features,
+                file_name=f"{args.experiment} Relative AE Performance Difference",
+                mlflow_directory="Plots"
+            )
+
+            plotter.r2_scores_relative_performance(
+                relative_score_performance=relative_me_vae_performance_scores,
+                features=features,
+                file_name=f"{args.experiment} Relative ME VAE Performance Difference",
+                mlflow_directory="Plots"
+            )
+
+            absolute_performance_scores: pd.DataFrame = Evaluation.create_absolute_score_performance(
+                r2_scores=r2_mean_scores, features=features)
+
+            plotter.r2_scores_absolute_performance(absolute_score_performance=absolute_performance_scores,
+                                                   file_name=f"{args.experiment} Absolute Performance Comparison",
+                                                   mlflow_directory="Plots")
 
     def __report_r2_scores(self, scores: {}):
         for key, scores in scores.items():

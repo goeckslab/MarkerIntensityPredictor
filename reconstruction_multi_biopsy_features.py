@@ -98,7 +98,7 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.Da
                                                                           learning_rate=learning_rate,
                                                                           amount_of_layers=amount_of_layers)
 
-        # Create test data by using the test cells
+        # Create test data by using the test cells and normalize
         test_data = pd.DataFrame(data=Preprocessing.normalize(test_cells.copy()), columns=features)
 
         embeddings, reconstructed_data = Predictions.encode_decode_ae_data(encoder=encoder, decoder=decoder,
@@ -106,11 +106,11 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.Da
                                                                            save_path=results_folder,
                                                                            mlflow_directory="Evaluation")
 
-        r2_scores: pd.DataFrame = Evaluation.calculate_r2_scores(ground_truth_data=test_data,
+        ae_r2_scores: pd.DataFrame = Evaluation.calculate_r2_scores(ground_truth_data=test_data,
                                                                  compare_data=reconstructed_data,
                                                                  features=features)
 
-        Reporter.report_r2_scores(r2_scores=r2_scores, save_path=Path(results_folder), mlflow_folder="Evaluation")
+        Reporter.report_r2_scores(r2_scores=ae_r2_scores, save_path=Path(results_folder), mlflow_folder="Evaluation")
 
         plotter = Plotting(results_folder, args)
         plotter.plot_model_architecture(model=encoder, file_name="AE Encoder", mlflow_folder="Evaluation")
@@ -118,7 +118,7 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.Da
         plotter.plot_model_performance(history, "Evaluation", "Model performance")
         plotter.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data, markers=features,
                                            mlflow_directory="Evaluation", file_name="Input v Reconstructed")
-        plotter.plot_scores(scores={"AE": r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
+        plotter.plot_scores(scores={"AE": ae_r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
         plotter.plot_feature_intensities(train_data=train_data, test_data=test_data,
                                          val_data=val_data, features=features,
                                          mlflow_directory="Evaluation",
@@ -139,7 +139,7 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.Da
         plotter.plot_weights(weights=decoding_output_weights, features=features, mlflow_directory="Evaluation",
                              file_name="Decoding layer")
 
-        return r2_scores
+        return ae_r2_scores
 
 
 def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.DataFrame:
@@ -208,10 +208,10 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.D
                                                                             mlflow_directory="Evaluation")
 
         # Evaluate
-        r2_scores = Evaluation.calculate_r2_scores(ground_truth_data=test_data, compare_data=reconstructed_data,
+        vae_r2_scores = Evaluation.calculate_r2_scores(ground_truth_data=test_data, compare_data=reconstructed_data,
                                                    features=features)
 
-        Reporter.report_r2_scores(r2_scores=r2_scores, save_path=results_folder,
+        Reporter.report_r2_scores(r2_scores=vae_r2_scores, save_path=results_folder,
                                   mlflow_folder="Evaluation")
 
         vae_plotting = Plotting(results_folder, args)
@@ -221,7 +221,7 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.D
         vae_plotting.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data,
                                                 markers=features, mlflow_directory="Evaluation",
                                                 file_name="Initial vs. Reconstructed markers")
-        vae_plotting.plot_scores(scores={"VAE": r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
+        vae_plotting.plot_scores(scores={"VAE": vae_r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
         vae_plotting.plot_feature_intensities(train_data=train_data, test_data=test_data,
                                               val_data=val_data, features=features,
                                               mlflow_directory="Evaluation",
@@ -241,7 +241,7 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.D
         vae_plotting.plot_weights(decoding_output_weights, features=features, mlflow_directory="Evaluation",
                                   file_name="Decoding layer")
 
-        return r2_scores
+        return vae_r2_scores
 
 
 def start_me_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.DataFrame:
@@ -295,16 +295,6 @@ def start_me_vae_experiment(args, experiment_id: str, results_folder: Path) -> p
         morph_train_data = Preprocessing.normalize(morph_train_data)
         validation_data = Preprocessing.normalize(validation_data)
 
-        # Create and train model
-        model, encoder, decoder, history = MEMarkerPredictionVAE.build_me_variational_auto_encoder(
-            training_data=(marker_train_data, morph_train_data),
-            validation_data=validation_data,
-            input_dimensions=
-            train_data.shape[1],
-            embedding_dimension=5,
-            learning_rate=learning_rate,
-            amount_of_layers=amount_of_layers)
-
         # Split hold out set into marker and morph data for testing model performance
         marker_test_data, morph_test_data = SplitHandler.split_dataset_into_markers_and_morph_features(
             data_set=pd.DataFrame(data=test_cells.copy(), columns=features))
@@ -336,10 +326,10 @@ def start_me_vae_experiment(args, experiment_id: str, results_folder: Path) -> p
                                                                                  mlflow_directory="Evaluation")
 
         # Evaluate
-        r2_scores = Evaluation.calculate_r2_scores(ground_truth_data=test_data, compare_data=reconstructed_data,
+        me_vae_r2_scores = Evaluation.calculate_r2_scores(ground_truth_data=test_data, compare_data=reconstructed_data,
                                                    features=features)
 
-        Reporter.report_r2_scores(r2_scores=r2_scores, save_path=results_folder,
+        Reporter.report_r2_scores(r2_scores=me_vae_r2_scores, save_path=results_folder,
                                   mlflow_folder="Evaluation")
 
         vae_plotting = Plotting(results_folder, args)
@@ -349,13 +339,13 @@ def start_me_vae_experiment(args, experiment_id: str, results_folder: Path) -> p
         vae_plotting.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data,
                                                 markers=features, mlflow_directory="Evaluation",
                                                 file_name="Initial vs. Reconstructed markers")
-        vae_plotting.plot_scores(scores={"ME VAE": r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
+        vae_plotting.plot_scores(scores={"ME VAE": me_vae_r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
         vae_plotting.plot_feature_intensities(train_data=train_data, test_data=test_data,
                                               val_data=validation_data, features=features,
                                               mlflow_directory="Evaluation",
                                               file_name="Marker Expression")
 
-        return r2_scores
+        return me_vae_r2_scores
 
 
 def start_elastic_net(args, experiment_id: str, results_folder: Path) -> pd.DataFrame:
@@ -386,16 +376,16 @@ def start_elastic_net(args, experiment_id: str, results_folder: Path) -> pd.Data
         train_data = Preprocessing.normalize(train_data)
         test_data = Preprocessing.normalize(test_data)
 
-        r2_scores: pd.DataFrame = ElasticNet.train_elastic_net(train_data=train_data, test_data=test_data,
+        en_r2_scores: pd.DataFrame = ElasticNet.train_elastic_net(train_data=train_data, test_data=test_data,
                                                                features=features,
                                                                random_state=args.seed, tolerance=0.05)
 
-        Reporter.report_r2_scores(r2_scores=r2_scores, save_path=results_folder, mlflow_folder="Evaluation")
+        Reporter.report_r2_scores(r2_scores=en_r2_scores, save_path=results_folder, mlflow_folder="Evaluation")
 
         plotter = Plotting(results_folder, args)
-        plotter.plot_scores(scores={"EN": r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
+        plotter.plot_scores(scores={"EN": en_r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
 
-        return r2_scores
+        return en_r2_scores
 
 
 if __name__ == "__main__":
@@ -471,7 +461,8 @@ if __name__ == "__main__":
                 print("Comparing ml models.")
 
                 # Just load the features
-                _, features = DataLoader.load_single_cell_data(file_name=args.file[0])
+                train_cells, _ = DataLoader.load_single_cell_data(file_name=args.file[0])
+                test_cells, features = DataLoader.load_single_cell_data(file_name=args.file[1])
 
                 r2_scores = {"EN": en_r2_scores, "AE": ae_r2_scores, "VAE": vae_r2_scores,
                              "ME VAE": me_vae_r2_scores}
@@ -483,6 +474,12 @@ if __name__ == "__main__":
                 # Upload features
                 Reporter.upload_csv(data=pd.DataFrame(data=features, columns=["Features"]), save_path=base_results_path,
                                     file_name="Features")
+
+                Reporter.upload_csv(data=train_cells.corr(method='spearman'), save_path=base_results_path,
+                                    file_name="train_correlation")
+
+                Reporter.upload_csv(data=test_cells.corr(method='spearman'), save_path=base_results_path,
+                                    file_name="test_correlation")
 
     except BaseException as ex:
         print(ex)

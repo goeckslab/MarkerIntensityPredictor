@@ -14,7 +14,7 @@ class Replacer:
         @param feature_to_replace:
         @param percentage:
         @param value_to_replace_with:
-        @return:
+        @return: Returns the complete data with replacements and the indexes of the replacements
         """
         # Replace % of the data provided by the args
         data[feature_to_replace] = data[feature_to_replace].sample(frac=1 - percentage, replace=False).copy()

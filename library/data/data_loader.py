@@ -55,17 +55,18 @@ class DataLoader:
         return cells.iloc[:, :], features
 
     @staticmethod
-    def load_r2_scores_for_model(load_path: Path) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def load_r2_scores_for_model(load_path: Path, file_name: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
         Loads all r2scores for the given model and combines them in a dataset
         @param load_path: The path from where to load the data
+        @param file_name: The file name to search for
         @return: Returns a tuple of dataframes. First dataframe contains the mean scores, the second contains all combined scores.
         """
         combined_r2_scores = pd.DataFrame()
         markers = []
 
         for p in load_path.rglob("*"):
-            if p.name == "r2_score.csv":
+            if p.name == file_name:
                 df = pd.read_csv(p.absolute(), header=0)
                 combined_r2_scores = combined_r2_scores.append(df["Score"], ignore_index=True)
                 markers = df["Marker"]
@@ -113,3 +114,42 @@ class DataLoader:
             combined_weights = combined_weights.append(df, ignore_index=True)
 
         return combined_weights
+
+    @staticmethod
+    def load_files_in_folder(folder: str, file_to_exclude: str) -> Tuple:
+        """
+        Loads all files in a folder, but excluding the file to exclude
+        @param folder:
+        @param file_to_exclude:
+        @return: Returns a tuple. First is the dataset, second are the features, third is a list of all files used
+        """
+        files_used: list = []
+        frames: list = []
+        path_list = Path(folder).glob('**/*.csv')
+        features: list = []
+
+        found_excluded_file: bool = False
+
+        for path in path_list:
+            if "SARDANA" in path.stem:
+                continue
+
+            # Only raise an issue if the specific file cannot be found
+            if Path(file_to_exclude).stem == path.stem:
+                found_excluded_file = True
+                continue
+
+            cells, features = DataLoader.load_single_cell_data(file_name=str(path))
+            frames.append(cells)
+            files_used.append(path.stem)
+
+        if not found_excluded_file:
+            raise ValueError(f"File {file_to_exclude} could not be found! Please specify a valid path ")
+
+        if len(frames) == 0:
+            raise ValueError("No files found")
+
+        data_set = pd.concat(frames)
+        data_set.columns = features
+
+        return data_set, features, files_used

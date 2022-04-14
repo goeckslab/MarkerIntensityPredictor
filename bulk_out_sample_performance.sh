@@ -19,24 +19,28 @@ if [ -z "$seed" ]; then
   seed=1
 fi
 
-for filename in ./data/*.csv; do
-  if [[ "$filename" == *"SARDANA.csv"* ]]; then
+for filepath in ./data/*.csv; do
+  if [[ "$filepath" == *"SARDANA.csv"* ]]; then
     continue
   fi
 
-  for comparefile in ./data/*csv; do
-    if [[ "$comparefile" == *"SARDANA.csv"* ]]; then
+  for comparepath in ./data/*csv; do
+    if [[ "$comparepath" == *"SARDANA.csv"* ]]; then
       continue
     fi
 
-    if [[ "$comparefile" == "$filename" ]]; then
+    if [[ "$comparepath" == "$filepath" ]]; then
       continue
     fi
 
-    for RUN in {1..5}; do
-      echo "Starting run ${RUN} comparing ${filename} with ${comparefile}"
-      source venv/bin/activate
-      python3 multi_biopsy_marker_prediction.py -e "${experiment_name}" --file "${filename}" "${comparefile}" -r "${RUN}" -s $seed
-    done
+    source venv/bin/activate
+    filename="$(basename -- "${filepath} .csv")"
+    filename=${filename%%.*}
+
+    comparename="$(basename -- "${comparepath} .csv")"
+    comparename=${comparename%%.*}
+    python3 reconstruction_multi_biopsy_features.py -e "${experiment_name}" --file "${filepath}" "${comparepath}" -r "${filename}_${comparename}" -s $seed
+
+
   done
 done

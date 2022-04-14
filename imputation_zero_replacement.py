@@ -172,7 +172,7 @@ if __name__ == "__main__":
                 encoded_data, reconstructed_data = Predictions.encode_decode_vae_data(encoder=model.encoder,
                                                                                       decoder=model.decoder,
                                                                                       data=ground_truth_data,
-                                                                                      markers=markers, use_mlflow=False)
+                                                                                      features=markers, use_mlflow=False)
 
                 reconstructed_r2_scores = reconstructed_r2_scores.append({
                     "Marker": marker_to_impute,

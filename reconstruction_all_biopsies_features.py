@@ -43,11 +43,11 @@ def get_args():
                         help="A description for the experiment to give a broad overview. "
                              "This is only used when a new experiment is being created. Ignored if experiment exists",
                         type=str)
-    parser.add_argument("--file", action="store", required=True, help="The file used for training the model")
+    parser.add_argument("--folder", action="store", required=True,
+                        help="The folder used to load the data")
+    parser.add_argument("--exclude", action="store", required=False,
+                        help="A file which can be excluded from training.", default=None)
     parser.add_argument("--morph", action="store_true", help="Include morphological data", default=True)
-    parser.add_argument("--mode", action="store",
-                        help="If used only the given model will be executed and no comparison will take place",
-                        required=False, choices=['vae', 'ae', 'none'], default="none")
     parser.add_argument("--seed", "-s", action="store", help="Include morphological data", type=int, default=1)
 
     return parser.parse_args()
@@ -55,25 +55,32 @@ def get_args():
 
 def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.DataFrame:
     with mlflow.start_run(run_name="AE", nested=True, experiment_id=experiment_id) as run:
-        mlflow.log_param("File", args.file)
         mlflow.log_param("Use morphological features", args.morph)
         mlflow.set_tag("Model", "AE")
         mlflow.log_param("Seed", args.seed)
 
         # Load data
-        cells, features = DataLoader.load_single_cell_data(file_name=args.file, keep_morph=args.morph)
-        Reporter.report_cells_and_features(save_path=results_folder, cells=cells, features=features)
+        ae_train_cells, features, files_used = DataLoader.load_files_in_folder(folder=args.folder,
+                                                                               file_to_exclude=args.exclude)
 
-        train_data, holdout_data_set = SplitHandler.create_splits(cells=cells, create_val=False, seed=args.seed,
-                                                                  features=features)
+        # Report files used
+        mlflow.log_param("Number of Files", len(files_used))
+        mlflow.log_param("Files", files_used)
+        mlflow.log_param("Excluded File", args.exclude)
+
+        Reporter.report_cells_and_features(save_path=results_folder, cells=ae_train_cells, features=features)
+
+        ae_train_data, ae_validation_data = SplitHandler.create_splits(cells=ae_train_cells, create_val=False,
+                                                                       seed=args.seed,
+                                                                       features=features)
 
         # Fold evaluation data
         evaluation_data: list = []
 
         evaluation_data.extend(
-            AEFoldEvaluator.evaluate_folds(train_data=train_data, amount_of_layers=3, name="3 Layers"))
+            AEFoldEvaluator.evaluate_folds(train_data=ae_train_data, amount_of_layers=3, name="3 Layers"))
         evaluation_data.extend(
-            AEFoldEvaluator.evaluate_folds(train_data=train_data, amount_of_layers=5, name="5 Layers"))
+            AEFoldEvaluator.evaluate_folds(train_data=ae_train_data, amount_of_layers=5, name="5 Layers"))
 
         # Select to best performing fold
         selected_fold: {} = ModelSelector.select_model_by_lowest_loss(evaluation_data=evaluation_data)
@@ -83,73 +90,84 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.Da
         learning_rate: int = selected_fold["learning_rate"]
         amount_of_layers: int = selected_fold["amount_of_layers"]
 
-        train_data, validation_data = SplitHandler.create_splits(cells=train_data, features=features, create_val=False,
-                                                                 seed=args.seed)
+        # Normalize train and validation data
+        ae_train_data = pd.DataFrame(data=Preprocessing.normalize(ae_train_data), columns=features)
+        ae_validation_data = pd.DataFrame(data=Preprocessing.normalize(ae_validation_data), columns=features)
 
-        # Normalize
-        train_data = pd.DataFrame(data=Preprocessing.normalize(train_data), columns=features)
-        validation_data = pd.DataFrame(data=Preprocessing.normalize(validation_data), columns=features)
-        test_data = pd.DataFrame(data=Preprocessing.normalize(holdout_data_set), columns=features)
+        # Load and normalize test data
+        ae_test_cells, _ = DataLoader.load_single_cell_data(file_name=args.exclude)
+        ae_test_cells: pd.DataFrame = pd.DataFrame(data=ae_test_cells, columns=features)
+
+        ae_test_data = pd.DataFrame(data=Preprocessing.normalize(ae_test_cells), columns=features)
 
         # Create model
-        model, encoder, decoder, history = AutoEncoder.build_auto_encoder(training_data=train_data,
-                                                                          validation_data=validation_data,
-                                                                          input_dimensions=train_data.shape[1],
+        model, encoder, decoder, history = AutoEncoder.build_auto_encoder(training_data=ae_train_data,
+                                                                          validation_data=ae_validation_data,
+                                                                          input_dimensions=ae_train_data.shape[1],
                                                                           embedding_dimension=5,
                                                                           learning_rate=learning_rate,
                                                                           amount_of_layers=amount_of_layers)
 
         embeddings, reconstructed_data = Predictions.encode_decode_ae_data(encoder=encoder, decoder=decoder,
-                                                                           data=test_data, markers=features,
+                                                                           data=ae_test_data, markers=features,
                                                                            save_path=results_folder,
                                                                            mlflow_directory="Evaluation")
 
-        r2_scores = Evaluation.calculate_r2_scores(ground_truth_data=test_data, compare_data=reconstructed_data,
-                                                   features=features)
+        ae_r2_scores = Evaluation.calculate_r2_scores(ground_truth_data=ae_test_data, compare_data=reconstructed_data,
+                                                      features=features)
 
         # Report r2 score
-        Reporter.report_r2_scores(r2_scores=r2_scores, save_path=vae_base_result_path,
+        Reporter.report_r2_scores(r2_scores=ae_r2_scores, save_path=vae_base_result_path,
                                   mlflow_folder="Evaluation")
 
         plotter = Plotting(results_folder, args)
         plotter.plot_model_architecture(model=encoder, file_name="AE Encoder", mlflow_folder="Evaluation")
         plotter.plot_model_architecture(model=decoder, file_name="AE Decoder", mlflow_folder="Evaluation")
         plotter.plot_model_performance(history=history, file_name="Model performance", mlflow_directory="Evaluation")
-        plotter.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data, markers=features,
+        plotter.plot_reconstructed_markers(test_data=ae_test_data, reconstructed_data=reconstructed_data,
+                                           markers=features,
                                            mlflow_directory="Evaluation", file_name="Input v Reconstructed")
-        plotter.plot_scores(scores={"AE": r2_scores}, mlflow_directory="Evaluation", file_name="R2 scores")
-        plotter.plot_feature_intensities(train_data=train_data, test_data=test_data,
-                                         val_data=validation_data, features=features,
+        plotter.plot_scores(scores={"AE": ae_r2_scores}, mlflow_directory="Evaluation", file_name="R2 scores")
+        plotter.plot_feature_intensities(train_data=ae_train_data, test_data=ae_test_data,
+                                         val_data=ae_validation_data, features=features,
                                          mlflow_directory="Evaluation",
                                          file_name="Marker Expression")
 
-        plotter.plot_correlation(data_set=cells, file_name="Correlation", mlflow_folder="Evaluation")
-        return r2_scores
+        plotter.plot_correlation(data_set=ae_train_cells, file_name="Train Cells Correlation",
+                                 mlflow_folder="Evaluation")
+        plotter.plot_correlation(data_set=ae_test_cells, file_name="Test Cells Correlation", mlflow_folder="Evaluation")
+        return ae_r2_scores
 
 
 def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.DataFrame:
     # Load cells and markers from the given file
     with mlflow.start_run(run_name="VAE", nested=True, experiment_id=experiment_id) as run:
-        mlflow.log_param("File", args.file)
         mlflow.log_param("Use morphological features", args.morph)
         mlflow.set_tag("Model", "VAE")
         mlflow.log_param("Seed", args.seed)
 
         # Load data
-        cells, features = DataLoader.load_single_cell_data(file_name=args.file, keep_morph=args.morph)
+        vae_train_cells, features, files_used = DataLoader.load_files_in_folder(folder=args.folder,
+                                                                                file_to_exclude=args.exclude)
 
-        Reporter.report_cells_and_features(save_path=results_folder, cells=cells, features=features)
+        # Report files used
+        mlflow.log_param("Number of Files", len(files_used))
+        mlflow.log_param("Files", files_used)
+        mlflow.log_param("Excluded File", args.exclude)
 
-        train_data, holdout_data_set = SplitHandler.create_splits(cells=cells, create_val=False, seed=args.seed,
-                                                                  features=features)
+        Reporter.report_cells_and_features(save_path=results_folder, cells=vae_train_cells, features=features)
+
+        vae_train_data, vae_validation_data = SplitHandler.create_splits(cells=vae_train_cells.copy(), create_val=False,
+                                                                         seed=args.seed,
+                                                                         features=features)
 
         # Fold evaluation data
         evaluation_data: list = []
 
         evaluation_data.extend(
-            VAEFoldEvaluator.evaluate_folds(train_data=train_data, amount_of_layers=3, name="3 Layers"))
+            VAEFoldEvaluator.evaluate_folds(train_data=vae_train_data, amount_of_layers=3, name="3 Layers"))
         evaluation_data.extend(
-            VAEFoldEvaluator.evaluate_folds(train_data=train_data, amount_of_layers=5, name="5 Layers"))
+            VAEFoldEvaluator.evaluate_folds(train_data=vae_train_data, amount_of_layers=5, name="5 Layers"))
 
         # Select to best performing fold
         selected_fold: {} = ModelSelector.select_model_by_lowest_loss(evaluation_data=evaluation_data)
@@ -159,35 +177,39 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.D
         learning_rate: int = selected_fold["learning_rate"]
         amount_of_layers: int = selected_fold["amount_of_layers"]
 
-        train_data, validation_data = SplitHandler.create_splits(cells=train_data, features=features, create_val=False,
-                                                                 seed=args.seed)
+        # Normalize train and validation
+        vae_train_data = pd.DataFrame(data=Preprocessing.normalize(vae_train_data.copy()), columns=features)
+        vae_validation_data = pd.DataFrame(data=Preprocessing.normalize(vae_validation_data.copy()), columns=features)
 
-        # Normalize
-        train_data = pd.DataFrame(data=Preprocessing.normalize(train_data.copy()), columns=features)
-        validation_data = pd.DataFrame(data=Preprocessing.normalize(validation_data.copy()), columns=features)
-        test_data = pd.DataFrame(data=Preprocessing.normalize(holdout_data_set.copy()), columns=features)
+        # Load and normalize test data
+        vae_test_cells, _ = DataLoader.load_single_cell_data(file_name=args.exclude)
+        vae_test_cells = pd.DataFrame(data=vae_test_cells, columns=features)
+
+        vae_test_data = pd.DataFrame(data=Preprocessing.normalize(vae_test_cells.copy()), columns=features)
 
         # Create model
-        model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(training_data=train_data,
-                                                                                              validation_data=validation_data,
-                                                                                              input_dimensions=
-                                                                                              train_data.shape[1],
-                                                                                              embedding_dimension=5,
-                                                                                              learning_rate=learning_rate,
-                                                                                              amount_of_layers=amount_of_layers)
+        model, encoder, decoder, history = MarkerPredictionVAE.build_variational_auto_encoder(
+            training_data=vae_train_data,
+            validation_data=vae_validation_data,
+            input_dimensions=
+            vae_train_data.shape[1],
+            embedding_dimension=5,
+            learning_rate=learning_rate,
+            amount_of_layers=amount_of_layers)
 
         # Predictions
-        encoded_data, reconstructed_data = Predictions.encode_decode_vae_data(encoder, decoder, data=test_data,
+        encoded_data, reconstructed_data = Predictions.encode_decode_vae_data(encoder, decoder, data=vae_test_data,
                                                                               features=features,
                                                                               save_path=results_folder,
                                                                               mlflow_directory="Evaluation")
 
         # Evaluate
-        r2_scores = Evaluation.calculate_r2_scores(ground_truth_data=test_data, compare_data=reconstructed_data,
-                                                   features=features)
+        vae_r2_scores: pd.DataFrame = Evaluation.calculate_r2_scores(ground_truth_data=vae_test_data,
+                                                                     compare_data=reconstructed_data,
+                                                                     features=features)
 
         # Report r2 score
-        Reporter.report_r2_scores(r2_scores=r2_scores, save_path=results_folder,
+        Reporter.report_r2_scores(r2_scores=vae_r2_scores, save_path=results_folder,
                                   mlflow_folder="Evaluation")
 
         vae_plotting = Plotting(results_folder, args)
@@ -195,42 +217,51 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.D
         vae_plotting.plot_model_architecture(model=decoder, file_name="VAE Decoder", mlflow_folder="Evaluation")
         vae_plotting.plot_model_performance(history=model.history, mlflow_directory="Evaluation",
                                             file_name="Model Performance")
-        vae_plotting.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data,
+        vae_plotting.plot_reconstructed_markers(test_data=vae_test_data, reconstructed_data=reconstructed_data,
                                                 markers=features, mlflow_directory="Evaluation",
                                                 file_name="Initial vs. Reconstructed markers")
-        vae_plotting.plot_scores(scores={"VAE": r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
-        vae_plotting.plot_feature_intensities(train_data=train_data, test_data=test_data,
-                                              val_data=validation_data, features=features,
+        vae_plotting.plot_scores(scores={"VAE": vae_r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
+        vae_plotting.plot_feature_intensities(train_data=vae_train_data, test_data=vae_test_data,
+                                              val_data=vae_validation_data, features=features,
                                               mlflow_directory="Evaluation",
                                               file_name="Marker Expression")
-        vae_plotting.plot_correlation(data_set=cells, file_name="Correlation", mlflow_folder="Evaluation")
+        vae_plotting.plot_correlation(data_set=vae_train_cells, file_name="Train Cells Correlation",
+                                      mlflow_folder="Evaluation")
+        vae_plotting.plot_correlation(data_set=vae_test_cells, file_name="Test Cells Correlation",
+                                      mlflow_folder="Evaluation")
 
-        return r2_scores
+        return vae_r2_scores
 
 
 def start_me_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.DataFrame:
     # Load cells and markers from the given file
     with mlflow.start_run(run_name="ME VAE", nested=True, experiment_id=experiment_id) as run:
-        mlflow.log_param("File", args.file)
         mlflow.log_param("Use morphological features", args.morph)
         mlflow.set_tag("Model", "ME VAE")
         mlflow.log_param("Seed", args.seed)
 
         # Load data
-        cells, features = DataLoader.load_single_cell_data(file_name=args.file, keep_morph=args.morph)
+        me_vae_train_cells, features, files_used = DataLoader.load_files_in_folder(folder=args.folder,
+                                                                                   file_to_exclude=args.exclude)
 
-        Reporter.report_cells_and_features(save_path=results_folder, cells=cells, features=features)
+        # Report files used
+        mlflow.log_param("Number of Files", len(files_used))
+        mlflow.log_param("Files", files_used)
+        mlflow.log_param("Excluded File", args.exclude)
 
-        train_data, holdout_data_set = SplitHandler.create_splits(cells=cells, create_val=False, seed=args.seed,
-                                                                  features=features)
+        Reporter.report_cells_and_features(save_path=results_folder, cells=me_vae_train_cells, features=features)
+
+        me_vae_train_data, me_vae_validation_data = SplitHandler.create_splits(cells=me_vae_train_cells,
+                                                                               create_val=False, seed=args.seed,
+                                                                               features=features)
 
         # Fold evaluation data
         evaluation_data: list = []
 
+        #evaluation_data.extend(
+        #    MEVAEFoldEvaluator.evaluate_folds(train_data=me_vae_train_data, amount_of_layers=3, name="3 Layers"))
         evaluation_data.extend(
-            MEVAEFoldEvaluator.evaluate_folds(train_data=train_data, amount_of_layers=3, name="3 Layers"))
-        evaluation_data.extend(
-            MEVAEFoldEvaluator.evaluate_folds(train_data=train_data, amount_of_layers=5, name="5 Layers"))
+            MEVAEFoldEvaluator.evaluate_folds(train_data=me_vae_train_data, amount_of_layers=5, name="5 Layers"))
 
         # Select to best performing fold
         selected_fold: {} = ModelSelector.select_model_by_lowest_loss(evaluation_data=evaluation_data)
@@ -240,38 +271,41 @@ def start_me_vae_experiment(args, experiment_id: str, results_folder: Path) -> p
         learning_rate: int = selected_fold["learning_rate"]
         amount_of_layers: int = selected_fold["amount_of_layers"]
 
-        train_data, validation_data = SplitHandler.create_splits(cells=train_data, features=features, create_val=False,
-                                                                 seed=args.seed)
-
-        marker_train_data, morph_train_data = SplitHandler.split_dataset_into_markers_and_morph_features(
-            data_set=train_data)
+        me_vae_marker_train_data, me_vae_morph_train_data = SplitHandler.split_dataset_into_markers_and_morph_features(
+            data_set=me_vae_train_data)
 
         # Normalize
-        marker_train_data = pd.DataFrame(data=Preprocessing.normalize(marker_train_data.copy()),
-                                         columns=marker_train_data.columns)
+        me_vae_marker_train_data = pd.DataFrame(data=Preprocessing.normalize(me_vae_marker_train_data.copy()),
+                                                columns=me_vae_marker_train_data.columns)
 
-        morph_train_data = pd.DataFrame(data=Preprocessing.normalize(morph_train_data.copy()),
-                                        columns=morph_train_data.columns)
+        me_vae_morph_train_data = pd.DataFrame(data=Preprocessing.normalize(me_vae_morph_train_data.copy()),
+                                               columns=me_vae_morph_train_data.columns)
 
-        validation_data = pd.DataFrame(data=Preprocessing.normalize(validation_data.copy()), columns=features)
+        me_vae_validation_data = pd.DataFrame(data=Preprocessing.normalize(me_vae_validation_data.copy()),
+                                              columns=features)
+
+        # Load test cell, which is the excluded data file
+        me_vae_test_cells, _ = DataLoader.load_single_cell_data(file_name=args.exclude)
+
+        me_vae_test_cells = pd.DataFrame(data=me_vae_test_cells, columns=features)
 
         # Split hold out set into marker and morph data for testing model performance
         marker_test_data, morph_test_data = SplitHandler.split_dataset_into_markers_and_morph_features(
-            data_set=holdout_data_set)
+            data_set=me_vae_test_cells.copy())
 
         # Normalize test data
         marker_test_data = pd.DataFrame(data=Preprocessing.normalize(marker_test_data),
                                         columns=marker_test_data.columns)
         morph_test_data = pd.DataFrame(data=Preprocessing.normalize(morph_test_data), columns=morph_test_data.columns)
 
-        test_data = pd.DataFrame(data=Preprocessing.normalize(holdout_data_set.copy()), columns=features)
+        me_vae_test_data = pd.DataFrame(data=Preprocessing.normalize(me_vae_test_cells.copy()), columns=features)
 
         # Create model
         model, encoder, decoder, history = MEMarkerPredictionVAE.build_me_variational_auto_encoder(
-            training_data=(marker_train_data, morph_train_data),
-            validation_data=validation_data,
+            training_data=(me_vae_marker_train_data, me_vae_morph_train_data),
+            validation_data=me_vae_validation_data,
             input_dimensions=
-            train_data.shape[1],
+            me_vae_train_data.shape[1],
             embedding_dimension=5,
             learning_rate=learning_rate,
             amount_of_layers=amount_of_layers)
@@ -285,11 +319,12 @@ def start_me_vae_experiment(args, experiment_id: str, results_folder: Path) -> p
                                                                                  mlflow_directory="Evaluation")
 
         # Evaluate
-        r2_scores = Evaluation.calculate_r2_scores(ground_truth_data=test_data, compare_data=reconstructed_data,
-                                                   features=features)
+        me_vae_r2_scores = Evaluation.calculate_r2_scores(ground_truth_data=me_vae_test_data,
+                                                          compare_data=reconstructed_data,
+                                                          features=features)
 
         # Report r2 score
-        Reporter.report_r2_scores(r2_scores=r2_scores, save_path=results_folder,
+        Reporter.report_r2_scores(r2_scores=me_vae_r2_scores, save_path=results_folder,
                                   mlflow_folder="Evaluation")
 
         vae_plotting = Plotting(results_folder, args)
@@ -297,50 +332,57 @@ def start_me_vae_experiment(args, experiment_id: str, results_folder: Path) -> p
         vae_plotting.plot_model_architecture(model=decoder, file_name="ME VAE Decoder", mlflow_folder="Evaluation")
         vae_plotting.plot_model_performance(history=model.history, mlflow_directory="Evaluation",
                                             file_name="Model Performance")
-        vae_plotting.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data,
+        vae_plotting.plot_reconstructed_markers(test_data=me_vae_test_data, reconstructed_data=reconstructed_data,
                                                 markers=features, mlflow_directory="Evaluation",
                                                 file_name="Initial vs. Reconstructed markers")
-        vae_plotting.plot_scores(scores={"ME VAE": r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
-        vae_plotting.plot_feature_intensities(train_data=train_data, test_data=test_data,
-                                              val_data=validation_data, features=features,
+        vae_plotting.plot_scores(scores={"ME VAE": me_vae_r2_scores}, mlflow_directory="Evaluation",
+                                 file_name="R2 Scores")
+        vae_plotting.plot_feature_intensities(train_data=me_vae_train_data, test_data=me_vae_test_data,
+                                              val_data=me_vae_validation_data, features=features,
                                               mlflow_directory="Evaluation",
                                               file_name="Marker Expression")
-        vae_plotting.plot_correlation(data_set=cells, file_name="Correlation", mlflow_folder="Evaluation")
+        vae_plotting.plot_correlation(data_set=me_vae_train_cells, file_name="Train Cells Correlation",
+                                      mlflow_folder="Evaluation")
+        vae_plotting.plot_correlation(data_set=me_vae_test_cells, file_name="Test Cells Correlation",
+                                      mlflow_folder="Evaluation")
 
-        return r2_scores
+        return me_vae_r2_scores
 
 
 def start_elastic_net(args, experiment_id: str, results_folder: Path) -> pd.DataFrame:
     with mlflow.start_run(run_name="ElasticNet", nested=True, experiment_id=experiment_id) as run:
         print("Evaluating EN model...")
-        mlflow.log_param("File", args.file)
         mlflow.log_param("Use morphological features", args.morph)
         mlflow.set_tag("Model", "ElasticNet")
         mlflow.log_param("Seed", args.seed)
 
-        # Load data
-        cells, features = DataLoader.load_single_cell_data(file_name=args.file, keep_morph=args.morph)
+        # Load train data
+        train_cells, features, files_used = DataLoader.load_files_in_folder(folder=args.folder,
+                                                                            file_to_exclude=args.exclude)
+        test_cells, _ = DataLoader.load_single_cell_data(file_name=args.exclude)
 
-        Reporter.report_cells_and_features(save_path=results_folder, cells=cells, features=features)
+        # Report files used
+        mlflow.log_param("Number of Files", len(files_used))
+        mlflow.log_param("Files", files_used)
+        mlflow.log_param("Excluded File", args.exclude)
 
-        # Create train and val from train cells
-        train_data, test_data = SplitHandler.create_splits(cells, seed=args.seed, create_val=False,
-                                                           features=features)
+        Reporter.report_cells_and_features(save_path=results_folder, cells=train_cells, features=features)
 
-        # Normalize
-        train_data = pd.DataFrame(data=Preprocessing.normalize(train_data.copy()), columns=features)
-        test_data = pd.DataFrame(data=Preprocessing.normalize(test_data.copy()), columns=features)
+        # Normalize train and test data
+        train_data = pd.DataFrame(data=Preprocessing.normalize(train_cells.copy()), columns=features)
+        test_data = pd.DataFrame(data=Preprocessing.normalize(test_cells.copy()), columns=features)
 
-        r2_scores: pd.DataFrame = ElasticNet.train_elastic_net(train_data=train_data, test_data=test_data,
-                                                               features=features,
-                                                               random_state=args.seed, tolerance=0.05)
+        en_r2_scores: pd.DataFrame = ElasticNet.train_elastic_net(train_data=train_data, test_data=test_data,
+                                                                  features=features,
+                                                                  random_state=args.seed, tolerance=0.05)
 
-        Reporter.report_r2_scores(r2_scores=r2_scores, save_path=results_folder, mlflow_folder="Evaluation")
+        Reporter.report_r2_scores(r2_scores=en_r2_scores, save_path=results_folder, mlflow_folder="Evaluation")
 
         plotter = Plotting(results_folder, args)
-        plotter.plot_scores(scores={"EN": r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
-        plotter.plot_correlation(data_set=cells, file_name="Correlation", mlflow_folder="Evaluation")
-        return r2_scores
+        plotter.plot_scores(scores={"EN": en_r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
+        plotter.plot_correlation(data_set=train_cells, file_name="Train Cells Correlation", mlflow_folder="Evaluation")
+        plotter.plot_correlation(data_set=test_cells, file_name="Test Cells Correlation", mlflow_folder="Evaluation")
+        return en_r2_scores
 
 
 if __name__ == "__main__":
@@ -384,7 +426,6 @@ if __name__ == "__main__":
         # Start initial experiment
         with mlflow.start_run(run_name=args.run, nested=True, experiment_id=associated_experiment_id) as run:
             mlflow.log_param("Included Morphological Data", args.morph)
-            mlflow.log_param("File", args.file)
             mlflow.log_param("Seed", args.seed)
 
             ae_r2_scores = start_ae_experiment(args, experiment_id=associated_experiment_id,
@@ -404,7 +445,9 @@ if __name__ == "__main__":
                                   experiment_id=associated_experiment_id) as comparison:
                 print("Comparing ml models...")
 
-                cells, features = DataLoader.load_single_cell_data(file_name=args.file)
+                excluded_cells, features = DataLoader.load_single_cell_data(file_name=args.exclude)
+
+                used_cells, _, _ = DataLoader.load_files_in_folder(folder=args.folder, file_to_exclude=args.exclude)
 
                 r2_scores = {"EN": en_r2_scores, "AE": ae_r2_scores, "VAE": vae_r2_scores,
                              "ME VAE": me_vae_r2_scores}
@@ -416,8 +459,10 @@ if __name__ == "__main__":
                 # Upload features
                 Reporter.upload_csv(data=pd.DataFrame(data=features, columns=["Features"]), save_path=base_results_path,
                                     file_name="Features")
-                Reporter.upload_csv(data=cells.corr(method='spearman'), save_path=base_results_path,
-                                    file_name="correlation")
+                Reporter.upload_csv(data=excluded_cells.corr(method='spearman'), save_path=base_results_path,
+                                    file_name="excluded_cells_correlation")
+                Reporter.upload_csv(data=used_cells.corr(method='spearman'), save_path=base_results_path,
+                                    file_name="used_cells_correlation")
 
 
     except BaseException as ex:

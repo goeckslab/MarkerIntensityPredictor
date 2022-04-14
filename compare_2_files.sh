@@ -1,8 +1,8 @@
 # Compares two specifically given files
 
 experiment_name=$1
-file_name=$2
-compare_file_name=$3
+file_path=$2
+compare_file_path=$3
 seed=$4
 server=$5
 
@@ -11,12 +11,12 @@ if [ -z "$experiment_name" ]; then
   exit 1
 fi
 
-if [ -z "$file_name" ]; then
+if [ -z "$file_path" ]; then
   echo "Please specify a file name"
   exit 1
 fi
 
-if [ -z "$compare_file_name" ]; then
+if [ -z "$compare_file_path" ]; then
   echo "Please specify a file name to compare."
   exit 1
 fi
@@ -31,14 +31,16 @@ if [ -z "$seed" ]; then
   seed=1
 fi
 
-for RUN in {1..5}; do
-  echo "Starting run ${RUN} comparing ${file_name} with ${compare_file_name}"
-  source venv/bin/activate
-  python3 multi_biopsy_marker_prediction.py -e "${experiment_name}" --file "${file_name}" "${compare_file_name}" -r "${RUN}" -s $seed
-done
+file_name="$(basename -- "${file_path} .csv")"
+file_name=${file_name%%.*}
+compare_name="$(basename -- "${compare_file_path} .csv")"
+compare_name=${compare_name%%.*}
 
-for RUN in {1..5}; do
-  echo "Starting run ${RUN} comparing ${compare_file_name} with ${file_name}"
-  source venv/bin/activate
-  python3 multi_biopsy_marker_prediction.py -e "${experiment_name}" --file "${compare_file_name}" "${file_name}" -r "${RUN}" -s $seed
-done
+source venv/bin/activate
+echo "Starting to compare ${file_name} with ${compare_name}"
+python3 reconstruction_multi_biopsy_features.py -e "${experiment_name}" --file "${file_path}" "${compare_file_path}" -r "${file_name} ${compare_name}" -s $seed
+
+
+source venv/bin/activate
+echo "Starting to compare ${compare_name} with ${file_name}"
+python3 reconstruction_multi_biopsy_features.py -e "${experiment_name}" --file "${compare_file_path}" "${file_path}" -r "${compare_name} ${file_name}" -s $seed

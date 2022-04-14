@@ -18,11 +18,8 @@ for filepath in ./data/*.csv; do
     continue
   fi
 
-  for RUN in {1..5}; do
-    echo "Starting run ${RUN}"
-    source venv/bin/activate
+   source venv/bin/activate
     filename="$(basename -- "${filepath} .csv")"
     filename=${filename%%.*}
-    python3 single_biopsy_marker_prediction.py -e "${experiment_name}" --file "${filepath}" -r "${filename}_#${RUN}"
-  done
+    python3 reconstruction_single_biopsy_features.py -e "${experiment_name}" --file "${filepath}" -r "${filename}"
 done

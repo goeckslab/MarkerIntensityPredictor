@@ -74,26 +74,43 @@ if __name__ == "__main__":
                 r2_scores = {"EN": en_r2_scores, "AE": ae_r2_scores, "VAE": vae_r2_scores,
                              "ME VAE": me_vae_r2_scores}
 
+                features: list = DataLoader.load_file(load_path=Path(base_results_folder),
+                                                      file_name="Features.csv")["Features"].to_list()
+
                 relative_en_performance_scores = Evaluation.create_relative_score_performance(r2_scores=r2_scores,
-                                                                                              features=ae_r2_scores[
-                                                                                                  "Marker"].tolist(),
+                                                                                              features=features,
                                                                                               reference_model="EN")
                 relative_ae_performance_scores = Evaluation.create_relative_score_performance(r2_scores=r2_scores,
-                                                                                              features=ae_r2_scores[
-                                                                                                  "Marker"].tolist(),
+                                                                                              features=features,
                                                                                               reference_model="AE")
+
+                relative_me_vae_performance_scores = Evaluation.create_relative_score_performance(r2_scores=r2_scores,
+                                                                                                  features=features,
+                                                                                                  reference_model="ME VAE")
 
                 plotter: Plotting = Plotting(args=args, base_path=base_results_folder)
                 plotter.r2_score_differences(r2_scores=r2_scores, file_name="Score Differences")
-                plotter.r2_scores_relative_difference_percentage(
+                plotter.r2_scores_relative_performance(
                     relative_score_performance=relative_en_performance_scores,
-                    features=ae_r2_scores.columns.tolist(),
+                    features=features,
                     file_name="Relative EN Performance Difference")
 
-                plotter.r2_scores_relative_difference_percentage(
+                plotter.r2_scores_relative_performance(
                     relative_score_performance=relative_ae_performance_scores,
-                    features=ae_r2_scores.columns.tolist(),
+                    features=features,
                     file_name="Relative AE Performance Difference")
+
+                plotter.r2_scores_relative_performance(
+                    relative_score_performance=relative_me_vae_performance_scores,
+                    features=features,
+                    file_name="Relative ME VAE Performance Difference")
+
+                absolute_performance_scores: pd.DataFrame = Evaluation.create_absolute_score_performance(
+                    r2_scores=r2_scores, features=features)
+
+                plotter.r2_scores_absolute_performance(absolute_score_performance=absolute_performance_scores,
+                                                       file_name="Absolute Performance Comparison",
+                                                       mlflow_directory="Plots")
 
 
 

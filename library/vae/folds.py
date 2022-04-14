@@ -8,6 +8,15 @@ class VAEFoldEvaluator:
     @staticmethod
     def evaluate_folds(train_data: pd.DataFrame, amount_of_layers: int, name: str, learning_rate: float = 0.001,
                        embedding_dimension: int = 5) -> list:
+        """
+        Evaluates models using cross fold validation. Normalization is performed for each split separately.
+        @param train_data:
+        @param amount_of_layers:
+        @param name:
+        @param learning_rate:
+        @param embedding_dimension:
+        @return:
+        """
         evaluation_data: list = []
 
         model_count: int = 0
@@ -34,5 +43,6 @@ class VAEFoldEvaluator:
                                     "model": model, "encoder": encoder, "decoder": decoder,
                                     "amount_of_layers": amount_of_layers, "embedding_dimension": embedding_dimension})
             model_count += 1
+            learning_rate += 0.01
 
         return evaluation_data
