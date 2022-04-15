@@ -91,7 +91,7 @@ class RunHandler:
 
         return model_run_id
 
-    def get_run_id_by_name(self, experiment_id: str, run_name: str, model_parent_run_id: str = None) -> Optional[str]:
+    def get_run_id_by_name(self, experiment_id: str, run_name: str, parent_run_id: str = None) -> Optional[str]:
         """
         Returns a run id for a given name in a given experiment
         @param experiment_id: The experiment id in which the run is located
@@ -116,6 +116,9 @@ class RunHandler:
             full_run = self.client.get_run(run_info.run_id)
 
             if full_run.data.tags.get('mlflow.runName') == run_name:
+                if parent_run_id is not None and full_run.data.tags.get('mlflow.parentRunId') != parent_run_id:
+                    continue
+
                 # Add to cache
                 if runs is None or len(runs) == 0:
                     self.__runs[experiment_id] = [full_run]

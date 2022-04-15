@@ -24,18 +24,23 @@ class MEVAEFoldEvaluator:
         for train, validation in SplitHandler.create_folds(train_data.copy()):
             # Split dataset into marker and morph data
             marker_train_data, morph_train_data = SplitHandler.split_dataset_into_markers_and_morph_features(train)
+            marker_val_data, morph_val_data = SplitHandler.split_dataset_into_markers_and_morph_features(validation)
 
             # Normalize the data
             marker_train_data = Preprocessing.normalize(marker_train_data)
             morph_train_data = Preprocessing.normalize(morph_train_data)
-            validation = Preprocessing.normalize(validation)
+
+            marker_val_data = Preprocessing.normalize(marker_val_data)
+            morph_val_data = Preprocessing.normalize(morph_val_data)
+
+
 
             vae_builder = MEMarkerPredictionVAE()
 
             model, encoder, decoder, history = vae_builder.build_me_variational_auto_encoder(
                 training_data=(marker_train_data, morph_train_data),
-                validation_data=validation,
-                input_dimensions=
+                validation_data=(marker_val_data, morph_val_data),
+                output_dimensions=
                 train.shape[1],
                 embedding_dimension=embedding_dimension,
                 learning_rate=learning_rate,
@@ -50,6 +55,6 @@ class MEVAEFoldEvaluator:
                                     "model": model, "encoder": encoder, "decoder": decoder,
                                     "amount_of_layers": amount_of_layers, "embedding_dimension": embedding_dimension})
             model_count += 1
-            learning_rate += 0.01
+            learning_rate += 0.001
 
         return evaluation_data

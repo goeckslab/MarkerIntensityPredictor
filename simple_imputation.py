@@ -12,6 +12,7 @@ from library.preprocessing.replacements import Replacer
 from library.plotting.plots import Plotting
 from library.mlflow_helper.reporter import Reporter
 import time
+import sys
 # https://scikit-learn.org/stable/modules/generated/sklearn.impute.KNNImputer.html
 
 
@@ -43,6 +44,9 @@ def get_args():
 if __name__ == "__main__":
     args = get_args()
     base_path = Path(f"{base_path}_{str(int( time.time_ns() / 1000 ))}")
+
+    if args.percentage >= 1:
+        sys.exit()
 
     # Create mlflow tracking client
     client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)

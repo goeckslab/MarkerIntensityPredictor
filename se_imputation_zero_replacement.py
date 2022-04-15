@@ -72,8 +72,9 @@ def get_model_experiment_id(args) -> str:
     return model_experiment_id
 
 
-def get_model_run_id(args, run_handler: RunHandler, model_experiment_id: str) -> str:
-    model_run_id: str = run_handler.get_run_id_by_name(experiment_id=model_experiment_id, run_name=args.model[1])
+def get_model_run_id(run_handler: RunHandler, experiment_id: str, parent_run_id: str, run_name: str) -> str:
+    model_run_id: str = run_handler.get_run_id_by_name(experiment_id=experiment_id, run_name=run_name,
+                                                       parent_run_id=parent_run_id)
 
     if model_run_id is None:
         raise ValueError(f"Could not find run with name {args.model[1]}")
@@ -82,11 +83,16 @@ def get_model_run_id(args, run_handler: RunHandler, model_experiment_id: str) ->
 
 
 if __name__ == "__main__":
-    base_path = Path(f"{base_path}_{str(int( time.time_ns() / 1000 ))}")
+    base_path = Path(f"{base_path}_{str(int(time.time_ns() / 1000))}")
     args = get_args()
 
-    if len(args.model) != 2:
-        raise ValueError("Please specify the experiment as the first parameter and the run name as the second one!")
+    if len(args.model) != 3:
+        raise ValueError(
+            "Please specify the experiment as the first parameter and the run name as the second one and the specific model as the third.")
+
+    requested_experiment = args.model[0]
+    requested_parent_run_name = args.model[1]
+    requested_run_name = args.model[2]
 
     # Create mlflow tracking client
     client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
@@ -95,7 +101,11 @@ if __name__ == "__main__":
 
     # Load model experiment and run id
     model_experiment_id: str = get_model_experiment_id(args)
-    model_run_id: str = get_model_run_id(args=args, run_handler=run_handler, model_experiment_id=model_experiment_id)
+
+    parent_run_id: str = run_handler.get_run_id_by_name(experiment_id=model_experiment_id,
+                                                        run_name=requested_parent_run_name)
+    model_run_id: str = get_model_run_id(run_handler=run_handler, experiment_id=model_experiment_id,
+                                         run_name=requested_run_name, parent_run_id=parent_run_id)
 
     FolderManagement.create_directory(base_path)
 
@@ -159,7 +169,7 @@ if __name__ == "__main__":
                     plotter.plot_scores(scores={"Ground Truth vs. Reconstructed": reconstructed_r2_scores,
                                                 "Ground Truth vs. Imputed": imputed_r2_scores,
                                                 "Ground Truth vs. Replaced": replaced_r2_scores},
-                                        file_name=f"R2 score comparison Steps {iter_steps} Percentage {args.percentage}")
+                                        file_name=f"R2 Score Comparison Steps {iter_steps} Percentage {args.percentage}")
 
                     plotter.plot_scores(scores={"Imputed": imputed_r2_scores},
                                         file_name=f"R2 Imputed Scores Step {step} Percentage {args.percentage}")

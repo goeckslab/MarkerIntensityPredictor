@@ -195,7 +195,8 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.D
             vae_train_data.shape[1],
             embedding_dimension=5,
             learning_rate=learning_rate,
-            amount_of_layers=amount_of_layers)
+            amount_of_layers=amount_of_layers,
+            use_ml_flow=True)
 
         # Predictions
         encoded_data, reconstructed_data = Predictions.encode_decode_vae_data(encoder, decoder, data=vae_test_data,
@@ -258,8 +259,8 @@ def start_me_vae_experiment(args, experiment_id: str, results_folder: Path) -> p
         # Fold evaluation data
         evaluation_data: list = []
 
-        #evaluation_data.extend(
-        #    MEVAEFoldEvaluator.evaluate_folds(train_data=me_vae_train_data, amount_of_layers=3, name="3 Layers"))
+        evaluation_data.extend(
+            MEVAEFoldEvaluator.evaluate_folds(train_data=me_vae_train_data, amount_of_layers=3, name="3 Layers"))
         evaluation_data.extend(
             MEVAEFoldEvaluator.evaluate_folds(train_data=me_vae_train_data, amount_of_layers=5, name="5 Layers"))
 
@@ -274,15 +275,25 @@ def start_me_vae_experiment(args, experiment_id: str, results_folder: Path) -> p
         me_vae_marker_train_data, me_vae_morph_train_data = SplitHandler.split_dataset_into_markers_and_morph_features(
             data_set=me_vae_train_data)
 
+        me_vae_marker_validation_data, me_vae_morph_validation_data = SplitHandler.split_dataset_into_markers_and_morph_features(
+            data_set=me_vae_validation_data)
+
         # Normalize
-        me_vae_marker_train_data = pd.DataFrame(data=Preprocessing.normalize(me_vae_marker_train_data.copy()),
-                                                columns=me_vae_marker_train_data.columns)
+        me_vae_marker_train_data: pd.DataFrame = pd.DataFrame(
+            data=Preprocessing.normalize(me_vae_marker_train_data.copy()),
+            columns=me_vae_marker_train_data.columns)
 
-        me_vae_morph_train_data = pd.DataFrame(data=Preprocessing.normalize(me_vae_morph_train_data.copy()),
-                                               columns=me_vae_morph_train_data.columns)
+        me_vae_morph_train_data: pd.DataFrame = pd.DataFrame(
+            data=Preprocessing.normalize(me_vae_morph_train_data.copy()),
+            columns=me_vae_morph_train_data.columns)
 
-        me_vae_validation_data = pd.DataFrame(data=Preprocessing.normalize(me_vae_validation_data.copy()),
-                                              columns=features)
+        me_vae_marker_validation_data: pd.DataFrame = pd.DataFrame(
+            data=Preprocessing.normalize(me_vae_marker_validation_data.copy()),
+            columns=me_vae_marker_validation_data.columns)
+
+        me_vae_morph_validation_data: pd.DataFrame = pd.DataFrame(
+            data=Preprocessing.normalize(me_vae_morph_validation_data.copy()),
+            columns=me_vae_morph_validation_data.columns)
 
         # Load test cell, which is the excluded data file
         me_vae_test_cells, _ = DataLoader.load_single_cell_data(file_name=args.exclude)
@@ -303,9 +314,8 @@ def start_me_vae_experiment(args, experiment_id: str, results_folder: Path) -> p
         # Create model
         model, encoder, decoder, history = MEMarkerPredictionVAE.build_me_variational_auto_encoder(
             training_data=(me_vae_marker_train_data, me_vae_morph_train_data),
-            validation_data=me_vae_validation_data,
-            input_dimensions=
-            me_vae_train_data.shape[1],
+            validation_data=(me_vae_marker_validation_data, me_vae_morph_validation_data),
+            output_dimensions=len(features),
             embedding_dimension=5,
             learning_rate=learning_rate,
             amount_of_layers=amount_of_layers)
@@ -428,6 +438,9 @@ if __name__ == "__main__":
             mlflow.log_param("Included Morphological Data", args.morph)
             mlflow.log_param("Seed", args.seed)
 
+            me_vae_r2_scores = start_me_vae_experiment(args=args, experiment_id=associated_experiment_id,
+                                                       results_folder=me_vae_base_result_path)
+
             ae_r2_scores = start_ae_experiment(args, experiment_id=associated_experiment_id,
                                                results_folder=ae_base_result_path)
 
@@ -436,9 +449,6 @@ if __name__ == "__main__":
 
             en_r2_scores = start_elastic_net(args, experiment_id=associated_experiment_id,
                                              results_folder=en_base_result_path)
-
-            me_vae_r2_scores = start_me_vae_experiment(args=args, experiment_id=associated_experiment_id,
-                                                       results_folder=me_vae_base_result_path)
 
             # Start experiment which compares the ml models
             with mlflow.start_run(run_name="Summary", nested=True,

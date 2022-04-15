@@ -3,7 +3,7 @@ import pandas as pd
 import keras
 from library.me_vae.sampling import Sampling
 from keras.layers import concatenate
-from library.me_vae.vae_model import VAE
+from library.me_vae.me_vae_model import MEVAE
 import tensorflow as tf
 import mlflow
 import mlflow.tensorflow
@@ -19,8 +19,8 @@ class MEMarkerPredictionVAE:
 
     @staticmethod
     def build_me_variational_auto_encoder(training_data: Tuple,
-                                          validation_data: pd.DataFrame,
-                                          input_dimensions: int,
+                                          validation_data: Tuple,
+                                          output_dimensions: int,
                                           embedding_dimension: int, activation='relu',
                                           learning_rate: float = 1e-3,
                                           amount_of_layers: int = 5,
@@ -35,6 +35,9 @@ class MEMarkerPredictionVAE:
 
         marker_training_data = training_data[0]
         morph_training_data = training_data[1]
+
+        marker_val_data = validation_data[0]
+        morph_val_data = validation_data[1]
 
         if use_ml_flow:
             mlflow.tensorflow.autolog()
@@ -60,30 +63,30 @@ class MEMarkerPredictionVAE:
 
         # Build the decoder
         decoder_inputs = keras.Input(shape=(embedding_dimension,))
-        h1 = layers.Dense(input_dimensions / 3, activation=activation, name="decoding_h1")(decoder_inputs)
-        h2 = layers.Dense(input_dimensions / 2.5, activation=activation, name="decoding_h2")(h1)
-        h3 = layers.Dense(input_dimensions / 2, activation=activation, name="decoding_h3")(h2)
-        h4 = layers.Dense(input_dimensions / 1.5, activation=activation, name="decoding_h4")(h3)
+        h1 = layers.Dense(output_dimensions / 3, activation=activation, name="decoding_h1")(decoder_inputs)
+        h2 = layers.Dense(output_dimensions / 2.5, activation=activation, name="decoding_h2")(h1)
+        h3 = layers.Dense(output_dimensions / 2, activation=activation, name="decoding_h3")(h2)
+        h4 = layers.Dense(output_dimensions / 1.5, activation=activation, name="decoding_h4")(h3)
 
-        decoder_outputs = layers.Dense(input_dimensions, name="decoder_output")(h4)
+        decoder_outputs = layers.Dense(output_dimensions, name="decoder_output")(h4)
         decoder = keras.Model(decoder_inputs, decoder_outputs, name="decoder")
         decoder.summary()
 
         early_stopping = tf.keras.callbacks.EarlyStopping(monitor="reconstruction_loss",
                                                           mode="min", patience=5,
                                                           restore_best_weights=True)
-        vae = VAE(encoder, decoder)
-        vae.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))
+        me_vae = MEVAE(encoder, decoder)
+        me_vae.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))
 
-        history = vae.fit([marker_training_data, morph_training_data],
-                          validation_data=(validation_data, validation_data),
-                          epochs=500,
-                          callbacks=[early_stopping, WeightsForBatch()],
-                          batch_size=256,
-                          shuffle=True,
-                          verbose=1)
+        history = me_vae.fit([marker_training_data, morph_training_data],
+                             validation_data=([marker_val_data, morph_val_data], [marker_val_data, morph_val_data]),
+                             epochs=500,
+                             callbacks=[early_stopping, WeightsForBatch()],
+                             batch_size=256,
+                             shuffle=True,
+                             verbose=1)
 
-        return vae, encoder, decoder, history
+        return me_vae, encoder, decoder, history
 
     @staticmethod
     def __create_marker_nn_5_layers(input_dimensions: int, activation: str, r: int):

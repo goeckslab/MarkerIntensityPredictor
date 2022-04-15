@@ -16,9 +16,9 @@ from library.vae.custom_callbacks import CustomCallback, WeightsForBatch
 class MarkerPredictionVAE:
     @staticmethod
     def build_variational_auto_encoder(training_data: pd.DataFrame, validation_data: pd.DataFrame,
-                                       input_dimensions: int, embedding_dimension: int, activation='relu',
-                                       learning_rate: float = 1e-3,
-                                       optimizer: str = "adam", use_ml_flow: bool = True, amount_of_layers: int = 3):
+                                       input_dimensions: int, embedding_dimension: int, use_ml_flow: bool,
+                                       activation='relu', learning_rate: float = 1e-3,
+                                       optimizer: str = "adam", amount_of_layers: int = 3):
         """
         Handles which vae to build
         @param training_data:
@@ -59,7 +59,7 @@ class MarkerPredictionVAE:
     def build_3_layer_variational_auto_encoder(training_data: pd.DataFrame, validation_data: pd.DataFrame,
                                                input_dimensions: int,
                                                embedding_dimension: int, activation='relu', learning_rate: float = 1e-3,
-                                               optimizer: str = "adam", use_ml_flow: bool = True):
+                                               optimizer: str = "adam", use_ml_flow: bool = False):
         """
         Sets up a 3 layer vae and trains it
         """
@@ -116,7 +116,7 @@ class MarkerPredictionVAE:
     def build_5_layer_variational_auto_encoder(training_data: pd.DataFrame, validation_data: pd.DataFrame,
                                                input_dimensions: int,
                                                embedding_dimension: int, activation='relu', learning_rate: float = 1e-3,
-                                               optimizer: str = "adam", use_ml_flow: bool = True):
+                                               optimizer: str = "adam", use_ml_flow: bool = False):
         """
         Sets up a 5 layer vae and trains it
         """

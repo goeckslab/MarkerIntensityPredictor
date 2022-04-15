@@ -33,6 +33,6 @@ class AEFoldEvaluator:
                                     "model": model, "encoder": encoder, "decoder": decoder,
                                     "amount_of_layers": amount_of_layers, "embedding_dimension": embedding_dimension})
             model_count += 1
-            learning_rate += 0.01
+            learning_rate += 0.001
 
         return evaluation_data

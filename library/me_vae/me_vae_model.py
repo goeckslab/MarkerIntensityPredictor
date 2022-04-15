@@ -3,9 +3,9 @@ from tensorflow import keras
 from keras.layers import concatenate
 
 
-class VAE(keras.Model):
+class MEVAE(keras.Model):
     def __init__(self, encoder, decoder, **kwargs):
-        super(VAE, self).__init__(**kwargs)
+        super(MEVAE, self).__init__(**kwargs)
         self.encoder = encoder
         self.decoder = decoder
         self.total_loss_tracker = keras.metrics.Mean(name="total_loss")
@@ -50,8 +50,13 @@ class VAE(keras.Model):
 
         marker_indices = range(0, 20)
         morph_indices = range(20, 25)
-        marker = tf.gather(inputs, marker_indices, axis=1)
-        morph = tf.gather(inputs, morph_indices, axis=1)
+
+        if type(inputs) is tuple:
+            marker = inputs[0]
+            morph = inputs[1]
+        else:
+            marker = tf.gather(inputs, marker_indices, axis=1)
+            morph = tf.gather(inputs, morph_indices, axis=1)
 
         z_mean, z_log_var, z = self.encoder([marker, morph])
         return self.decoder(z)
