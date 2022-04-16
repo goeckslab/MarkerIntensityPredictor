@@ -135,8 +135,7 @@ def final_model(train_set: pd.DataFrame, holdout_data_set: pd.DataFrame, feature
     model, encoder, decoder, history = vae_builder.build_me_variational_auto_encoder(
         training_data=(marker_train_data, morph_train_data),
         validation_data=validation_data,
-        input_dimensions=
-        train_data.shape[1],
+        output_dimensions=train_data.shape[1],
         embedding_dimension=5,
         learning_rate=learning_rate,
         amount_of_layers=amount_of_layers)
