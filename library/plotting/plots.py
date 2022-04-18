@@ -362,13 +362,13 @@ class Plotting:
         num_rows = int(len(vae_r2_scores.keys()))
 
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 7), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=4, nrows=num_rows, figsize=(12, 7), dpi=300, sharex=False)
         elif num_rows == 2:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 9), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=4, nrows=num_rows, figsize=(12, 9), dpi=300, sharex=False)
         elif num_rows == 3:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 11), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=4, nrows=num_rows, figsize=(12, 11), dpi=300, sharex=False)
         else:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 13), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=4, nrows=num_rows, figsize=(12, 13), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0
@@ -381,8 +381,8 @@ class Plotting:
             en_r2_score = en_r2_scores[experiment_name]
             me_vae_r2_score = me_vae_r2_scores[experiment_name]
 
-            sns.boxplot(data=en_r2_score, ax=axs[row, col])
-            axs[row, col].set_title(f"{experiment_name} VAE")
+            sns.boxplot(data=vae_r2_score, ax=axs[row, col])
+            axs[row, col].set_title(f"{experiment_name} EN")
             axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
             axs[row, col].set_ylim(0, 1)
             col += 1
@@ -393,8 +393,8 @@ class Plotting:
             axs[row, col].set_ylim(0, 1)
             col += 1
 
-            sns.boxplot(data=vae_r2_score, ax=axs[row, col])
-            axs[row, col].set_title(f"{experiment_name} EN")
+            sns.boxplot(data=en_r2_score, ax=axs[row, col])
+            axs[row, col].set_title(f"{experiment_name} VAE")
             axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
             axs[row, col].set_ylim(0, 1)
             col += 1
@@ -473,7 +473,8 @@ class Plotting:
         mlflow.log_artifact(str(save_path))
         plt.close()
 
-    def r2_score_model_mean(self, vae_r2_scores: dict, ae_r2_scores: dict, en_r2_scores: dict, file_name: str):
+    def r2_score_model_mean(self, vae_r2_scores: dict, ae_r2_scores: dict, en_r2_scores: dict, me_vae_r2_scores: dict,
+                            file_name: str):
         """
         Plots a graph which aligns all models next to each other for each experiment
         @param vae_r2_scores: The vae scores
@@ -495,13 +496,13 @@ class Plotting:
 
         # Adjust figure size
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 7), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=4, nrows=num_rows, figsize=(12, 7), dpi=300, sharex=False)
         elif num_rows == 2:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 9), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=4, nrows=num_rows, figsize=(12, 9), dpi=300, sharex=False)
         elif num_rows == 3:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 11), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=4, nrows=num_rows, figsize=(12, 11), dpi=300, sharex=False)
         else:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 13), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=4, nrows=num_rows, figsize=(12, 13), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0
@@ -513,12 +514,12 @@ class Plotting:
             vae_r2_score = vae_r2_scores[experiment_name]
             ae_r2_score = ae_r2_scores[experiment_name]
             en_r2_score = en_r2_scores[experiment_name]
+            me_vae_r2_score = me_vae_r2_scores[experiment_name]
 
-            sns.barplot(x='Marker', y='Score', data=vae_r2_score, ax=axs[row, col])
-            axs[row, col].set_title(f"{experiment_name} VAE")
+            sns.barplot(x='Marker', y='Score', data=en_r2_score, ax=axs[row, col])
+            axs[row, col].set_title(f"{experiment_name} EN")
             axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
             axs[row, col].set_ylim(0, 1)
-
             col += 1
 
             sns.barplot(x='Marker', y='Score', data=ae_r2_score, ax=axs[row, col])
@@ -527,8 +528,14 @@ class Plotting:
             axs[row, col].set_ylim(0, 1)
             col += 1
 
-            sns.barplot(x='Marker', y='Score', data=en_r2_score, ax=axs[row, col])
-            axs[row, col].set_title(f"{experiment_name} EN")
+            sns.barplot(x='Marker', y='Score', data=vae_r2_score, ax=axs[row, col])
+            axs[row, col].set_title(f"{experiment_name} VAE")
+            axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+            axs[row, col].set_ylim(0, 1)
+            col += 1
+
+            sns.barplot(x='Marker', y='Score', data=me_vae_r2_score, ax=axs[row, col])
+            axs[row, col].set_title(f"{experiment_name} ME VAE")
             axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
             axs[row, col].set_ylim(0, 1)
             col += 1

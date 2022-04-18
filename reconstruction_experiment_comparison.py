@@ -1,14 +1,15 @@
 import logging
 import argparse
 from library.plotting.plots import Plotting
-import pandas as pd
 from library.mlflow_helper.experiment_handler import ExperimentHandler
 from library.mlflow_helper.run_handler import RunHandler
 from pathlib import Path
 import mlflow
-from mlflow.entities import Run, Experiment
+from mlflow.entities import Run
 from library.data.folder_management import FolderManagement
 from library.data.data_loader import DataLoader
+import pandas as pd
+from library.evalation.evaluation import Evaluation
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
@@ -58,6 +59,8 @@ if __name__ == "__main__":
         me_vae_r2_mean_scores: {} = {}
         me_vae_r2_combined_scores: {} = {}
 
+        features: list = []
+
         for experiment_name in args.experiments:
             experiment_id: str = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name,
                                                                               create_experiment=False)
@@ -104,6 +107,9 @@ if __name__ == "__main__":
                 load_path=Path(base_path, run.info.run_id),
                 file_name="ae_combined_r2_score.csv")
 
+            features = DataLoader.load_file(load_path=Path(base_path, run.info.run_id),
+                                            file_name="Features.csv")["Features"].to_list()
+
         # The new experiment which is used to store the evaluation data
         evaluation_experiment_id: str = experiment_handler.create_experiment(name="Experiment Comparison Test")
 
@@ -121,14 +127,27 @@ if __name__ == "__main__":
                                                  ae_r2_scores=ae_r2_combined_scores,
                                                  en_r2_scores=en_r2_combined_scores,
                                                  me_vae_r2_scores=me_vae_r2_combined_scores,
-                                                 file_name="VAE vs. AE vs. EN Score Distribution")
+                                                 file_name="Model Score Distribution")
 
-            plotting.r2_score_model_distribution_comparison(r2_scores=vae_r2_combined_scores,
-                                                            compare_r2_scores=en_r2_combined_scores,
-                                                            file_name="VAE vs. EN Score Distribution")
+            # plotting.r2_score_model_distribution_comparison(r2_scores=vae_r2_combined_scores,
+            #                                                compare_r2_scores=en_r2_combined_scores,
+            #                                               file_name="VAE vs. EN Score Distribution", model="VAE",
+            #                                               model_to_compare="EN")
 
             plotting.r2_score_model_mean(vae_r2_scores=vae_r2_mean_scores, ae_r2_scores=ae_r2_mean_scores,
-                                         en_r2_scores=en_r2_mean_scores, file_name="Mean R2 score comparison")
+                                         en_r2_scores=en_r2_mean_scores, me_vae_r2_scores=me_vae_r2_mean_scores,
+                                         file_name="Mean R2 score comparison")
+
+            r2_mean_scores = {"EN": en_r2_mean_scores, "AE": ae_r2_mean_scores, "VAE": vae_r2_mean_scores,
+                              "ME VAE": me_vae_r2_mean_scores}
+
+            print(features)
+            print(r2_mean_scores)
+            input()
+            absolute_performance_scores: pd.DataFrame = Evaluation.create_absolute_score_performance(
+                r2_scores=r2_mean_scores, features=features)
+            plotting.r2_scores_absolute_performance(absolute_score_performance=absolute_performance_scores,
+                                                    file_name="Absolute Performance")
 
     except BaseException as ex:
         raise
