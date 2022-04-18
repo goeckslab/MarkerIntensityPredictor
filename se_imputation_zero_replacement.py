@@ -145,6 +145,10 @@ if __name__ == "__main__":
 
                 with mlflow.start_run(experiment_id=get_associated_experiment_id(args=args), nested=True,
                                       run_name=f"Percentage {args.percentage} Step {step}") as step_run:
+
+                    mlflow.set_tag("Percentage", args.percentage)
+                    mlflow.set_tag("Step", step)
+
                     for feature_to_impute in features:
                         imputed_r2_score, reconstructed_r2_score, replaced_r2_score = VAEImputation.impute_data(
                             model=model, ground_truth_data=ground_truth_data, feature_to_impute=feature_to_impute,

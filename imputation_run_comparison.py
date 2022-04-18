@@ -9,7 +9,6 @@ from library.data.folder_management import FolderManagement
 from library.data.data_loader import DataLoader
 from library.plotting.plots import Plotting
 from library.mlflow_helper.run_handler import RunHandler
-from library.evalation.evaluation import Evaluation
 base_path = Path("imputation_score_comparison")
 
 

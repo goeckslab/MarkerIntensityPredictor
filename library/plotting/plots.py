@@ -163,11 +163,11 @@ class Plotting:
 
             num_rows = int(num_rows)
 
-        n_cols = 3
+        n_cols = len(absolute_score_performance.keys()) if len(absolute_score_performance.keys()) <= 3 else 3
 
         # Adjust columns based on items
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=len(absolute_score_performance.keys()), nrows=num_rows, figsize=(11, 5),
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(11, 5),
                                     dpi=300, sharex=False)
         elif num_rows == 2:
             fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(13, 7), dpi=300, sharex=False)
@@ -185,13 +185,22 @@ class Plotting:
             data = absolute_score_performance[experiment_name]
 
             if num_rows == 1:
-                sns.barplot(
-                    data=data, x="Feature", y="Score", hue="Model",
-                    ci="sd", palette="dark", ax=axs[col])
-                axs[col].set_title(f"{experiment_name}")
-                axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
-                axs[col].set_ylim(0, 1)
-                axs[col].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+                if n_cols == 1:
+                    sns.barplot(
+                        data=data, x="Feature", y="Score", hue="Model",
+                        ci="sd", palette="dark", ax=axs)
+                    axs.set_title(f"{experiment_name}")
+                    axs.set_xticklabels(axs.get_xticklabels(), rotation=90)
+                    axs.set_ylim(0, 1)
+                    axs.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+                else:
+                    sns.barplot(
+                        data=data, x="Feature", y="Score", hue="Model",
+                        ci="sd", palette="dark", ax=axs[col])
+                    axs[col].set_title(f"{experiment_name}")
+                    axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
+                    axs[col].set_ylim(0, 1)
+                    axs[col].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
 
 
             else:
@@ -243,17 +252,17 @@ class Plotting:
 
             num_rows = int(num_rows)
 
-        n_cols = 3
+        n_cols = len(r2_scores.keys()) if len(r2_scores.keys()) <= 3 else 3
 
         # Adjust columns based on items
         if num_rows == 1:
-            fig, axs = plt.subplots(ncols=len(r2_scores.keys()), nrows=num_rows, figsize=(12, 7), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(12, 7), dpi=300, sharex=False)
         elif num_rows == 2:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 9), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(12, 9), dpi=300, sharex=False)
         elif num_rows == 3:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 11), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(12, 11), dpi=300, sharex=False)
         else:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 13), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(12, 13), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0

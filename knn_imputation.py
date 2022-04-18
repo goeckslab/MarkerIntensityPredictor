@@ -114,7 +114,7 @@ if __name__ == "__main__":
                 )
 
             plotter = Plotting(base_path=base_path, args=args)
-            plotter.plot_scores(scores={"KNN": r2_scores}, file_name="R2 Scores")
+            plotter.plot_scores(scores={"KNN": r2_scores}, file_name="KNN R2 Scores")
             plotter.plot_correlation(data_set=cells, file_name="Correlation")
             Reporter.report_r2_scores(r2_scores=r2_scores, save_path=base_path)
 
