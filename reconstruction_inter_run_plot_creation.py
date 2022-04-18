@@ -223,6 +223,9 @@ class ExperimentComparer:
                                                    file_name=f"{args.experiment} Absolute Performance Comparison",
                                                    mlflow_directory="Plots")
 
+            Reporter.upload_csv(data=pd.DataFrame(data=features, columns=["Features"]), save_path=self.base_path,
+                                file_name="Features")
+
     def __report_r2_scores(self, scores: {}):
         for key, scores in scores.items():
             Reporter.report_r2_scores(scores, save_path=Path(self.base_path, "runs"),

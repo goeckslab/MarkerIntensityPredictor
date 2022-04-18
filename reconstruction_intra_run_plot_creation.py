@@ -6,9 +6,9 @@ from pathlib import Path
 from library.mlflow_helper.experiment_handler import ExperimentHandler
 import mlflow
 from library.mlflow_helper.run_handler import RunHandler
-from mlflow.entities import Run
 from library.plotting.plots import Plotting
 from library.evalation.evaluation import Evaluation
+from library.mlflow_helper.reporter import Reporter
 
 base_results_folder = Path("intra_run_comparison")
 
@@ -113,6 +113,9 @@ if __name__ == "__main__":
                                                        file_name="Absolute Performance Comparison",
                                                        mlflow_directory="Plots")
 
+                Reporter.upload_csv(data=pd.DataFrame(data=features, columns=["Features"]),
+                                    save_path=base_results_folder,
+                                    file_name="Features")
 
 
     except BaseException as ex:
