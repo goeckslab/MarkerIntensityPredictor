@@ -120,6 +120,8 @@ if __name__ == "__main__":
             mlflow.log_param("File", args.file)
             mlflow.log_param("Seed", args.seed)
             mlflow.log_param("Iteration Steps", iter_steps)
+            mlflow.set_tag("Percentage", args.percentage)
+            mlflow.set_tag("Steps", iter_steps)
 
             # load model
             model = mlflow.keras.load_model(f"./mlruns/{model_experiment_id}/{model_run_id}/artifacts/model")

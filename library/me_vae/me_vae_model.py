@@ -27,7 +27,6 @@ class MEVAE(keras.Model):
             z_mean, z_log_var, z = self.encoder(data)
             reconstruction = self.decoder(z)
             reconstruction_loss_fn = keras.losses.MeanSquaredError()
-
             data = concatenate([data[0][0], data[0][1]])
             reconstruction_loss = reconstruction_loss_fn(data, reconstruction)
             kl_loss = -0.5 * (1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))

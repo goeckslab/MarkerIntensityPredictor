@@ -74,6 +74,7 @@ if __name__ == "__main__":
             mlflow.log_param("Percentage of replaced values", args.percentage)
             mlflow.log_param("Files", args.files)
             mlflow.log_param("Seed", args.seed)
+            mlflow.set_tag("Percentage", args.percentage)
 
             if len(args.files) == 1:
                 cells, markers = DataLoader.load_single_cell_data(args.files[0])

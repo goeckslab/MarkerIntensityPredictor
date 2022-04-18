@@ -646,7 +646,6 @@ class Plotting:
         """
 
         df = pd.DataFrame(evaluation_data)
-
         fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(9, 12), dpi=300, sharex=False)
         sns.boxplot(x=df["amount_of_layers"], y=df[f"{value_to_display}"])
         ax.set_title("Cross Fold model performance")

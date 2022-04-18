@@ -73,14 +73,14 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.Da
         ae_train_data, ae_validation_data = SplitHandler.create_splits(cells=ae_train_cells, create_val=False,
                                                                        seed=args.seed,
                                                                        features=features)
-
         # Fold evaluation data
-        evaluation_data: list = []
+        evaluation_data = {
+            "3 Layer": AEFoldEvaluator.evaluate_folds(train_data=ae_train_data, amount_of_layers=3,
+                                                       name="3 Layers"),
+            "5 Layer": AEFoldEvaluator.evaluate_folds(train_data=ae_train_data, amount_of_layers=5,
+                                                       name="5 Layers")}
 
-        evaluation_data.extend(
-            AEFoldEvaluator.evaluate_folds(train_data=ae_train_data, amount_of_layers=3, name="3 Layers"))
-        evaluation_data.extend(
-            AEFoldEvaluator.evaluate_folds(train_data=ae_train_data, amount_of_layers=5, name="5 Layers"))
+
 
         # Select to best performing fold
         selected_fold: {} = ModelSelector.select_model_by_lowest_loss(evaluation_data=evaluation_data)
@@ -127,7 +127,7 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.Da
         plotter.plot_reconstructed_markers(test_data=ae_test_data, reconstructed_data=reconstructed_data,
                                            markers=features,
                                            mlflow_directory="Evaluation", file_name="Input v Reconstructed")
-        plotter.plot_scores(scores={"AE": ae_r2_scores}, mlflow_directory="Evaluation", file_name="R2 scores")
+        plotter.plot_scores(scores={"AE": ae_r2_scores}, mlflow_directory="Evaluation", file_name="AE R2 scores")
         plotter.plot_feature_intensities(train_data=ae_train_data, test_data=ae_test_data,
                                          val_data=ae_validation_data, features=features,
                                          mlflow_directory="Evaluation",
@@ -160,14 +160,12 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.D
         vae_train_data, vae_validation_data = SplitHandler.create_splits(cells=vae_train_cells.copy(), create_val=False,
                                                                          seed=args.seed,
                                                                          features=features)
-
         # Fold evaluation data
-        evaluation_data: list = []
-
-        evaluation_data.extend(
-            VAEFoldEvaluator.evaluate_folds(train_data=vae_train_data, amount_of_layers=3, name="3 Layers"))
-        evaluation_data.extend(
-            VAEFoldEvaluator.evaluate_folds(train_data=vae_train_data, amount_of_layers=5, name="5 Layers"))
+        evaluation_data = {
+            "3 Layer": VAEFoldEvaluator.evaluate_folds(train_data=vae_train_data, amount_of_layers=3,
+                                                       name="3 Layers"),
+            "5 Layer": VAEFoldEvaluator.evaluate_folds(train_data=vae_train_data, amount_of_layers=5,
+                                                       name="5 Layers")}
 
         # Select to best performing fold
         selected_fold: {} = ModelSelector.select_model_by_lowest_loss(evaluation_data=evaluation_data)
@@ -221,7 +219,7 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.D
         vae_plotting.plot_reconstructed_markers(test_data=vae_test_data, reconstructed_data=reconstructed_data,
                                                 markers=features, mlflow_directory="Evaluation",
                                                 file_name="Initial vs. Reconstructed markers")
-        vae_plotting.plot_scores(scores={"VAE": vae_r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
+        vae_plotting.plot_scores(scores={"VAE": vae_r2_scores}, mlflow_directory="Evaluation", file_name="VAE R2 Scores")
         vae_plotting.plot_feature_intensities(train_data=vae_train_data, test_data=vae_test_data,
                                               val_data=vae_validation_data, features=features,
                                               mlflow_directory="Evaluation",
@@ -256,13 +254,12 @@ def start_me_vae_experiment(args, experiment_id: str, results_folder: Path) -> p
                                                                                create_val=False, seed=args.seed,
                                                                                features=features)
 
+        evaluation_data = {
+            "3 Layer": MEVAEFoldEvaluator.evaluate_folds(train_data=me_vae_train_data, amount_of_layers=3,
+                                                         name="3 Layers"),
+            "5 Layer": MEVAEFoldEvaluator.evaluate_folds(train_data=me_vae_train_data, amount_of_layers=5,
+                                                         name="5 Layers")}
         # Fold evaluation data
-        evaluation_data: list = []
-
-        evaluation_data.extend(
-            MEVAEFoldEvaluator.evaluate_folds(train_data=me_vae_train_data, amount_of_layers=3, name="3 Layers"))
-        evaluation_data.extend(
-            MEVAEFoldEvaluator.evaluate_folds(train_data=me_vae_train_data, amount_of_layers=5, name="5 Layers"))
 
         # Select to best performing fold
         selected_fold: {} = ModelSelector.select_model_by_lowest_loss(evaluation_data=evaluation_data)
@@ -346,7 +343,7 @@ def start_me_vae_experiment(args, experiment_id: str, results_folder: Path) -> p
                                                 markers=features, mlflow_directory="Evaluation",
                                                 file_name="Initial vs. Reconstructed markers")
         vae_plotting.plot_scores(scores={"ME VAE": me_vae_r2_scores}, mlflow_directory="Evaluation",
-                                 file_name="R2 Scores")
+                                 file_name="ME VAE R2 Scores")
         vae_plotting.plot_feature_intensities(train_data=me_vae_train_data, test_data=me_vae_test_data,
                                               val_data=me_vae_validation_data, features=features,
                                               mlflow_directory="Evaluation",
@@ -389,7 +386,7 @@ def start_elastic_net(args, experiment_id: str, results_folder: Path) -> pd.Data
         Reporter.report_r2_scores(r2_scores=en_r2_scores, save_path=results_folder, mlflow_folder="Evaluation")
 
         plotter = Plotting(results_folder, args)
-        plotter.plot_scores(scores={"EN": en_r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
+        plotter.plot_scores(scores={"EN": en_r2_scores}, mlflow_directory="Evaluation", file_name="EN R2 Scores")
         plotter.plot_correlation(data_set=train_cells, file_name="Train Cells Correlation", mlflow_folder="Evaluation")
         plotter.plot_correlation(data_set=test_cells, file_name="Test Cells Correlation", mlflow_folder="Evaluation")
         return en_r2_scores

@@ -19,7 +19,7 @@ def get_args():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--run", "-r", action="store", required=True,
-                        help="The run id to resume",
+                        help="The summary run id to use for downl",
                         type=str)
     parser.add_argument("--experiment", "-e", action="store", required=False,
                         help="Assigns the run to a particular experiment. "
@@ -89,21 +89,22 @@ if __name__ == "__main__":
                                                                                                   reference_model="ME VAE")
 
                 plotter: Plotting = Plotting(args=args, base_path=base_results_folder)
-                plotter.r2_score_differences(r2_scores=r2_scores, file_name="Score Differences")
+                plotter.r2_score_differences(r2_scores=r2_scores, file_name="Score Differences",
+                                             mlflow_directory="Plots")
                 plotter.r2_scores_relative_performance(
                     relative_score_performance=relative_en_performance_scores,
                     features=features,
-                    file_name="Relative EN Performance Difference")
+                    file_name="Relative EN Performance Difference", mlflow_directory="Plots")
 
                 plotter.r2_scores_relative_performance(
                     relative_score_performance=relative_ae_performance_scores,
                     features=features,
-                    file_name="Relative AE Performance Difference")
+                    file_name="Relative AE Performance Difference", mlflow_directory="Plots")
 
                 plotter.r2_scores_relative_performance(
                     relative_score_performance=relative_me_vae_performance_scores,
                     features=features,
-                    file_name="Relative ME VAE Performance Difference")
+                    file_name="Relative ME VAE Performance Difference", mlflow_directory="Plots")
 
                 absolute_performance_scores: pd.DataFrame = Evaluation.create_absolute_score_performance(
                     r2_scores=r2_scores, features=features)
