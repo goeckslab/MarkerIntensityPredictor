@@ -138,14 +138,18 @@ if __name__ == "__main__":
                                          en_r2_scores=en_r2_mean_scores, me_vae_r2_scores=me_vae_r2_mean_scores,
                                          file_name="Mean R2 score comparison")
 
-            r2_mean_scores = {"EN": en_r2_mean_scores, "AE": ae_r2_mean_scores, "VAE": vae_r2_mean_scores,
-                              "ME VAE": me_vae_r2_mean_scores}
+            r2_mean_scores_by_experiment: dict = {}
+            for experiment_name in args.experiments:
+                r2_mean_scores_by_experiment[experiment_name] = {"EN": en_r2_mean_scores[experiment_name],
+                                                                 "AE": ae_r2_mean_scores[experiment_name],
+                                                                 "VAE": vae_r2_mean_scores[experiment_name],
+                                                                 "ME VAE": me_vae_r2_mean_scores[experiment_name]}
 
-            print(features)
-            print(r2_mean_scores)
-            input()
-            absolute_performance_scores: pd.DataFrame = Evaluation.create_absolute_score_performance(
-                r2_scores=r2_mean_scores, features=features)
+            absolute_performance_scores: dict = {}
+            for experiment_name in r2_mean_scores_by_experiment.keys():
+                absolute_performance_scores[experiment_name] = Evaluation.create_absolute_score_performance(
+                    r2_scores=r2_mean_scores_by_experiment[experiment_name], features=features)
+
             plotting.r2_scores_absolute_performance(absolute_score_performance=absolute_performance_scores,
                                                     file_name="Absolute Performance")
 

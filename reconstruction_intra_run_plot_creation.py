@@ -19,7 +19,7 @@ def get_args():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--run", "-r", action="store", required=True,
-                        help="The summary run id to use for downl",
+                        help="The summary run id to use",
                         type=str)
     parser.add_argument("--experiment", "-e", action="store", required=False,
                         help="Assigns the run to a particular experiment. "
@@ -106,8 +106,8 @@ if __name__ == "__main__":
                     features=features,
                     file_name="Relative ME VAE Performance Difference", mlflow_directory="Plots")
 
-                absolute_performance_scores: pd.DataFrame = Evaluation.create_absolute_score_performance(
-                    r2_scores=r2_scores, features=features)
+                absolute_performance_scores: dict = {"Summary": Evaluation.create_absolute_score_performance(
+                    r2_scores=r2_scores, features=features)}
 
                 plotter.r2_scores_absolute_performance(absolute_score_performance=absolute_performance_scores,
                                                        file_name="Absolute Performance Comparison",

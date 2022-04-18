@@ -147,29 +147,69 @@ class Plotting:
             mlflow.log_artifact(str(save_path))
         plt.close()
 
-    def r2_scores_absolute_performance(self, absolute_score_performance: pd.DataFrame, file_name: str,
+    def r2_scores_absolute_performance(self, absolute_score_performance: dict, file_name: str,
                                        mlflow_directory: str = None):
         """
         Plots the absolute performance difference for the given dataset
         @return:
         """
 
-        fig, ax = plt.subplots(ncols=1, figsize=(7, 5), dpi=300)
-        # Draw a nested barplot by species and sex
-        ax = sns.catplot(
-            data=absolute_score_performance, kind="bar",
-            x="Feature", y="Score", hue="Model",
-            ci="sd", palette="dark", alpha=.6, height=6
-        )
-        ax.despine(left=True)
-        ax.set_axis_labels("Features", "Relative Difference R2 Score")
-        # Rotate labels
-        for axes in ax.axes.flat:
-            _ = axes.set_xticklabels(axes.get_xticklabels(), rotation=90)
+        # Determine number of rows
+        num_rows = 1
+        if len(absolute_score_performance.keys()) > 3:
+            num_rows = float(len(absolute_score_performance.items()) / 3)
+            if not num_rows.is_integer():
+                num_rows += 1
 
-        # Put a legend below current axis
-        fig.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05),
-                   fancybox=True, shadow=True, ncol=len(absolute_score_performance["Model"].unique()))
+            num_rows = int(num_rows)
+
+        n_cols = 3
+
+        # Adjust columns based on items
+        if num_rows == 1:
+            fig, axs = plt.subplots(ncols=len(absolute_score_performance.keys()), nrows=num_rows, figsize=(11, 5),
+                                    dpi=300, sharex=False)
+        elif num_rows == 2:
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(13, 7), dpi=300, sharex=False)
+        elif num_rows == 3:
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(13, 9), dpi=300, sharex=False)
+        else:
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(13, 11), dpi=300, sharex=False)
+
+        col: int = 0
+        row: int = 0
+
+        experiment_names: [] = [experiment_name for experiment_name in absolute_score_performance.keys()]
+        for experiment_name in experiment_names:
+
+            data = absolute_score_performance[experiment_name]
+
+            if num_rows == 1:
+                sns.barplot(
+                    data=data, x="Feature", y="Score", hue="Model",
+                    ci="sd", palette="dark", ax=axs[col])
+                axs[col].set_title(f"{experiment_name}")
+                axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
+                axs[col].set_ylim(0, 1)
+                axs[col].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+
+
+            else:
+                sns.barplot(
+                    data=data, x="Feature", y="Score", hue="Model",
+                    ci="sd", palette="dark", ax=axs[row, col])
+                axs[row, col].set_title(f"{experiment_name}")
+                axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+                axs[row, col].set_ylim(0, 1)
+                axs[row, col].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+
+            if col == n_cols:
+                row += 1
+                col = 0
+
+            else:
+                col += 1
+
         plt.tight_layout()
 
         save_path = Path(self.__base_path, f"{file_name}.png")
