@@ -333,17 +333,17 @@ class Plotting:
 
             num_rows = int(num_rows)
 
-        n_cols = 3
+        n_cols = len(scores.keys()) if len(scores.keys()) <= 3 else 3
 
         # Adjust columns based on items
         if num_rows == 1:
             fig, axs = plt.subplots(ncols=len(scores.keys()), nrows=num_rows, figsize=(12, 7), dpi=300, sharex=False)
         elif num_rows == 2:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 9), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(12, 9), dpi=300, sharex=False)
         elif num_rows == 3:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 11), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(12, 11), dpi=300, sharex=False)
         else:
-            fig, axs = plt.subplots(ncols=3, nrows=num_rows, figsize=(12, 13), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(12, 13), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0
