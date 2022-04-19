@@ -9,6 +9,8 @@ from library.data.folder_management import FolderManagement
 from library.data.data_loader import DataLoader
 from library.plotting.plots import Plotting
 from library.mlflow_helper.run_handler import RunHandler
+from library.evalation.evaluation import Evaluation
+
 base_path = Path("imputation_score_comparison")
 
 
@@ -29,6 +31,7 @@ def get_args():
                         default="Default", type=str)
     parser.add_argument("--runs", action="store", nargs='+', required=False,
                         help="The runs which should be compared", type=str)
+    parser.add_argument("--percentage", "-p", help="The percentage which is compared", required=True, type=float)
 
     return parser.parse_args()
 
@@ -80,7 +83,9 @@ if __name__ == "__main__":
             imputed_r2_scores: pd.DataFrame = pd.DataFrame()
             frames = []
             r2_scores: dict = {}
+            features: list = []
             for directory in run_directories:
+                print("Loading files...")
                 data: pd.DataFrame = DataLoader.load_file(load_path=directory, file_name="imputed_r2_score.csv")
 
                 if data is None:
@@ -93,16 +98,17 @@ if __name__ == "__main__":
 
                 r2_scores[run_name] = data
 
+                features = DataLoader.load_file(load_path=directory, file_name="Features.csv")["Features"].tolist()
+
             plotter: Plotting = Plotting(base_path=base_path, args=args)
-            plotter.plot_scores(scores=r2_scores, file_name="Imputation Performance")
+            plotter.plot_scores(scores=r2_scores, file_name=f"Imputation Performance {args.percentage}")
 
-            # absolute_r2_score_performance: pd.DataFrame = Evaluation.create_absolute_score_performance(r2_scores=r2_scores, features=)
+            absolute_r2_score_performance: dict = {
+                "Imputation Performance": Evaluation.create_absolute_score_performance(r2_scores=r2_scores,
+                                                                                       features=features)}
 
-
-
-
-
-
+            plotter.r2_scores_absolute_performance(absolute_score_performance=absolute_r2_score_performance,
+                                                   file_name=f"Absolute Performance {args.percentage}")
 
     except BaseException as ex:
         print(ex)

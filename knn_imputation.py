@@ -78,21 +78,21 @@ if __name__ == "__main__":
             mlflow.set_tag("Percentage", args.percentage)
 
             if len(args.files) == 1:
-                cells, markers = DataLoader.load_single_cell_data(args.files[0])
+                cells, features = DataLoader.load_single_cell_data(args.files[0])
             else:
                 frames: list = []
-                markers = []
+                features = []
                 for file in args.files:
-                    cells, markers = DataLoader.load_single_cell_data(file)
+                    cells, features = DataLoader.load_single_cell_data(file)
                     frames.append(cells)
 
                 cells = pd.concat(frames)
-                cells.columns = markers
+                cells.columns = features
 
-            normalized_cells = pd.DataFrame(data=Preprocessing.normalize(cells), columns=markers)
+            normalized_cells = pd.DataFrame(data=Preprocessing.normalize(cells), columns=features)
 
             r2_scores: pd.DataFrame = pd.DataFrame()
-            for feature in markers:
+            for feature in features:
                 print(f"Imputation started for feature {feature} ...")
                 # Replace data for specific marker
                 working_data, indexes = Replacer.replace_values(normalized_cells.copy(), feature, args.percentage, 0)
@@ -116,7 +116,10 @@ if __name__ == "__main__":
             plotter = Plotting(base_path=base_path, args=args)
             plotter.plot_scores(scores={"KNN": r2_scores}, file_name="KNN R2 Scores")
             plotter.plot_correlation(data_set=cells, file_name="Correlation")
-            Reporter.report_r2_scores(r2_scores=r2_scores, save_path=base_path)
+            Reporter.report_r2_scores(r2_scores=r2_scores, save_path=base_path, prefix="imputed")
+            Reporter.upload_csv(data=pd.DataFrame(data=features, columns=["Features"]), save_path=base_path,
+                                file_name="Features")
+
 
 
 

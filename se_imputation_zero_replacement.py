@@ -144,7 +144,7 @@ if __name__ == "__main__":
                 imputed_r2_scores: pd.DataFrame = pd.DataFrame()
 
                 with mlflow.start_run(experiment_id=get_associated_experiment_id(args=args), nested=True,
-                                      run_name=f"Percentage {args.percentage} Step {step}") as step_run:
+                                      run_name=f"{args.run} Percentage {args.percentage} Step {step}") as step_run:
 
                     mlflow.set_tag("Percentage", args.percentage)
                     mlflow.set_tag("Step", step)
