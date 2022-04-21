@@ -103,20 +103,25 @@ def start_simple_imputation(args, base_path: str):
 
             cells, features = DataLoader.load_single_cell_data(args.file)
 
-            normalized_cells = pd.DataFrame(data=Preprocessing.normalize(cells), columns=features)
+            train_data, test_data = SplitHandler.create_splits(cells=cells, features=features, create_val=False)
+
+            train_data = pd.DataFrame(data=Preprocessing.normalize(data=train_data), columns=features)
+            test_data = pd.DataFrame(data=Preprocessing.normalize(data=test_data), columns=features)
 
             r2_scores: pd.DataFrame = pd.DataFrame()
             for feature in features:
                 print(f"Imputation started for feature {feature} ...")
                 # Replace data for specific marker
-                working_data, indexes = Replacer.replace_values_by_column(normalized_cells.copy(), feature,
-                                                                          args.percentage, 0)
+                replaced_data, indexes = Replacer.replace_values_by_feature(data=test_data.copy(),
+                                                                            feature_to_replace=feature,
+                                                                            percentage=args.percentage,
+                                                                            value_to_replace_with=0)
 
                 # Select ground truth values for marker and indexes
-                selected_ground_truth_values = normalized_cells[feature].iloc[indexes].copy()
+                selected_ground_truth_values = test_data[feature].iloc[indexes].copy()
 
                 # Impute missing values
-                imputed_values = SimpleImputation.impute(working_data)
+                imputed_values = SimpleImputation.impute(train_data=train_data, test_data=replaced_data)
 
                 # Select imputed values for marker and indexes
                 selected_imputed_values = imputed_values[feature].iloc[indexes].copy()
@@ -182,19 +187,25 @@ def start_knn_imputation(base_path: str, args):
 
             cells, features = DataLoader.load_single_cell_data(args.file)
 
-            normalized_cells = pd.DataFrame(data=Preprocessing.normalize(cells), columns=features)
+            train_data, test_data = SplitHandler.create_splits(cells=cells, features=features, create_val=False)
+
+            train_data = pd.DataFrame(data=Preprocessing.normalize(data=train_data), columns=features)
+            test_data = pd.DataFrame(data=Preprocessing.normalize(data=test_data), columns=features)
 
             r2_scores: pd.DataFrame = pd.DataFrame()
             for feature in features:
                 print(f"Imputation started for feature {feature} ...")
                 # Replace data for specific marker
-                working_data, indexes = Replacer.replace_values(normalized_cells.copy(), feature, args.percentage, 0)
+                replaced_data, indexes = Replacer.replace_values_by_feature(data=test_data.copy(),
+                                                                            feature_to_replace=feature,
+                                                                            percentage=args.percentage,
+                                                                            value_to_replace_with=0)
 
                 # Select ground truth values for marker and indexes
-                selected_ground_truth_values = normalized_cells[feature].iloc[indexes].copy()
+                selected_ground_truth_values = test_data[feature].iloc[indexes].copy()
 
                 # Impute missing values
-                imputed_values = KNNImputation.impute(working_data)
+                imputed_values = KNNImputation.impute(train_data=train_data, test_data=replaced_data)
 
                 # Select imputed values for marker and indexes
                 selected_imputed_values = imputed_values[feature].iloc[indexes].copy()
@@ -305,7 +316,7 @@ def start_me_imputation(args, base_path: str):
                     mlflow.set_tag("Step", step)
 
                     for marker_to_impute in marker_data.columns:
-                        imputed_r2_score, reconstructed_r2_score, replaced_r2_score = MEVAEImputation.impute_data(
+                        imputed_r2_score, reconstructed_r2_score, replaced_r2_score = MEVAEImputation.impute_data_by_feature(
                             model=model,
                             feature_to_impute=marker_to_impute,
                             marker_data=marker_data.copy(),
