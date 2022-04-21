@@ -130,11 +130,12 @@ class RunHandler:
         # Run not found
         return None
 
-    def get_run_by_name(self, experiment_id: str, run_name: str) -> Optional[Run]:
+    def get_run_by_name(self, experiment_id: str, run_name: str, parent_run_id: str = None) -> Optional[Run]:
         """
         Returns a run for a given name in a given experiment
         @param experiment_id: The experiment id in which the run is located
         @param run_name:  The run name to search for
+        @param parent_run_id:  The parent run id for the run to search for
         @return: A run or None if not found
         """
         run: Run
@@ -155,6 +156,8 @@ class RunHandler:
             full_run = self.client.get_run(run_info.run_id)
 
             if full_run.data.tags.get('mlflow.runName') == run_name:
+                if parent_run_id is not None and full_run.data.tags.get('mlflow.parentRunId') != parent_run_id:
+                    continue
                 # Add to cache
                 if runs is None or len(runs) == 0:
                     self.__runs[experiment_id] = [full_run]

@@ -1,24 +1,43 @@
-import mlflow
-from pathlib import Path
-from library.mlflow_helper.experiment_handler import ExperimentHandler
-import sys
-from library.data.folder_management import FolderManagement
 from library.data.data_loader import DataLoader
-from library.preprocessing.replacements import Replacer
-from library.preprocessing.preprocessing import Preprocessing
+from sklearn.metrics import r2_score
 import pandas as pd
-from library.knn.knn_imputation import KNNImputation
+from library.preprocessing.replacements import Replacer
+from pathlib import Path
+import argparse
+from library.data.folder_management import FolderManagement
+import mlflow
+from library.mlflow_helper.experiment_handler import ExperimentHandler
+from library.mlflow_helper.run_handler import RunHandler
 from library.plotting.plots import Plotting
 from library.mlflow_helper.reporter import Reporter
-from sklearn.metrics import r2_score
 import time
-from library.preprocessing.split import SplitHandler
-from library.mlflow_helper.run_handler import RunHandler
-from library.me_vae.me_vae_imputer import MEVAEImputation
-from typing import Optional
+import sys
 from library.simple_imputer.simple_imputer import SimpleImputation
+from library.preprocessing.preprocessing import Preprocessing
+from library.knn.knn_imputation import KNNImputation
+from library.me_vae.me_vae_imputer import MEVAEImputation
+from library.preprocessing.split import SplitHandler
 from library.vae.vae_imputer import VAEImputation
-import argparse
+
+
+def get_experiment_id(requested_experiment_name: str, experiment_handler: ExperimentHandler,
+                      create_experiment: bool) -> str:
+    model_experiment_id: str = experiment_handler.get_experiment_id_by_name(experiment_name=requested_experiment_name,
+                                                                            create_experiment=create_experiment)
+    if model_experiment_id is None:
+        raise ValueError(f"Could not find experiment {requested_experiment_name}")
+
+    return model_experiment_id
+
+
+def get_model_run_id(run_handler: RunHandler, experiment_id: str, parent_run_id: str, run_name: str) -> str:
+    model_run_id: str = run_handler.get_run_id_by_name(experiment_id=experiment_id, run_name=run_name,
+                                                       parent_run_id=parent_run_id)
+
+    if model_run_id is None:
+        raise ValueError(f"Could not find run with name {run_name}")
+
+    return model_run_id
 
 
 def get_args():
@@ -47,27 +66,8 @@ def get_args():
     return parser.parse_args()
 
 
-def get_experiment_id(requested_experiment_name: str, experiment_handler: ExperimentHandler,
-                      create_experiment: bool) -> str:
-    model_experiment_id: str = experiment_handler.get_experiment_id_by_name(experiment_name=requested_experiment_name,
-                                                                            create_experiment=create_experiment)
-    if model_experiment_id is None:
-        raise ValueError(f"Could not find experiment {requested_experiment_name}")
-
-    return model_experiment_id
-
-
-def get_model_run_id(run_handler: RunHandler, experiment_id: str, parent_run_id: str, run_name: str) -> str:
-    model_run_id: str = run_handler.get_run_id_by_name(experiment_id=experiment_id, run_name=run_name,
-                                                       parent_run_id=parent_run_id)
-
-    if model_run_id is None:
-        raise ValueError(f"Could not find run with name {run_name}")
-
-    return model_run_id
-
-
 def start_simple_imputation(args, base_path: str):
+    print("Started simple imputer imputation...")
     simple_imputer_results_path = Path(f"{base_path}", str(int(time.time_ns() / 1000)))
     run_name: str = "SI Imputation"
     if args.percentage >= 1:
@@ -103,39 +103,44 @@ def start_simple_imputation(args, base_path: str):
 
             cells, features = DataLoader.load_single_cell_data(args.file)
 
-            normalized_cells = pd.DataFrame(data=Preprocessing.normalize(cells), columns=features)
+            train_data, test_data = SplitHandler.create_splits(cells=cells, features=features, create_val=False)
 
-            r2_scores: pd.DataFrame = pd.DataFrame()
+            train_data = pd.DataFrame(data=Preprocessing.normalize(data=train_data), columns=features)
+            test_data = pd.DataFrame(data=Preprocessing.normalize(data=test_data), columns=features)
+
+            replaced_test_data_cells, index_replacements = Replacer.replace_values_by_cell(data=test_data,
+                                                                                           features=features,
+                                                                                           percentage=args.percentage)
+
+            print("Imputing data...")
+            imputed_cells: pd.DataFrame = SimpleImputation.impute(train_data=train_data,
+                                                                  test_data=replaced_test_data_cells)
+
+            imputed_r2_scores: pd.DataFrame = pd.DataFrame()
+
+            print("Calculating r2 scores...")
             for feature in features:
-                print(f"Imputation started for feature {feature} ...")
-                # Replace data for specific marker
-                working_data, indexes = Replacer.replace_values_by_column(normalized_cells.copy(), feature,
-                                                                          args.percentage, 0)
+                # Store all cell indexes, to be able to select the correct cells later for r2 comparison
+                cell_indexes_to_compare: list = []
+                for key, replaced_features in index_replacements.items():
+                    if feature in replaced_features:
+                        cell_indexes_to_compare.append(key)
 
-                # Select ground truth values for marker and indexes
-                selected_ground_truth_values = normalized_cells[feature].iloc[indexes].copy()
-
-                # Impute missing values
-                imputed_values = SimpleImputation.impute(working_data)
-
-                # Select imputed values for marker and indexes
-                selected_imputed_values = imputed_values[feature].iloc[indexes].copy()
-
-                r2_scores = r2_scores.append(
-                    {
-                        "Marker": feature,
-                        "Score": r2_score(selected_ground_truth_values, selected_imputed_values)
-                    }, ignore_index=True
-                )
+                imputed_r2_scores = imputed_r2_scores.append({
+                    "Marker": feature,
+                    "Score": r2_score(test_data[feature].iloc[cell_indexes_to_compare],
+                                      imputed_cells[feature].iloc[cell_indexes_to_compare])
+                }, ignore_index=True)
 
             plotter = Plotting(base_path=simple_imputer_results_path, args=args)
-            plotter.plot_scores(scores={"Simple Imputation": r2_scores}, file_name="Simple R2 Scores")
+            plotter.plot_scores(scores={"Imputed": imputed_r2_scores},
+                                file_name=f"R2 Imputed Scores")
             plotter.plot_correlation(data_set=cells, file_name="Correlation")
-            Reporter.report_r2_scores(r2_scores=r2_scores, save_path=simple_imputer_results_path, prefix="imputed")
+            Reporter.report_r2_scores(r2_scores=imputed_r2_scores, save_path=simple_imputer_results_path,
+                                      prefix="imputed")
             Reporter.upload_csv(data=pd.DataFrame(data=features, columns=["Features"]),
                                 save_path=simple_imputer_results_path,
                                 file_name="Features")
-
 
 
     except BaseException as ex:
@@ -146,6 +151,7 @@ def start_simple_imputation(args, base_path: str):
 
 
 def start_knn_imputation(base_path: str, args):
+    print("Started knn imputation...")
     base_path = Path(f"{base_path}_{str(int(time.time_ns() / 1000))}")
     run_name: str = "KNN Imputation"
 
@@ -182,34 +188,40 @@ def start_knn_imputation(base_path: str, args):
 
             cells, features = DataLoader.load_single_cell_data(args.file)
 
-            normalized_cells = pd.DataFrame(data=Preprocessing.normalize(cells), columns=features)
+            train_data, test_data = SplitHandler.create_splits(cells=cells, features=features, create_val=False)
 
-            r2_scores: pd.DataFrame = pd.DataFrame()
+            train_data = pd.DataFrame(data=Preprocessing.normalize(train_data), columns=features)
+            test_data = pd.DataFrame(data=Preprocessing.normalize(test_data), columns=features)
+
+            replaced_test_data_cells, index_replacements = Replacer.replace_values_by_cell(data=test_data,
+                                                                                           features=features,
+                                                                                           percentage=args.percentage)
+
+            print("Imputing data...")
+            imputed_cells: pd.DataFrame = KNNImputation.impute(train_data=train_data,
+                                                               test_data=replaced_test_data_cells)
+
+            print("Calculating r2 scores...")
+            imputed_r2_scores: pd.DataFrame = pd.DataFrame()
+
             for feature in features:
-                print(f"Imputation started for feature {feature} ...")
-                # Replace data for specific marker
-                working_data, indexes = Replacer.replace_values(normalized_cells.copy(), feature, args.percentage, 0)
+                # Store all cell indexes, to be able to select the correct cells later for r2 comparison
+                cell_indexes_to_compare: list = []
+                for key, replaced_features in index_replacements.items():
+                    if feature in replaced_features:
+                        cell_indexes_to_compare.append(key)
 
-                # Select ground truth values for marker and indexes
-                selected_ground_truth_values = normalized_cells[feature].iloc[indexes].copy()
-
-                # Impute missing values
-                imputed_values = KNNImputation.impute(working_data)
-
-                # Select imputed values for marker and indexes
-                selected_imputed_values = imputed_values[feature].iloc[indexes].copy()
-
-                r2_scores = r2_scores.append(
-                    {
-                        "Marker": feature,
-                        "Score": r2_score(selected_ground_truth_values, selected_imputed_values)
-                    }, ignore_index=True
-                )
+                imputed_r2_scores = imputed_r2_scores.append({
+                    "Marker": feature,
+                    "Score": r2_score(test_data[feature].iloc[cell_indexes_to_compare],
+                                      imputed_cells[feature].iloc[cell_indexes_to_compare])
+                }, ignore_index=True)
 
             plotter = Plotting(base_path=base_path, args=args)
-            plotter.plot_scores(scores={"KNN": r2_scores}, file_name="KNN R2 Scores")
+            plotter.plot_scores(scores={"Imputed": imputed_r2_scores},
+                                file_name=f"R2 Imputed Scores")
             plotter.plot_correlation(data_set=cells, file_name="Correlation")
-            Reporter.report_r2_scores(r2_scores=r2_scores, save_path=base_path, prefix="imputed")
+            Reporter.report_r2_scores(r2_scores=imputed_r2_scores, save_path=base_path, prefix="imputed")
             Reporter.upload_csv(data=pd.DataFrame(data=features, columns=["Features"]), save_path=base_path,
                                 file_name="Features")
 
@@ -224,6 +236,7 @@ def start_knn_imputation(base_path: str, args):
 
 
 def start_me_imputation(args, base_path: str):
+    print("Started multi encoder imputation...")
     me_vae_results_path: Path = Path(f"{base_path}_{str(int(time.time_ns() / 1000))}")
     run_name: str = "ME VAE Imputation"
     # Where to store the results
@@ -281,6 +294,8 @@ def start_me_imputation(args, base_path: str):
                                                    data=Preprocessing.normalize(ground_truth_morph_data))
             ground_truth_marker_data = pd.DataFrame(columns=ground_truth_marker_data.columns,
                                                     data=Preprocessing.normalize(ground_truth_marker_data))
+            ground_truth_data_normalized = pd.DataFrame(data=Preprocessing.normalize(ground_truth_data.copy()),
+                                                        columns=features)
 
             # Split and normalize data
             marker_data, morph_data = SplitHandler.split_dataset_into_markers_and_morph_features(cells)
@@ -288,86 +303,52 @@ def start_me_imputation(args, base_path: str):
             marker_data = pd.DataFrame(columns=marker_data.columns, data=Preprocessing.normalize(marker_data))
 
             for step in range(1, iter_steps + 1):
-
-                # Reconstructed by using the vae
-                reconstructed_r2_scores: pd.DataFrame = pd.DataFrame()
-
-                # Just using the replaced values
-                replaced_r2_scores: pd.DataFrame = pd.DataFrame()
-
-                # Imputed by using the VAE
-                imputed_r2_scores: pd.DataFrame = pd.DataFrame()
-
                 with mlflow.start_run(experiment_id=save_experiment_id, nested=True,
                                       run_name=f"{run_name} Percentage {args.percentage} Step {step}") as step_run:
-
                     mlflow.set_tag("Percentage", args.percentage)
                     mlflow.set_tag("Step", step)
 
-                    for marker_to_impute in marker_data.columns:
-                        imputed_r2_score, reconstructed_r2_score, replaced_r2_score = MEVAEImputation.impute_data(
-                            model=model,
-                            feature_to_impute=marker_to_impute,
-                            marker_data=marker_data.copy(),
-                            morph_data=morph_data.copy(),
-                            ground_truth_marker_data=ground_truth_marker_data.copy(),
-                            ground_truth_morph_data=ground_truth_morph_data.copy(),
-                            percentage=args.percentage,
-                            iter_steps=step, features=features)
+                    imputed_r2_scores, reconstructed_r2_scores, replaced_r2_scores = MEVAEImputation.impute_data_by_cell(
+                        model=model,
+                        marker_data=marker_data.copy(),
+                        morph_data=morph_data.copy(),
+                        ground_truth_marker_data=ground_truth_marker_data.copy(),
+                        ground_truth_morph_data=ground_truth_morph_data.copy(),
+                        percentage=args.percentage,
+                        iter_steps=step, features=features)
 
+                    """for index, row in imputed_data.iterrows():
                         # Add score to datasets
-                        reconstructed_r2_scores = reconstructed_r2_scores.append({
-                            "Marker": marker_to_impute,
-                            "Score": reconstructed_r2_score,
-                        }, ignore_index=True)
-
                         imputed_r2_scores = imputed_r2_scores.append({
-                            "Marker": marker_to_impute,
-                            "Score": imputed_r2_score
+                            "Cell": index,
+                            "Score": r2_score(ground_truth_data_normalized.iloc[index], row),
                         }, ignore_index=True)
 
-                        replaced_r2_scores = replaced_r2_scores.append({
-                            "Marker": marker_to_impute,
-                            "Score": replaced_r2_score
-                        }, ignore_index=True)
-
-                    for morph_to_impute in morph_data.columns:
-                        imputed_r2_score, reconstructed_r2_score, replaced_r2_score = MEVAEImputation.impute_data_by_feature(
-                            model=model,
-                            feature_to_impute=morph_to_impute,
-                            marker_data=marker_data.copy(),
-                            morph_data=morph_data.copy(),
-                            ground_truth_marker_data=ground_truth_marker_data.copy(),
-                            ground_truth_morph_data=ground_truth_morph_data.copy(),
-                            percentage=args.percentage,
-                            iter_steps=step, features=features)
-
-                        # Add score to datasets
+                    for index, row in reconstructed_data.iterrows():
                         reconstructed_r2_scores = reconstructed_r2_scores.append({
-                            "Marker": morph_to_impute,
-                            "Score": reconstructed_r2_score,
+                            "Cell": index,
+                            "Score": r2_score(ground_truth_data_normalized.iloc[index], row),
                         }, ignore_index=True)
 
-                        imputed_r2_scores = imputed_r2_scores.append({
-                            "Marker": morph_to_impute,
-                            "Score": imputed_r2_score
-                        }, ignore_index=True)
-
+                    for index, row in replaced_data.iterrows():
                         replaced_r2_scores = replaced_r2_scores.append({
-                            "Marker": morph_to_impute,
-                            "Score": replaced_r2_score
-                        }, ignore_index=True)
+                            "Cell": index,
+                            "Score": r2_score(ground_truth_data_normalized.iloc[index], row),
+                        }, ignore_index=True)"""
 
                     # Report and plot results
                     plotter: Plotting = Plotting(base_path=me_vae_results_path, args=args)
+
                     plotter.plot_scores(scores={"Ground Truth vs. Reconstructed": reconstructed_r2_scores,
                                                 "Ground Truth vs. Imputed": imputed_r2_scores,
                                                 "Ground Truth vs. Replaced": replaced_r2_scores},
-                                        file_name=f"R2 Score Comparison Step {step} Percentage {args.percentage}")
+                                        file_name=f"R2 Score Comparison Steps {iter_steps} Percentage {args.percentage}")
 
                     plotter.plot_scores(scores={"Imputed": imputed_r2_scores},
                                         file_name=f"R2 Imputed Scores Step {step} Percentage {args.percentage}")
 
+                    Reporter.upload_csv(data=ground_truth_data_normalized, file_name="ground_truth_data_normalized",
+                                        save_path=me_vae_results_path)
                     Reporter.report_r2_scores(r2_scores=reconstructed_r2_scores, save_path=me_vae_results_path,
                                               mlflow_folder="",
                                               prefix="ground_truth")
@@ -380,6 +361,7 @@ def start_me_imputation(args, base_path: str):
                     Reporter.upload_csv(data=pd.DataFrame(data=features, columns=["Features"]),
                                         save_path=me_vae_results_path,
                                         file_name="Features")
+                    plotter.plot_correlation(data_set=cells, file_name="Correlation")
 
 
 
@@ -392,6 +374,7 @@ def start_me_imputation(args, base_path: str):
 
 
 def start_se_imputation(base_path: str, args):
+    print("Started vae imputation...")
     se_imputation_base_path = Path(f"{base_path}_{str(int(time.time_ns() / 1000))}")
     run_name: str = "VAE Imputation"
     if len(args.model) != 2:
@@ -443,46 +426,39 @@ def start_se_imputation(base_path: str, args):
             # Load data
             cells, features = DataLoader.load_single_cell_data(args.file)
             # Use whole file
-            test_data = pd.DataFrame(columns=features, data=Preprocessing.normalize(cells))
-
-            ground_truth_data = test_data.copy()
+            ground_truth_data_normalized = pd.DataFrame(columns=features, data=Preprocessing.normalize(cells))
 
             for step in range(1, iter_steps + 1):
-                # Reconstructed by using the vae
-                reconstructed_r2_scores: pd.DataFrame = pd.DataFrame()
-
-                # Just using the replaced values
-                replaced_r2_scores: pd.DataFrame = pd.DataFrame()
-
-                # Imputed by using the VAE
-                imputed_r2_scores: pd.DataFrame = pd.DataFrame()
-
                 with mlflow.start_run(experiment_id=save_experiment_id, nested=True,
                                       run_name=f"{run_name} Percentage {args.percentage} Step {step}") as step_run:
-
                     mlflow.set_tag("Percentage", args.percentage)
                     mlflow.set_tag("Step", step)
 
-                    for feature_to_impute in features:
-                        imputed_r2_score, reconstructed_r2_score, replaced_r2_score = VAEImputation.impute_data_by_feature(
-                            model=model, ground_truth_data=ground_truth_data, feature_to_impute=feature_to_impute,
-                            percentage=args.percentage, features=features, iter_steps=step)
+                    imputed_r2_scores, reconstructed_r2_scores, replaced_r2_scores = VAEImputation.impute_data_by_cell(
+                        model=model,
+                        iter_steps=step,
+                        ground_truth_data=ground_truth_data_normalized,
+                        percentage=args.percentage,
+                        features=features)
 
-                        # Add score to datasets
-                        reconstructed_r2_scores = reconstructed_r2_scores.append({
-                            "Marker": feature_to_impute,
-                            "Score": reconstructed_r2_score,
-                        }, ignore_index=True)
-
+                    """for index, row in imputed_data.iterrows():
+                      # Add score to datasets
                         imputed_r2_scores = imputed_r2_scores.append({
-                            "Marker": feature_to_impute,
-                            "Score": imputed_r2_score
+                            "Cell": index,
+                            "Score": r2_score(ground_truth_data_normalized.iloc[index], row),
                         }, ignore_index=True)
 
-                        replaced_r2_scores = replaced_r2_scores.append({
-                            "Marker": feature_to_impute,
-                            "Score": replaced_r2_score
+                    for index, row in reconstructed_data.iterrows():
+                        reconstructed_r2_scores = reconstructed_r2_scores.append({
+                            "Cell": index,
+                            "Score": r2_score(ground_truth_data_normalized.iloc[index], row),
                         }, ignore_index=True)
+
+                    for index, row in replaced_data.iterrows():
+                        replaced_r2_scores = replaced_r2_scores.append({
+                            "Cell": index,
+                            "Score": r2_score(ground_truth_data_normalized.iloc[index], row),
+                        }, ignore_index=True) """
 
                     # Report results
                     plotter: Plotting = Plotting(base_path=se_imputation_base_path, args=args)
@@ -493,6 +469,7 @@ def start_se_imputation(base_path: str, args):
 
                     plotter.plot_scores(scores={"Imputed": imputed_r2_scores},
                                         file_name=f"R2 Imputed Scores Step {step} Percentage {args.percentage}")
+                    plotter.plot_correlation(data_set=cells, file_name="Correlation")
 
                     Reporter.report_r2_scores(r2_scores=reconstructed_r2_scores, save_path=se_imputation_base_path,
                                               mlflow_folder="",
@@ -542,6 +519,6 @@ if __name__ == "__main__":
 
 
     except BaseException as ex:
-        print(ex)
+        raise
     finally:
         FolderManagement.delete_directory(base_results_path)

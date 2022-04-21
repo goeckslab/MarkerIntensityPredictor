@@ -32,6 +32,8 @@ def get_args():
     parser.add_argument("--runs", action="store", nargs='+', required=False,
                         help="The runs which should be compared", type=str)
     parser.add_argument("--percentage", "-p", help="The percentage which is compared", required=True, type=float)
+    parser.add_argument("--labels", "-l", nargs='+', help="The labels which should be added", required=False, type=str)
+    parser.add_argument("--parent_run", "-pr", help="The parent run id", required=True, type=str)
 
     return parser.parse_args()
 
@@ -72,7 +74,7 @@ if __name__ == "__main__":
             for run_name in args.runs:
                 run_name = run_name.strip()
                 run: Run = run_handler.get_run_by_name(experiment_id=associated_experiment_id,
-                                                       run_name=run_name)
+                                                       run_name=run_name, parent_run_id=args.parent_run)
                 if run is None:
                     continue
                 runs.append(run)
@@ -108,9 +110,10 @@ if __name__ == "__main__":
                                                                                        features=features)}
 
             plotter.r2_scores_absolute_performance(absolute_score_performance=absolute_r2_score_performance,
-                                                   file_name=f"Absolute Performance {args.percentage}")
+                                                   file_name=f"Absolute Performance {args.percentage}",
+                                                   legend_labels=args.labels)
 
     except BaseException as ex:
-        print(ex)
+        raise
     finally:
         FolderManagement.delete_directory(base_path)

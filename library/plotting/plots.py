@@ -42,12 +42,13 @@ class Plotting:
             mlflow.log_artifact(str(save_path))
         plt.close()
 
-    def plot_reconstructed_markers(self, test_data, reconstructed_data, markers, mlflow_directory: str,
+    def plot_reconstructed_markers(self, test_data: pd.DataFrame, reconstructed_data: pd.DataFrame, features: list,
+                                   mlflow_directory: str,
                                    file_name: str):
         logging.info("Plotting reconstructed intensities")
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 10), dpi=300, sharex=True)
-        sns.heatmap(test_data, ax=ax1, xticklabels=markers)
-        sns.heatmap(reconstructed_data, ax=ax2, xticklabels=markers)
+        sns.heatmap(test_data, ax=ax1, xticklabels=features)
+        sns.heatmap(reconstructed_data, ax=ax2, xticklabels=features)
 
         ax1.set_title("X Test")
         ax2.set_title("Reconstructed X Test")
@@ -108,6 +109,106 @@ class Plotting:
             mlflow.log_artifact(str(save_path))
         plt.close()
 
+    def r2_scores_by_cell_histogram(self, data: pd.DataFrame, file_name: str, mlflow_directory: str = None):
+        data.sort_values(by='Score', inplace=True)
+        data.insert(0, 'pseudo_x', list(range(0, len(data))))
+        l_size = 12
+        fig, axs = plt.subplots(1, 1, figsize=(12, 6), dpi=800)
+        plt.xlabel('Cell r2 rank',
+                   # size = l_size
+                   )
+        plt.ylabel('r2',
+                   # size = l_size
+                   )
+        plt.bar(data.pseudo_x, data.Score)
+        plt.title(f'Imputed Cell R2 scores, n = {len(data)}')
+        save_path = Path(self.__base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+
+        if mlflow_directory is not None:
+            mlflow.log_artifact(str(save_path), mlflow_directory)
+        else:
+            mlflow.log_artifact(str(save_path))
+        plt.close()
+
+    def r2_scores_by_cell(self, r2_scores: dict, file_name: str, mlflow_directory: str = None):
+        """
+        Plots the r2 score data by cells not by features
+        @param r2_scores:
+        @param file_name:
+        @param mlflow_directory:
+        @return:
+        """
+        # Determine number of rows
+        num_rows = 1
+        if len(r2_scores.keys()) > 3:
+            num_rows = float(len(r2_scores.items()) / 3)
+            if not num_rows.is_integer():
+                num_rows += 1
+
+            num_rows = int(num_rows)
+
+        n_cols = len(r2_scores.keys()) if len(r2_scores.keys()) <= 3 else 3
+
+        # Adjust columns based on items
+        if num_rows == 1:
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(11, 5),
+                                    dpi=300, sharex=False)
+        elif num_rows == 2:
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(13, 7), dpi=300, sharex=False)
+        elif num_rows == 3:
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(13, 9), dpi=300, sharex=False)
+        else:
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(13, 11), dpi=300, sharex=False)
+
+        col: int = 0
+        row: int = 0
+
+        experiment_names: [] = [experiment_name for experiment_name in r2_scores.keys()]
+
+        for experiment_name in experiment_names:
+
+            data = r2_scores[experiment_name]
+            if num_rows == 1:
+                if n_cols == 1:
+                    sns.scatterplot(data=data, x="Cell", y="Score", vmin=0, vmax=1, ax=axs)
+                    axs.set_title(f"{experiment_name}")
+                    axs.set_xticklabels(axs.get_xticklabels(), rotation=90)
+                    axs.set_ylim(0, 1)
+                    axs.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+                else:
+                    sns.scatterplot(data=data, x="Cell", y="Score", vmin=0, vmax=1, ax=axs[col])
+                    axs[col].set_title(f"{experiment_name}")
+                    axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
+                    axs[col].set_ylim(0, 1)
+                    axs[col].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+
+
+            else:
+                sns.scatterplot(data=data, x="Cell", y="Score", vmin=0, vmax=1, ax=axs[row, col])
+                axs[row, col].set_title(f"{experiment_name}")
+                axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+                axs[row, col].set_ylim(0, 1)
+                axs[row, col].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+
+            if col == n_cols:
+                row += 1
+                col = 0
+
+            else:
+                col += 1
+
+        plt.tight_layout()
+
+        save_path = Path(self.__base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+
+        if mlflow_directory is not None:
+            mlflow.log_artifact(str(save_path), mlflow_directory)
+        else:
+            mlflow.log_artifact(str(save_path))
+        plt.close()
+
     def r2_scores_relative_performance(self, relative_score_performance: pd.DataFrame, features: list,
                                        file_name: str,
                                        mlflow_directory: str = None):
@@ -148,7 +249,7 @@ class Plotting:
         plt.close()
 
     def r2_scores_absolute_performance(self, absolute_score_performance: dict, file_name: str,
-                                       mlflow_directory: str = None):
+                                       mlflow_directory: str = None, legend_labels: list = None):
         """
         Plots the absolute performance difference for the given dataset
         @return:
@@ -192,7 +293,11 @@ class Plotting:
                     axs.set_title(f"{experiment_name}")
                     axs.set_xticklabels(axs.get_xticklabels(), rotation=90)
                     axs.set_ylim(0, 1)
-                    axs.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+                    if legend_labels is None:
+                        axs.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+                    else:
+                        axs.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0,
+                                   labels=legend_labels)
                 else:
                     sns.barplot(
                         data=data, x="Feature", y="Score", hue="Model",
@@ -200,7 +305,11 @@ class Plotting:
                     axs[col].set_title(f"{experiment_name}")
                     axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
                     axs[col].set_ylim(0, 1)
-                    axs[col].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+                    if legend_labels is None:
+                        axs[col].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+                    else:
+                        axs[col].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0,
+                                        labels=legend_labels)
 
 
             else:
@@ -210,7 +319,11 @@ class Plotting:
                 axs[row, col].set_title(f"{experiment_name}")
                 axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
                 axs[row, col].set_ylim(0, 1)
-                axs[row, col].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+                if legend_labels is None:
+                    axs[row, col].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+                else:
+                    axs[row, col].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0,
+                                         labels=legend_labels)
 
             if col == n_cols:
                 row += 1
