@@ -1,9 +1,6 @@
 experiment=$1
-run_name=$2
-file=$3
-percentage=$4
+file=$2
+percentage=$3
 
-python3 se_imputation_zero_replacement.py -e "${experiment}" --model "${experiment}" "${run_name}" "VAE" --file "${file}" -r "VAE Imputation" --steps 5 -p "${percentage}"
-python3 me_imputation_zero_replacement.py -e "${experiment}" --model "${experiment}" "${run_name}" "ME VAE" --file "${file}" -r "ME VAE Imputation" --steps 5 -p "${percentage}"
-python3 simple_imputation.py -e "${experiment}" -r "SI" --files "${file}" -p "$percentage"
-python3 knn_imputation.py -e "${experiment}" -r "KNN Imputation" --files "${file}" -p "${percentage}"
+python3 single_feature_imputation.py -e "${experiment}" --model "${experiment}" "Model" --file "${file}" --steps 5 -p "${percentage}" -r "Single Feature Imputation"
+python3 multi_feature_imputation.py -e "${experiment}" --model "${experiment}" "Model" --file "${file}" --steps 5 -p "${percentage}" -r "Multi Feature Imputation"

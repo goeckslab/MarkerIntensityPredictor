@@ -37,7 +37,7 @@ class VAEImputation:
             reconstructed_data = pd.DataFrame(columns=features, data=model.decoder.predict(mean))
 
             # Overwrite imputed data with reconstructed data
-            imputed_data[feature_to_impute] = reconstructed_data[feature_to_impute]
+            imputed_data[feature_to_impute] = reconstructed_data[feature_to_impute].values
 
         # Reconstruct unmodified test data
         encoded_data, reconstructed_data = Predictions.encode_decode_vae_data(encoder=model.encoder,
@@ -108,7 +108,6 @@ class VAEImputation:
             for key, replaced_features in index_replacements.items():
                 if feature in replaced_features:
                     cell_indexes_to_compare.append(key)
-
 
             imputed_r2_scores = imputed_r2_scores.append({
                 "Marker": feature,

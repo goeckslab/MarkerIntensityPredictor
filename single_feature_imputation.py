@@ -1,7 +1,6 @@
 import mlflow
 from pathlib import Path
 from library.mlflow_helper.experiment_handler import ExperimentHandler
-import sys
 from library.data.folder_management import FolderManagement
 from library.data.data_loader import DataLoader
 from library.preprocessing.replacements import Replacer
@@ -15,7 +14,6 @@ import time
 from library.preprocessing.split import SplitHandler
 from library.mlflow_helper.run_handler import RunHandler
 from library.me_vae.me_vae_imputer import MEVAEImputation
-from typing import Optional
 from library.simple_imputer.simple_imputer import SimpleImputation
 from library.vae.vae_imputer import VAEImputation
 import argparse
@@ -71,7 +69,8 @@ def start_simple_imputation(args, base_path: str):
     simple_imputer_results_path = Path(f"{base_path}", str(int(time.time_ns() / 1000)))
     run_name: str = "SI Imputation"
     if args.percentage >= 1:
-        sys.exit()
+        print("Percentage is greater than 100%. Returning")
+        return
 
     # Create mlflow tracking client
     client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
@@ -155,7 +154,8 @@ def start_knn_imputation(base_path: str, args):
     run_name: str = "KNN Imputation"
 
     if args.percentage >= 1:
-        sys.exit()
+        print("Percentage is greater than 100%. Returning")
+        return
 
     # Create mlflow tracking client
     client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
@@ -265,132 +265,129 @@ def start_me_imputation(args, base_path: str):
                                                 create_experiment=False)
 
     try:
-        with mlflow.start_run(experiment_id=save_experiment_id, nested=True,
-                              run_name=f"{run_name} Percentage {args.percentage} Steps {args.steps}") as run:
 
-            iter_steps: int = int(args.steps)
-            # Report
-            mlflow.log_param("Percentage of replaced values", args.percentage)
-            mlflow.log_param("Model location", f"{args.model[0]} {args.model[1]}")
-            mlflow.log_param("File", args.file)
-            mlflow.log_param("Seed", args.seed)
-            mlflow.log_param("Iteration Steps", iter_steps)
-            mlflow.set_tag("Percentage", args.percentage)
-            mlflow.set_tag("Steps", iter_steps)
+        iter_steps: int = int(args.steps)
 
-            # load model
-            model = mlflow.keras.load_model(f"./mlruns/{model_experiment_id}/{model_run_id}/artifacts/model")
+        # load model
+        model = mlflow.keras.load_model(f"./mlruns/{model_experiment_id}/{model_run_id}/artifacts/model")
 
-            # Load data
-            cells, features = DataLoader.load_single_cell_data(args.file)
+        # Load data
+        cells, features = DataLoader.load_single_cell_data(args.file)
 
-            # Split and normalize ground truth values for reference
-            ground_truth_data = cells.copy()
-            ground_truth_marker_data, ground_truth_morph_data = SplitHandler.split_dataset_into_markers_and_morph_features(
-                ground_truth_data)
-            ground_truth_morph_data = pd.DataFrame(columns=ground_truth_morph_data.columns,
-                                                   data=Preprocessing.normalize(ground_truth_morph_data))
-            ground_truth_marker_data = pd.DataFrame(columns=ground_truth_marker_data.columns,
-                                                    data=Preprocessing.normalize(ground_truth_marker_data))
+        # Split and normalize ground truth values for reference
+        ground_truth_data = cells.copy()
+        ground_truth_marker_data, ground_truth_morph_data = SplitHandler.split_dataset_into_markers_and_morph_features(
+            ground_truth_data)
+        ground_truth_morph_data = pd.DataFrame(columns=ground_truth_morph_data.columns,
+                                               data=Preprocessing.normalize(ground_truth_morph_data))
+        ground_truth_marker_data = pd.DataFrame(columns=ground_truth_marker_data.columns,
+                                                data=Preprocessing.normalize(ground_truth_marker_data))
 
-            # Split and normalize data
-            marker_data, morph_data = SplitHandler.split_dataset_into_markers_and_morph_features(cells)
-            morph_data = pd.DataFrame(columns=morph_data.columns, data=Preprocessing.normalize(morph_data))
-            marker_data = pd.DataFrame(columns=marker_data.columns, data=Preprocessing.normalize(marker_data))
+        # Split and normalize data
+        marker_data, morph_data = SplitHandler.split_dataset_into_markers_and_morph_features(cells)
+        morph_data = pd.DataFrame(columns=morph_data.columns, data=Preprocessing.normalize(morph_data))
+        marker_data = pd.DataFrame(columns=marker_data.columns, data=Preprocessing.normalize(marker_data))
 
-            for step in range(1, iter_steps + 1):
+        for step in range(1, iter_steps + 1):
 
-                # Reconstructed by using the vae
-                reconstructed_r2_scores: pd.DataFrame = pd.DataFrame()
+            # Reconstructed by using the vae
+            reconstructed_r2_scores: pd.DataFrame = pd.DataFrame()
 
-                # Just using the replaced values
-                replaced_r2_scores: pd.DataFrame = pd.DataFrame()
+            # Just using the replaced values
+            replaced_r2_scores: pd.DataFrame = pd.DataFrame()
 
-                # Imputed by using the VAE
-                imputed_r2_scores: pd.DataFrame = pd.DataFrame()
+            # Imputed by using the VAE
+            imputed_r2_scores: pd.DataFrame = pd.DataFrame()
 
-                with mlflow.start_run(experiment_id=save_experiment_id, nested=True,
-                                      run_name=f"{run_name} Percentage {args.percentage} Step {step}") as step_run:
+            with mlflow.start_run(experiment_id=save_experiment_id, nested=True,
+                                  run_name=f"{run_name} Percentage {args.percentage} Step {step}") as step_run:
+                # Report
+                mlflow.log_param("Percentage of replaced values", args.percentage)
+                mlflow.log_param("Model location", f"{args.model[0]} {args.model[1]}")
+                mlflow.log_param("File", args.file)
+                mlflow.log_param("Seed", args.seed)
+                mlflow.log_param("Iteration Steps", iter_steps)
+                mlflow.set_tag("Percentage", args.percentage)
+                mlflow.set_tag("Steps", iter_steps)
+                mlflow.set_tag("Percentage", args.percentage)
+                mlflow.set_tag("Step", step)
 
-                    mlflow.set_tag("Percentage", args.percentage)
-                    mlflow.set_tag("Step", step)
+                for marker_to_impute in marker_data.columns:
+                    imputed_r2_score, reconstructed_r2_score, replaced_r2_score = MEVAEImputation.impute_data_by_feature(
+                        model=model,
+                        feature_to_impute=marker_to_impute,
+                        marker_data=marker_data.copy(),
+                        morph_data=morph_data.copy(),
+                        ground_truth_marker_data=ground_truth_marker_data.copy(),
+                        ground_truth_morph_data=ground_truth_morph_data.copy(),
+                        percentage=args.percentage,
+                        iter_steps=step, features=features)
 
-                    for marker_to_impute in marker_data.columns:
-                        imputed_r2_score, reconstructed_r2_score, replaced_r2_score = MEVAEImputation.impute_data_by_feature(
-                            model=model,
-                            feature_to_impute=marker_to_impute,
-                            marker_data=marker_data.copy(),
-                            morph_data=morph_data.copy(),
-                            ground_truth_marker_data=ground_truth_marker_data.copy(),
-                            ground_truth_morph_data=ground_truth_morph_data.copy(),
-                            percentage=args.percentage,
-                            iter_steps=step, features=features)
+                    # Add score to datasets
+                    reconstructed_r2_scores = reconstructed_r2_scores.append({
+                        "Marker": marker_to_impute,
+                        "Score": reconstructed_r2_score,
+                    }, ignore_index=True)
 
-                        # Add score to datasets
-                        reconstructed_r2_scores = reconstructed_r2_scores.append({
-                            "Marker": marker_to_impute,
-                            "Score": reconstructed_r2_score,
-                        }, ignore_index=True)
+                    imputed_r2_scores = imputed_r2_scores.append({
+                        "Marker": marker_to_impute,
+                        "Score": imputed_r2_score
+                    }, ignore_index=True)
 
-                        imputed_r2_scores = imputed_r2_scores.append({
-                            "Marker": marker_to_impute,
-                            "Score": imputed_r2_score
-                        }, ignore_index=True)
+                    replaced_r2_scores = replaced_r2_scores.append({
+                        "Marker": marker_to_impute,
+                        "Score": replaced_r2_score
+                    }, ignore_index=True)
 
-                        replaced_r2_scores = replaced_r2_scores.append({
-                            "Marker": marker_to_impute,
-                            "Score": replaced_r2_score
-                        }, ignore_index=True)
+                for morph_to_impute in morph_data.columns:
+                    imputed_r2_score, reconstructed_r2_score, replaced_r2_score = MEVAEImputation.impute_data_by_feature(
+                        model=model,
+                        feature_to_impute=morph_to_impute,
+                        marker_data=marker_data.copy(),
+                        morph_data=morph_data.copy(),
+                        ground_truth_marker_data=ground_truth_marker_data.copy(),
+                        ground_truth_morph_data=ground_truth_morph_data.copy(),
+                        percentage=args.percentage,
+                        iter_steps=step, features=features)
 
-                    for morph_to_impute in morph_data.columns:
-                        imputed_r2_score, reconstructed_r2_score, replaced_r2_score = MEVAEImputation.impute_data_by_feature(
-                            model=model,
-                            feature_to_impute=morph_to_impute,
-                            marker_data=marker_data.copy(),
-                            morph_data=morph_data.copy(),
-                            ground_truth_marker_data=ground_truth_marker_data.copy(),
-                            ground_truth_morph_data=ground_truth_morph_data.copy(),
-                            percentage=args.percentage,
-                            iter_steps=step, features=features)
+                    # Add score to datasets
+                    reconstructed_r2_scores = reconstructed_r2_scores.append({
+                        "Marker": morph_to_impute,
+                        "Score": reconstructed_r2_score,
+                    }, ignore_index=True)
 
-                        # Add score to datasets
-                        reconstructed_r2_scores = reconstructed_r2_scores.append({
-                            "Marker": morph_to_impute,
-                            "Score": reconstructed_r2_score,
-                        }, ignore_index=True)
+                    imputed_r2_scores = imputed_r2_scores.append({
+                        "Marker": morph_to_impute,
+                        "Score": imputed_r2_score
+                    }, ignore_index=True)
 
-                        imputed_r2_scores = imputed_r2_scores.append({
-                            "Marker": morph_to_impute,
-                            "Score": imputed_r2_score
-                        }, ignore_index=True)
+                    replaced_r2_scores = replaced_r2_scores.append({
+                        "Marker": morph_to_impute,
+                        "Score": replaced_r2_score
+                    }, ignore_index=True)
 
-                        replaced_r2_scores = replaced_r2_scores.append({
-                            "Marker": morph_to_impute,
-                            "Score": replaced_r2_score
-                        }, ignore_index=True)
+                # Report and plot results
+                plotter: Plotting = Plotting(base_path=me_vae_results_path, args=args)
+                plotter.plot_scores(scores={"Ground Truth vs. Reconstructed": reconstructed_r2_scores,
+                                            "Ground Truth vs. Imputed": imputed_r2_scores,
+                                            "Ground Truth vs. Replaced": replaced_r2_scores},
+                                    file_name=f"R2 Score Comparison Step {step} Percentage {args.percentage}")
 
-                    # Report and plot results
-                    plotter: Plotting = Plotting(base_path=me_vae_results_path, args=args)
-                    plotter.plot_scores(scores={"Ground Truth vs. Reconstructed": reconstructed_r2_scores,
-                                                "Ground Truth vs. Imputed": imputed_r2_scores,
-                                                "Ground Truth vs. Replaced": replaced_r2_scores},
-                                        file_name=f"R2 Score Comparison Step {step} Percentage {args.percentage}")
+                plotter.plot_scores(scores={"Imputed": imputed_r2_scores},
+                                    file_name=f"R2 Imputed Scores Step {step} Percentage {args.percentage}")
 
-                    plotter.plot_scores(scores={"Imputed": imputed_r2_scores},
-                                        file_name=f"R2 Imputed Scores Step {step} Percentage {args.percentage}")
-
-                    Reporter.report_r2_scores(r2_scores=reconstructed_r2_scores, save_path=me_vae_results_path,
-                                              mlflow_folder="",
-                                              prefix="ground_truth")
-                    Reporter.report_r2_scores(r2_scores=imputed_r2_scores, save_path=me_vae_results_path,
-                                              mlflow_folder="",
-                                              prefix="imputed")
-                    Reporter.report_r2_scores(r2_scores=replaced_r2_scores, save_path=me_vae_results_path,
-                                              mlflow_folder="",
-                                              prefix="replaced")
-                    Reporter.upload_csv(data=pd.DataFrame(data=features, columns=["Features"]),
-                                        save_path=me_vae_results_path,
-                                        file_name="Features")
+                Reporter.report_r2_scores(r2_scores=reconstructed_r2_scores, save_path=me_vae_results_path,
+                                          mlflow_folder="",
+                                          prefix="ground_truth")
+                Reporter.report_r2_scores(r2_scores=imputed_r2_scores, save_path=me_vae_results_path,
+                                          mlflow_folder="",
+                                          prefix="imputed")
+                Reporter.report_r2_scores(r2_scores=replaced_r2_scores, save_path=me_vae_results_path,
+                                          mlflow_folder="",
+                                          prefix="replaced")
+                Reporter.upload_csv(data=pd.DataFrame(data=features, columns=["Features"]),
+                                    save_path=me_vae_results_path,
+                                    file_name="Features")
 
 
 
@@ -435,89 +432,86 @@ def start_se_imputation(base_path: str, args):
                                                 experiment_handler=experiment_handler, create_experiment=True)
 
     try:
-        with mlflow.start_run(experiment_id=save_experiment_id, nested=True,
-                              run_name=f"{run_name} Percentage {args.percentage} Steps {args.steps}") as run:
 
-            iter_steps: int = int(args.steps)
-            # Report
-            mlflow.log_param("Percentage of replaced values", args.percentage)
-            mlflow.log_param("Model location", f"{args.model[0]} {args.model[1]}")
-            mlflow.log_param("File", args.file)
-            mlflow.log_param("Seed", args.seed)
-            mlflow.log_param("Iteration Steps", iter_steps)
-            mlflow.set_tag("Percentage", args.percentage)
-            mlflow.set_tag("Steps", iter_steps)
+        iter_steps: int = int(args.steps)
 
-            # load model
-            model = mlflow.keras.load_model(f"./mlruns/{model_experiment_id}/{model_run_id}/artifacts/model")
+        # load model
+        model = mlflow.keras.load_model(f"./mlruns/{model_experiment_id}/{model_run_id}/artifacts/model")
 
-            # Load data
-            cells, features = DataLoader.load_single_cell_data(args.file)
-            # Use whole file
-            test_data = pd.DataFrame(columns=features, data=Preprocessing.normalize(cells))
+        # Load data
+        cells, features = DataLoader.load_single_cell_data(args.file)
+        # Use whole file
+        test_data = pd.DataFrame(columns=features, data=Preprocessing.normalize(cells))
 
-            ground_truth_data = test_data.copy()
+        ground_truth_data = test_data.copy()
 
-            for step in range(1, iter_steps + 1):
-                # Reconstructed by using the vae
-                reconstructed_r2_scores: pd.DataFrame = pd.DataFrame()
+        for step in range(1, iter_steps + 1):
+            # Reconstructed by using the vae
+            reconstructed_r2_scores: pd.DataFrame = pd.DataFrame()
 
-                # Just using the replaced values
-                replaced_r2_scores: pd.DataFrame = pd.DataFrame()
+            # Just using the replaced values
+            replaced_r2_scores: pd.DataFrame = pd.DataFrame()
 
-                # Imputed by using the VAE
-                imputed_r2_scores: pd.DataFrame = pd.DataFrame()
+            # Imputed by using the VAE
+            imputed_r2_scores: pd.DataFrame = pd.DataFrame()
 
-                with mlflow.start_run(experiment_id=save_experiment_id, nested=True,
-                                      run_name=f"{run_name} Percentage {args.percentage} Step {step}") as step_run:
+            with mlflow.start_run(experiment_id=save_experiment_id, nested=True,
+                                  run_name=f"{run_name} Percentage {args.percentage} Step {step}") as step_run:
+                # Report
+                mlflow.log_param("Percentage of replaced values", args.percentage)
+                mlflow.log_param("Model location", f"{args.model[0]} {args.model[1]}")
+                mlflow.log_param("File", args.file)
+                mlflow.log_param("Seed", args.seed)
+                mlflow.log_param("Iteration Steps", iter_steps)
+                mlflow.set_tag("Percentage", args.percentage)
+                mlflow.set_tag("Steps", iter_steps)
+                mlflow.set_tag("Percentage", args.percentage)
+                mlflow.set_tag("Step", step)
 
-                    mlflow.set_tag("Percentage", args.percentage)
-                    mlflow.set_tag("Step", step)
+                for feature_to_impute in features:
+                    imputed_r2_score, reconstructed_r2_score, replaced_r2_score = VAEImputation.impute_data_by_feature(
+                        model=model, ground_truth_data=ground_truth_data, feature_to_impute=feature_to_impute,
+                        percentage=args.percentage, features=features, iter_steps=step)
 
-                    for feature_to_impute in features:
-                        imputed_r2_score, reconstructed_r2_score, replaced_r2_score = VAEImputation.impute_data_by_feature(
-                            model=model, ground_truth_data=ground_truth_data, feature_to_impute=feature_to_impute,
-                            percentage=args.percentage, features=features, iter_steps=step)
+                    # Add score to datasets
+                    reconstructed_r2_scores = reconstructed_r2_scores.append({
+                        "Marker": feature_to_impute,
+                        "Score": reconstructed_r2_score,
+                    }, ignore_index=True)
 
-                        # Add score to datasets
-                        reconstructed_r2_scores = reconstructed_r2_scores.append({
-                            "Marker": feature_to_impute,
-                            "Score": reconstructed_r2_score,
-                        }, ignore_index=True)
+                    imputed_r2_scores = imputed_r2_scores.append({
+                        "Marker": feature_to_impute,
+                        "Score": imputed_r2_score
+                    }, ignore_index=True)
 
-                        imputed_r2_scores = imputed_r2_scores.append({
-                            "Marker": feature_to_impute,
-                            "Score": imputed_r2_score
-                        }, ignore_index=True)
+                    replaced_r2_scores = replaced_r2_scores.append({
+                        "Marker": feature_to_impute,
+                        "Score": replaced_r2_score
+                    }, ignore_index=True)
 
-                        replaced_r2_scores = replaced_r2_scores.append({
-                            "Marker": feature_to_impute,
-                            "Score": replaced_r2_score
-                        }, ignore_index=True)
+                # Report results
+                plotter: Plotting = Plotting(base_path=se_imputation_base_path, args=args)
+                plotter.plot_scores(scores={"Ground Truth vs. Reconstructed": reconstructed_r2_scores,
+                                            "Ground Truth vs. Imputed": imputed_r2_scores,
+                                            "Ground Truth vs. Replaced": replaced_r2_scores},
+                                    file_name=f"R2 Score Comparison Steps {iter_steps} Percentage {args.percentage}")
 
-                    # Report results
-                    plotter: Plotting = Plotting(base_path=se_imputation_base_path, args=args)
-                    plotter.plot_scores(scores={"Ground Truth vs. Reconstructed": reconstructed_r2_scores,
-                                                "Ground Truth vs. Imputed": imputed_r2_scores,
-                                                "Ground Truth vs. Replaced": replaced_r2_scores},
-                                        file_name=f"R2 Score Comparison Steps {iter_steps} Percentage {args.percentage}")
+                plotter.plot_scores(scores={"Imputed": imputed_r2_scores},
+                                    file_name=f"R2 Imputed Scores Step {step} Percentage {args.percentage}")
 
-                    plotter.plot_scores(scores={"Imputed": imputed_r2_scores},
-                                        file_name=f"R2 Imputed Scores Step {step} Percentage {args.percentage}")
+                Reporter.report_r2_scores(r2_scores=reconstructed_r2_scores, save_path=se_imputation_base_path,
+                                          mlflow_folder="",
+                                          prefix="reconstructed")
+                Reporter.report_r2_scores(r2_scores=replaced_r2_scores, save_path=se_imputation_base_path,
+                                          mlflow_folder="",
+                                          prefix="replaced")
+                Reporter.report_r2_scores(r2_scores=imputed_r2_scores, save_path=se_imputation_base_path,
+                                          mlflow_folder="",
+                                          prefix="imputed")
 
-                    Reporter.report_r2_scores(r2_scores=reconstructed_r2_scores, save_path=se_imputation_base_path,
-                                              mlflow_folder="",
-                                              prefix="reconstructed")
-                    Reporter.report_r2_scores(r2_scores=replaced_r2_scores, save_path=se_imputation_base_path,
-                                              mlflow_folder="",
-                                              prefix="replaced")
-                    Reporter.report_r2_scores(r2_scores=imputed_r2_scores, save_path=se_imputation_base_path,
-                                              mlflow_folder="",
-                                              prefix="imputed")
-
-                    Reporter.upload_csv(data=pd.DataFrame(data=features, columns=["Features"]),
-                                        save_path=se_imputation_base_path,
-                                        file_name="Features")
+                Reporter.upload_csv(data=pd.DataFrame(data=features, columns=["Features"]),
+                                    save_path=se_imputation_base_path,
+                                    file_name="Features")
 
 
 
@@ -544,8 +538,9 @@ if __name__ == "__main__":
         save_experiment_id: str = get_experiment_id(requested_experiment_name=args.experiment, create_experiment=True,
                                                     experiment_handler=experiment_handler)
 
+        percentage = args.percentage * 100
         with mlflow.start_run(experiment_id=save_experiment_id,
-                              run_name=f"{args.run} Steps: {args.steps} {args.percentage * 100} %", nested=True) as run:
+                              run_name=f"{args.run} Steps: {args.steps} {percentage} %", nested=True) as run:
             start_simple_imputation(args=args, base_path=str(si_path))
             start_knn_imputation(args=args, base_path=str(knn_path))
             start_se_imputation(args=args, base_path=str(se_path))
@@ -553,6 +548,6 @@ if __name__ == "__main__":
 
 
     except BaseException as ex:
-        print(ex)
+        raise
     finally:
         FolderManagement.delete_directory(base_results_path)
