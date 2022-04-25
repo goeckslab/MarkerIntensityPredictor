@@ -429,7 +429,7 @@ class Plotting:
             mlflow.log_artifact(str(save_path))
         plt.close()
 
-    def plot_scores(self, scores: dict, file_name: str, mlflow_directory: str = None):
+    def plot_scores(self, scores: dict, file_name: str, mlflow_directory: str = None, use_mlflow: bool = True):
         """
         Creates a bar plot for all provided score values
         @param scores: A dict which contains all r2 scores. Keys are used as sub plot titles. Values are scores
@@ -492,11 +492,11 @@ class Plotting:
         save_path = Path(self.__base_path, f"{file_name}.png")
 
         plt.savefig(save_path)
-
-        if mlflow_directory is not None:
-            mlflow.log_artifact(str(save_path), mlflow_directory)
-        else:
-            mlflow.log_artifact(str(save_path))
+        if use_mlflow:
+            if mlflow_directory is not None:
+                mlflow.log_artifact(str(save_path), mlflow_directory)
+            else:
+                mlflow.log_artifact(str(save_path))
         plt.close()
 
     def r2_score_model_distribution(self, vae_r2_scores: dict, ae_r2_scores: dict, en_r2_scores: dict,

@@ -125,7 +125,7 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.Da
         plotter.plot_model_architecture(model=decoder, file_name="AE Decoder", mlflow_folder="Evaluation")
         plotter.plot_model_performance(history=history, file_name="Model performance", mlflow_directory="Evaluation")
         plotter.plot_reconstructed_markers(test_data=ae_test_data, reconstructed_data=reconstructed_data,
-                                           markers=features,
+                                           features=features,
                                            mlflow_directory="Evaluation", file_name="Input v Reconstructed")
         plotter.plot_scores(scores={"AE": ae_r2_scores}, mlflow_directory="Evaluation", file_name="AE R2 scores")
         plotter.plot_feature_intensities(train_data=ae_train_data, test_data=ae_test_data,
@@ -217,7 +217,7 @@ def start_vae_experiment(args, experiment_id: str, results_folder: Path) -> pd.D
         vae_plotting.plot_model_performance(history=model.history, mlflow_directory="Evaluation",
                                             file_name="Model Performance")
         vae_plotting.plot_reconstructed_markers(test_data=vae_test_data, reconstructed_data=reconstructed_data,
-                                                markers=features, mlflow_directory="Evaluation",
+                                                features=features, mlflow_directory="Evaluation",
                                                 file_name="Initial vs. Reconstructed markers")
         vae_plotting.plot_scores(scores={"VAE": vae_r2_scores}, mlflow_directory="Evaluation", file_name="VAE R2 Scores")
         vae_plotting.plot_feature_intensities(train_data=vae_train_data, test_data=vae_test_data,
@@ -340,7 +340,7 @@ def start_me_vae_experiment(args, experiment_id: str, results_folder: Path) -> p
         vae_plotting.plot_model_performance(history=model.history, mlflow_directory="Evaluation",
                                             file_name="Model Performance")
         vae_plotting.plot_reconstructed_markers(test_data=me_vae_test_data, reconstructed_data=reconstructed_data,
-                                                markers=features, mlflow_directory="Evaluation",
+                                                features=features, mlflow_directory="Evaluation",
                                                 file_name="Initial vs. Reconstructed markers")
         vae_plotting.plot_scores(scores={"ME VAE": me_vae_r2_scores}, mlflow_directory="Evaluation",
                                  file_name="ME VAE R2 Scores")

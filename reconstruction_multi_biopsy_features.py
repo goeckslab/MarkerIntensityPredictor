@@ -116,7 +116,7 @@ def start_ae_experiment(args, experiment_id: str, results_folder: Path) -> pd.Da
         plotter.plot_model_architecture(model=encoder, file_name="AE Encoder", mlflow_folder="Evaluation")
         plotter.plot_model_architecture(model=decoder, file_name="AE Decoder", mlflow_folder="Evaluation")
         plotter.plot_model_performance(history, "Evaluation", "Model performance")
-        plotter.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data, markers=features,
+        plotter.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data, features=features,
                                            mlflow_directory="Evaluation", file_name="Input v Reconstructed")
         plotter.plot_scores(scores={"AE": ae_r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
         plotter.plot_feature_intensities(train_data=train_data, test_data=test_data,

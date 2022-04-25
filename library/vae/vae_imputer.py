@@ -17,7 +17,7 @@ class VAEImputation:
         @param feature_to_impute:
         @param percentage:
         @param features:
-        @return:  Returns imputed values, reconstructed then replaced
+        @return: Returns the r2 scores for imputed values, reconstructed and replaced values
         """
         # Make a fresh copy, to start with the ground truth data
         working_data = ground_truth_data.copy()
@@ -45,16 +45,16 @@ class VAEImputation:
                                                                               data=ground_truth_data,
                                                                               features=features, use_mlflow=False)
 
-        reconstructed_r2_scores = r2_score(ground_truth_data[feature_to_impute].iloc[indexes],
-                                           reconstructed_data[feature_to_impute].iloc[indexes])
+        reconstructed_r2_score = r2_score(ground_truth_data[feature_to_impute].iloc[indexes],
+                                          reconstructed_data[feature_to_impute].iloc[indexes])
 
-        imputed_r2_scores = r2_score(ground_truth_data[feature_to_impute].iloc[indexes],
-                                     imputed_data[feature_to_impute])
+        imputed_r2_score = r2_score(ground_truth_data[feature_to_impute].iloc[indexes],
+                                    imputed_data[feature_to_impute])
 
-        replaced_r2_scores = r2_score(ground_truth_data[feature_to_impute].iloc[indexes],
-                                      working_data[feature_to_impute].iloc[indexes])
+        replaced_r2_score = r2_score(ground_truth_data[feature_to_impute].iloc[indexes],
+                                     working_data[feature_to_impute].iloc[indexes])
 
-        return imputed_r2_scores, reconstructed_r2_scores, replaced_r2_scores
+        return imputed_r2_score, reconstructed_r2_score, replaced_r2_score
 
     @staticmethod
     def impute_data_by_cell(model, iter_steps: int, ground_truth_data: pd.DataFrame, percentage: float,
