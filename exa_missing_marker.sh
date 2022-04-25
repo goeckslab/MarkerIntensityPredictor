@@ -12,4 +12,4 @@
 #SBATCH --mail-user=kirchgae@ohsu.edu
 
 source venv/bin/activate
-python3 remove_marker_from_training.sh --folder "$1" --exclude "$2" -nml
+python3 remove_marker_from_training.py --folder "$1" --exclude "$2" -nml
