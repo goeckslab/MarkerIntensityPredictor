@@ -34,14 +34,14 @@ def get_args():
     parser.add_argument("--exclude", action="store", required=True,
                         help="The file to exclude and use for testing")
     parser.add_argument("--seed", "-s", action="store", help="Include morphological data", type=int, default=1)
-    parser.add_argument("--mlflow", "-ml", action="store", help="Use ml flow?", type=bool, default=True)
+    parser.add_argument("--no_mlflow", "-nml", action="store_true", help="Use ml flow?", default=False)
 
     return parser.parse_args()
 
 
 if __name__ == '__main__':
     args = get_args()
-    use_mlflow = args.mlflow
+    use_mlflow = not args.no_mlflow
 
     if use_mlflow:
         if args.run is None:
@@ -72,6 +72,8 @@ if __name__ == '__main__':
         reconstructed_r2_scores: pd.DataFrame = pd.DataFrame()
         replaced_r2_scores: pd.DataFrame = pd.DataFrame()
 
+        previous_feature: str = None
+
         for feature in features:
             # Make copy
             working_train_cells = train_cells.copy()
@@ -80,6 +82,12 @@ if __name__ == '__main__':
             # Set feature to 0
             working_train_cells[feature].values[:] = 0
             working_validation_cells[feature].values[:] = 0
+
+            if previous_feature is not None:
+                assert not working_validation_cells[previous_feature].eq(
+                    0.0).any(), f"Feature {previous_feature} should not contain any 0 "
+                assert not working_train_cells[previous_feature].eq(
+                    0.0).any(), f"Feature {previous_feature} should not contain any 0 "
 
             assert working_validation_cells[feature].eq(0.0).all(), f"Feature {feature} should only contain 0 "
             assert working_train_cells[feature].eq(0.0).all(), f"Feature {feature} should only contain 0 "
@@ -96,8 +104,6 @@ if __name__ == '__main__':
                 working_train_cells.shape[1],
                 embedding_dimension=5,
                 use_ml_flow=False)
-
-            normalized_test_cells = pd.DataFrame(data=Preprocessing.normalize(data=test_cells), columns=features)
 
             imputed_r2_score, reconstructed_r2_score, replaced_r2_score = VAEImputation.impute_data_by_feature(
                 model=model,
@@ -124,6 +130,8 @@ if __name__ == '__main__':
                     "Marker": feature,
                     "Score": replaced_r2_score
                 }, ignore_index=True)
+
+            previous_feature = feature
 
         if use_mlflow:
             # Create mlflow tracking client
