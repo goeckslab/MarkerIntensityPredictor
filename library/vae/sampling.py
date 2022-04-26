@@ -1,9 +1,5 @@
 from keras import layers
 import tensorflow as tf
-import tensorflow_probability as tfp
-
-tfd = tfp.distributions
-
 
 # Create sampling layer.
 class Sampling(layers.Layer):

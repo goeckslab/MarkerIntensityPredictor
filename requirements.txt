@@ -2,7 +2,7 @@ ipykernel
 notebook
 numpy~=1.19.2
 pandas
-tensorflow==2.7
+tensorflow
 keras
 matplotlib
 pydot
@@ -13,10 +13,6 @@ ipywidgets
 jupyterlab
 opencv-contrib-python
 seaborn==0.11.2
-umap-learn
 PyYAML
-cellxgene
-Phenograph
 keract
-tensorflow-probability==0.15.0
 mlflow
