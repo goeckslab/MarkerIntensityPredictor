@@ -20,7 +20,7 @@ def get_args():
     Load all provided cli args
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--run", "-r", action="store", required=False,
+    parser.add_argument("--run", "-r", action="store", required=True,
                         help="The name of the run being run",
                         type=str)
     parser.add_argument("--tracking_url", "-t", action="store", required=False,
@@ -43,10 +43,7 @@ if __name__ == '__main__':
     args = get_args()
     use_mlflow = not args.no_mlflow
 
-    if use_mlflow:
-        if args.run is None:
-            raise ValueError("If mlflow is being used, experiment and run args are not optional!")
-
+    base_path = Path(f"{base_path}_{args.run}")
     FolderManagement.create_directory(path=base_path)
 
     try:
