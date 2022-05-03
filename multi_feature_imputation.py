@@ -64,6 +64,8 @@ def get_args():
                         default=0.2, required=False, type=float)
     parser.add_argument("--steps", action="store", help="The iterations for imputation",
                         default=3, required=False)
+    parser.add_argument("--morph", action="store_true", help="Include morphological data", default=True)
+    parser.add_argument("--spatial", action="store_true", help="Include spatial data", default=False)
 
     return parser.parse_args()
 
@@ -107,6 +109,9 @@ def start_simple_imputation(args, base_path: str):
             train_cells, features, files_used = DataLoader.load_files_in_folder(folder=args.folder,
                                                                                 file_to_exclude=args.file,
                                                                                 keep_spatial=args.spatial)
+
+            mlflow.log_param("Files used", files_used)
+
             train_data = pd.DataFrame(data=Preprocessing.normalize(train_cells.copy()), columns=features)
 
             test_cells, _ = DataLoader.load_single_cell_data(file_name=args.file, keep_spatial=args.spatial)
@@ -194,6 +199,8 @@ def start_knn_imputation(base_path: str, args):
             train_cells, features, files_used = DataLoader.load_files_in_folder(folder=args.folder,
                                                                                 file_to_exclude=args.file,
                                                                                 keep_spatial=args.spatial)
+            mlflow.log_param("Files used", files_used)
+
             train_data = pd.DataFrame(data=Preprocessing.normalize(train_cells.copy()), columns=features)
 
             test_cells, _ = DataLoader.load_single_cell_data(file_name=args.file, keep_spatial=args.spatial)
@@ -325,25 +332,6 @@ def start_me_imputation(args, base_path: str):
                     percentage=args.percentage,
                     iter_steps=step, features=features)
 
-                """for index, row in imputed_data.iterrows():
-                    # Add score to datasets
-                    imputed_r2_scores = imputed_r2_scores.append({
-                        "Cell": index,
-                        "Score": r2_score(ground_truth_data_normalized.iloc[index], row),
-                    }, ignore_index=True)
-
-                for index, row in reconstructed_data.iterrows():
-                    reconstructed_r2_scores = reconstructed_r2_scores.append({
-                        "Cell": index,
-                        "Score": r2_score(ground_truth_data_normalized.iloc[index], row),
-                    }, ignore_index=True)
-
-                for index, row in replaced_data.iterrows():
-                    replaced_r2_scores = replaced_r2_scores.append({
-                        "Cell": index,
-                        "Score": r2_score(ground_truth_data_normalized.iloc[index], row),
-                    }, ignore_index=True)"""
-
                 # Report and plot results
                 plotter: Plotting = Plotting(base_path=me_vae_results_path, args=args)
 
@@ -446,25 +434,6 @@ def start_se_imputation(base_path: str, args):
                     ground_truth_data=ground_truth_data_normalized,
                     percentage=args.percentage,
                     features=features)
-
-                """for index, row in imputed_data.iterrows():
-                  # Add score to datasets
-                    imputed_r2_scores = imputed_r2_scores.append({
-                        "Cell": index,
-                        "Score": r2_score(ground_truth_data_normalized.iloc[index], row),
-                    }, ignore_index=True)
-
-                for index, row in reconstructed_data.iterrows():
-                    reconstructed_r2_scores = reconstructed_r2_scores.append({
-                        "Cell": index,
-                        "Score": r2_score(ground_truth_data_normalized.iloc[index], row),
-                    }, ignore_index=True)
-
-                for index, row in replaced_data.iterrows():
-                    replaced_r2_scores = replaced_r2_scores.append({
-                        "Cell": index,
-                        "Score": r2_score(ground_truth_data_normalized.iloc[index], row),
-                    }, ignore_index=True) """
 
                 # Report results
                 plotter: Plotting = Plotting(base_path=se_imputation_base_path, args=args)

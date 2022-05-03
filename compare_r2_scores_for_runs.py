@@ -97,10 +97,6 @@ if __name__ == '__main__':
             plotter.r2_scores_absolute_performance(absolute_score_performance=absolute_r2_score_performance,
                                                    file_name="Absolute Comparison")
 
-
-
-
-
     except BaseException as ex:
         raise
 

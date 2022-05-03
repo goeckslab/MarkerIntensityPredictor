@@ -26,7 +26,7 @@ class DataLoader:
         columns_to_keep.remove('ERK1_2_nucleiMasks')
 
         if keep_morph:
-            columns_to_keep.extend(["Area", "MajorAxisLength", "MinorAxisLength", "Solidity", "Extent", "Eccentricity"])
+            columns_to_keep.extend(["Area", "MajorAxisLength", "MinorAxisLength", "Solidity", "Extent"])
 
         if keep_spatial:
             columns_to_keep.extend(["X_centroid", "Y_centroid", "Eccentricity"])
