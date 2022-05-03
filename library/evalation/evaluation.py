@@ -70,7 +70,11 @@ class Evaluation:
         for feature in features:
             for model in r2_scores.keys():
                 model_scores = r2_scores.get(model)
-                model_performance = model_scores.loc[model_scores['Marker'] == feature]["Score"].tolist()[0]
+
+                if feature in model_scores["Marker"].tolist():
+                    model_performance = model_scores.loc[model_scores['Marker'] == feature]["Score"].tolist()[0]
+                else:
+                    model_performance = 0
 
                 absolute_score_performance = absolute_score_performance.append({
                     "Feature": feature,

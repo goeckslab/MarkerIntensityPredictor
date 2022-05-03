@@ -6,53 +6,56 @@ from typing import Tuple, Optional
 
 
 class DataLoader:
+
     @staticmethod
-    def load_single_cell_data(file_name: str, keep_morph: bool = True):
+    def load_single_cell_data(file_name: str, keep_morph: bool = True, keep_spatial: bool = False):
         """
         Loads the marker data, given the provided information
         @param file_name: The file name to load from the os
         @param keep_morph: Keep morphological features or sort them out? Default to true
+        @param keep_spatial: Keep spatial features or sort them out? Default to false
         @return:
         """
-        columns_to_remove = ["CellID", "ERK1_2_nucleiMasks"]
+        columns_to_remove = ["CellID", "ERK1_2_nucleiMasks", "Orientation"]
 
         path = Path(file_name)
         cells = pd.read_csv(path, header=0)
 
-        # Keeps only the 'interesting' columns with morphological features
+        columns_to_keep: list = cells.copy().filter(regex="nucleiMasks$", axis=1).filter(regex="^(?!(DAPI|AF))",
+                                                                                         axis=1).columns.tolist()
+        columns_to_keep.remove('ERK1_2_nucleiMasks')
+
         if keep_morph:
-            morph_data = pd.DataFrame(
-                columns=["Area", "MajorAxisLength", "MinorAxisLength", "Solidity", "Extent"])
+            columns_to_keep.extend(["Area", "MajorAxisLength", "MinorAxisLength", "Solidity", "Extent", "Eccentricity"])
 
-            morph_data = cells.loc[:, morph_data.columns]
+        if keep_spatial:
+            columns_to_keep.extend(["X_centroid", "Y_centroid", "Eccentricity"])
 
-            cells = cells.filter(regex="nucleiMasks$", axis=1).filter(regex="^(?!(DAPI|AF))", axis=1)  # With morph data
+        new_cells: pd.DataFrame = pd.DataFrame()
 
-            # Re add morph data
-            for column in morph_data.columns:
-                cells[f"{column}"] = morph_data[f"{column}"]
+        # Add columns to new dataframe
+        for column in columns_to_keep:
+            new_cells[f"{column}"] = cells[f"{column}"]
 
-
-        # Keep only markers
-        else:
-            print("Excluding morphological data")
-            cells = cells.filter(regex="nucleiMasks$", axis=1).filter(regex="^(?!(DAPI|AF))", axis=1)  # No morph data
-
-        # Remove not required columns
+        # Remove manually not required columns
         for column in columns_to_remove:
-            if column in cells.columns:
-                del cells[f"{column}"]
+            if column in new_cells.columns:
+                del new_cells[f"{column}"]
 
-        features = cells.columns
+        features = new_cells.columns
         features = [re.sub("_nucleiMasks", "", x) for x in features]
-        cells.columns = features
-        assert 'ERK1_2' not in features, 'ERK1_2 should not be in markers'
-        assert 'CellId' not in features, 'CellId should not be in markers'
-        assert 'Orientation' not in features, 'Orientation should not be in markers'
-        assert 'Eccentricity' not in features, 'Eccentricity should not be in markers'
+        new_cells.columns = features
+
+        for column in columns_to_keep:
+            column = re.sub("_nucleiMasks", "", column)
+            assert f"{column}" in features, f"{column} should be in features"
+
+        for column in columns_to_remove:
+            column = re.sub("_nucleiMasks", "", column)
+            assert f"{column}" not in features, f"{column} should not be in features"
 
         # return cells, markers
-        return cells.iloc[:, :], features
+        return new_cells.iloc[:, :], features
 
     @staticmethod
     def load_r2_scores_for_model(load_path: Path, file_name: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -78,6 +81,21 @@ class DataLoader:
 
         # return mean scores
         return mean_scores, combined_r2_scores
+
+    @staticmethod
+    def load_r2_score(load_path: Path, file_name: str) -> Optional[pd.DataFrame]:
+        """
+        Loads the given r2 score file
+        @param load_path: The path from where to load the data
+        @param file_name: The file name to search for
+        @return: Returns the r2 score file
+        """
+
+        for p in load_path.rglob("*"):
+            if p.name == file_name:
+                return pd.read_csv(p.absolute(), header=0)
+
+        return None
 
     @staticmethod
     def load_file(load_path: Path, file_name: str) -> Optional[pd.DataFrame]:
@@ -116,7 +134,7 @@ class DataLoader:
         return combined_weights
 
     @staticmethod
-    def load_files_in_folder(folder: str, file_to_exclude: str) -> Tuple:
+    def load_files_in_folder(folder: str, file_to_exclude: str, keep_spatial: bool = False) -> Tuple:
         """
         Loads all files in a folder, but excluding the file to exclude
         @param folder:
@@ -139,7 +157,7 @@ class DataLoader:
                 found_excluded_file = True
                 continue
 
-            cells, features = DataLoader.load_single_cell_data(file_name=str(path))
+            cells, features = DataLoader.load_single_cell_data(file_name=str(path), keep_spatial=keep_spatial)
             frames.append(cells)
             files_used.append(path.stem)
 

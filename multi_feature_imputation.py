@@ -54,6 +54,8 @@ def get_args():
                         help="The tracking url for the mlflow tracking server", type=str,
                         default="http://127.0.0.1:5000")
     parser.add_argument("--file", action="store", required=True, help="The file to use for imputation")
+    parser.add_argument("--folder", action="store", required=True,
+                        help="The folder to use for training the knn and simple imputer")
     parser.add_argument("--seed", "-s", action="store", help="Include morphological data", type=int, default=1)
     parser.add_argument("--model", "-m", action="store", nargs="+",
                         help="Specify experiment and run name from where to load the model",
@@ -102,12 +104,13 @@ def start_simple_imputation(args, base_path: str):
             mlflow.log_param("Seed", args.seed)
             mlflow.set_tag("Percentage", args.percentage)
 
-            cells, features = DataLoader.load_single_cell_data(args.file)
+            train_cells, features, files_used = DataLoader.load_files_in_folder(folder=args.folder,
+                                                                                file_to_exclude=args.file,
+                                                                                keep_spatial=args.spatial)
+            train_data = pd.DataFrame(data=Preprocessing.normalize(train_cells.copy()), columns=features)
 
-            train_data, test_data = SplitHandler.create_splits(cells=cells, features=features, create_val=False)
-
-            train_data = pd.DataFrame(data=Preprocessing.normalize(data=train_data), columns=features)
-            test_data = pd.DataFrame(data=Preprocessing.normalize(data=test_data), columns=features)
+            test_cells, _ = DataLoader.load_single_cell_data(file_name=args.file, keep_spatial=args.spatial)
+            test_data = pd.DataFrame(data=Preprocessing.normalize(test_cells.copy()), columns=features)
 
             replaced_test_data_cells, index_replacements = Replacer.replace_values_by_cell(data=test_data,
                                                                                            features=features,
@@ -136,7 +139,8 @@ def start_simple_imputation(args, base_path: str):
             plotter = Plotting(base_path=simple_imputer_results_path, args=args)
             plotter.plot_scores(scores={"Imputed": imputed_r2_scores},
                                 file_name=f"R2 Imputed Scores")
-            plotter.plot_correlation(data_set=cells, file_name="Correlation")
+            plotter.plot_correlation(data_set=train_cells, file_name="Train Cells Correlation")
+            plotter.plot_correlation(data_set=test_cells, file_name="Test Cells Correlation")
             Reporter.report_r2_scores(r2_scores=imputed_r2_scores, save_path=simple_imputer_results_path,
                                       prefix="imputed")
             Reporter.upload_csv(data=pd.DataFrame(data=features, columns=["Features"]),
@@ -187,12 +191,13 @@ def start_knn_imputation(base_path: str, args):
             mlflow.log_param("Seed", args.seed)
             mlflow.set_tag("Percentage", args.percentage)
 
-            cells, features = DataLoader.load_single_cell_data(args.file)
+            train_cells, features, files_used = DataLoader.load_files_in_folder(folder=args.folder,
+                                                                                file_to_exclude=args.file,
+                                                                                keep_spatial=args.spatial)
+            train_data = pd.DataFrame(data=Preprocessing.normalize(train_cells.copy()), columns=features)
 
-            train_data, test_data = SplitHandler.create_splits(cells=cells, features=features, create_val=False)
-
-            train_data = pd.DataFrame(data=Preprocessing.normalize(train_data), columns=features)
-            test_data = pd.DataFrame(data=Preprocessing.normalize(test_data), columns=features)
+            test_cells, _ = DataLoader.load_single_cell_data(file_name=args.file, keep_spatial=args.spatial)
+            test_data = pd.DataFrame(data=Preprocessing.normalize(test_cells.copy()), columns=features)
 
             replaced_test_data_cells, index_replacements = Replacer.replace_values_by_cell(data=test_data,
                                                                                            features=features,
@@ -221,13 +226,11 @@ def start_knn_imputation(base_path: str, args):
             plotter = Plotting(base_path=base_path, args=args)
             plotter.plot_scores(scores={"Imputed": imputed_r2_scores},
                                 file_name=f"R2 Imputed Scores")
-            plotter.plot_correlation(data_set=cells, file_name="Correlation")
+            plotter.plot_correlation(data_set=train_cells, file_name="Train Cells Correlation")
+            plotter.plot_correlation(data_set=test_cells, file_name="Test Cells Correlation")
             Reporter.report_r2_scores(r2_scores=imputed_r2_scores, save_path=base_path, prefix="imputed")
             Reporter.upload_csv(data=pd.DataFrame(data=features, columns=["Features"]), save_path=base_path,
                                 file_name="Features")
-
-
-
 
     except BaseException as ex:
         raise

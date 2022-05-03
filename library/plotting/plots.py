@@ -114,12 +114,8 @@ class Plotting:
         data.insert(0, 'pseudo_x', list(range(0, len(data))))
         l_size = 12
         fig, axs = plt.subplots(1, 1, figsize=(12, 6), dpi=800)
-        plt.xlabel('Cell r2 rank',
-                   # size = l_size
-                   )
-        plt.ylabel('r2',
-                   # size = l_size
-                   )
+        plt.xlabel('Cell r2 rank')
+        plt.ylabel('r2')
         plt.bar(data.pseudo_x, data.Score)
         plt.title(f'Imputed Cell R2 scores, n = {len(data)}')
         save_path = Path(self.__base_path, f"{file_name}.png")
@@ -252,6 +248,7 @@ class Plotting:
                                        mlflow_directory: str = None, legend_labels: list = None):
         """
         Plots the absolute performance difference for the given dataset
+        @param absolute_score_performance The converted absolute score performance!
         @return:
         """
 

@@ -64,26 +64,26 @@ class ExperimentHandler:
             raise
 
     def download_artifacts(self, base_save_path: Path, run: Run = None, runs: [] = None,
-                           mlflow_folder: str = None) -> []:
+                           mlflow_folder: str = None) -> dict:
         """
          Downloads all artifacts of the found runs. Creates download folder for each run
         @param base_save_path:  The path where the artifacts should be saved
         @param runs: Runs which should be considered
         @param run: The run which should be considered
         @param mlflow_folder: The specific folder to be downloaded for the given runs
-        @return: Returns a list of created directories
+        @return: Returns a dictionary with the run name as key and the directory as value
         """
 
         if run is None and runs is None:
             raise ValueError("Please provide either a run to download or a list of runs")
 
-        created_directories: list = []
+        created_directories: dict = {}
 
         # Download single run
         if run is not None:
             run_save_path = Path(base_save_path, run.info.run_id)
             run_save_path = FolderManagement.create_directory(run_save_path, remove_if_exists=False)
-            created_directories.append(run_save_path)
+            created_directories[run.info.run_id] = run_save_path
             if mlflow_folder is not None:
                 self.client.download_artifacts(run_id=run.info.run_id, path=mlflow_folder,
                                                dst_path=str(run_save_path))
@@ -97,7 +97,7 @@ class ExperimentHandler:
             try:
                 run_path = Path(base_save_path, run.info.run_id)
                 run_path = FolderManagement.create_directory(run_path, remove_if_exists=False)
-                created_directories.append(run_path)
+                created_directories[run.info.run_id] = run_path
                 if mlflow_folder is not None:
                     self.client.download_artifacts(run_id=run.info.run_id, path=mlflow_folder,
                                                    dst_path=str(run_path))
@@ -109,5 +109,3 @@ class ExperimentHandler:
                 continue
 
         return created_directories
-
-
