@@ -79,8 +79,8 @@ if __name__ == "__main__":
                     continue
                 runs.append(run)
 
-            run_directories: [] = experiment_handler.download_artifacts(runs=runs, base_save_path=base_path,
-                                                                        mlflow_folder="")
+            run_directories: [] = run_handler.download_artifacts(runs=runs, base_save_path=base_path,
+                                                                 mlflow_folder="")
 
             imputed_r2_scores: pd.DataFrame = pd.DataFrame()
             frames = []
@@ -109,9 +109,9 @@ if __name__ == "__main__":
                 "Imputation Performance": Evaluation.create_absolute_score_performance(r2_scores=r2_scores,
                                                                                        features=features)}
 
-            plotter.r2_scores_absolute_performance(absolute_score_performance=absolute_r2_score_performance,
-                                                   file_name=f"Absolute Performance {args.percentage}",
-                                                   legend_labels=args.labels)
+            plotter.r2_scores_combined_bar_plot(r2_scores=absolute_r2_score_performance,
+                                                file_name=f"Absolute Performance {args.percentage}",
+                                                legend_labels=args.labels)
 
     except BaseException as ex:
         raise

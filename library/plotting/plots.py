@@ -8,6 +8,7 @@ from itertools import combinations
 from typing import Tuple
 from tensorflow.keras.utils import plot_model
 import numpy as np
+from library.evalation.evaluation import Evaluation
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
@@ -244,24 +245,40 @@ class Plotting:
             mlflow.log_artifact(str(save_path))
         plt.close()
 
-    def r2_scores_absolute_performance(self, absolute_score_performance: dict, file_name: str,
-                                       mlflow_directory: str = None, legend_labels: list = None):
+    def r2_scores_combined_bar_plot(self, r2_scores: dict, file_name: str, features: list = None,
+                                    mlflow_directory: str = None, legend_labels: list = None):
         """
         Plots the absolute performance difference for the given dataset
-        @param absolute_score_performance The converted absolute score performance!
+        @param r2_scores Either the converted r2 scores or a raw r2 score dictionary.
+        @param file_name
+        @param mlflow_directory
+        @param legend_labels
+        @param features The feature list for the datasets
         @return:
         """
 
+        must_be_converted: bool = False
+        for values in r2_scores.values():
+            if "Model" not in values:
+                must_be_converted = True
+
+        if must_be_converted:
+            new_r2_scores: dict = {}
+            for key, value in r2_scores.items():
+                new_r2_scores[key] = Evaluation.create_absolute_score_performance(r2_scores=value, features=features)
+
+            r2_scores = new_r2_scores
+
         # Determine number of rows
         num_rows = 1
-        if len(absolute_score_performance.keys()) > 3:
-            num_rows = float(len(absolute_score_performance.items()) / 3)
+        if len(r2_scores.keys()) > 3:
+            num_rows = float(len(r2_scores.items()) / 3)
             if not num_rows.is_integer():
                 num_rows += 1
 
             num_rows = int(num_rows)
 
-        n_cols = len(absolute_score_performance.keys()) if len(absolute_score_performance.keys()) <= 3 else 3
+        n_cols = len(r2_scores.keys()) if len(r2_scores.keys()) <= 3 else 3
 
         # Adjust columns based on items
         if num_rows == 1:
@@ -277,10 +294,10 @@ class Plotting:
         col: int = 0
         row: int = 0
 
-        experiment_names: [] = [experiment_name for experiment_name in absolute_score_performance.keys()]
+        experiment_names: [] = [experiment_name for experiment_name in r2_scores.keys()]
         for experiment_name in experiment_names:
 
-            data = absolute_score_performance[experiment_name]
+            data = r2_scores[experiment_name]
 
             if num_rows == 1:
                 if n_cols == 1:

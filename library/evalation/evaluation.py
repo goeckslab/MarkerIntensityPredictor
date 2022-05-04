@@ -1,7 +1,5 @@
 import pandas as pd
 from sklearn.metrics import r2_score
-from pathlib import Path
-import mlflow
 
 
 class Evaluation:

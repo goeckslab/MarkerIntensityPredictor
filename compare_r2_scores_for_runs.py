@@ -65,6 +65,9 @@ if __name__ == '__main__':
 
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=args.run) as run:
 
+            mlflow.log_param("Run Ids", args.runs)
+            mlflow.log_param("Run Names", args.run_names)
+
             runs_to_download: list = []
             for run_id in args.runs:
                 run_to_download: Run = run_handler.get_run_by_id(experiment_id=associated_experiment_id, run_id=run_id)
@@ -94,8 +97,8 @@ if __name__ == '__main__':
                 "Imputation Performance": Evaluation.create_absolute_score_performance(r2_scores=r2_scores,
                                                                                        features=features)}
 
-            plotter.r2_scores_absolute_performance(absolute_score_performance=absolute_r2_score_performance,
-                                                   file_name="Absolute Comparison")
+            plotter.r2_scores_combined_bar_plot(r2_scores=absolute_r2_score_performance,
+                                                file_name="Absolute Comparison")
 
     except BaseException as ex:
         raise

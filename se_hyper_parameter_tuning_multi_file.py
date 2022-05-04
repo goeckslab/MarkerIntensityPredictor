@@ -12,8 +12,8 @@ from library.plotting.plots import Plotting
 from library.preprocessing.preprocessing import Preprocessing
 from library.preprocessing.split import SplitHandler
 from library.vae.vae import MarkerPredictionVAE
-from library.postprocessing.evaluation import PerformanceEvaluator
 from library.postprocessing.model_selector import ModelSelector
+from library.evalation.evaluation import Evaluation
 
 base_path = Path("hyper_parameter_tuning")
 
@@ -170,8 +170,8 @@ if __name__ == "__main__":
             ground_truth_data = pd.DataFrame(data=test_data, columns=markers)
 
             # Calculate r2 scores
-            r2_scores = PerformanceEvaluator.calculate_r2_scores(features=markers, ground_truth_data=ground_truth_data,
-                                                                 compare_data=recon_test)
+            r2_scores = Evaluation.calculate_r2_scores(features=markers, ground_truth_data=ground_truth_data,
+                                                       compare_data=recon_test)
 
             plotter = Plotting(base_path=base_path, args=args)
 
