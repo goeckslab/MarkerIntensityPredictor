@@ -5,15 +5,18 @@ from library.data.folder_management import FolderManagement
 
 
 class RunHandler:
-    client = None
-
     # Cache for already downloaded runs
     __runs: dict = {}
 
     def __init__(self, client):
-        self.client = client
+        self._client = client
 
-    def get_run_name_by_run_id(self, run_id: str, runs: []) -> Optional[str]:
+    @property
+    def client(self):
+        return self._client
+
+    @staticmethod
+    def get_run_name_by_run_id(run_id: str, runs: []) -> Optional[str]:
         run: Run
         for run in runs:
             if run.info.run_id == run_id:
@@ -22,11 +25,11 @@ class RunHandler:
         return None
 
     def get_run_by_id(self, experiment_id: str, run_id: str) -> Optional[Run]:
-        all_run_infos: [] = reversed(self.client.list_run_infos(experiment_id))
+        all_run_infos: [] = reversed(self._client.list_run_infos(experiment_id))
         run_info: RunInfo
         for run_info in all_run_infos:
             full_run: Run
-            full_run = self.client.get_run(run_info.run_id)
+            full_run = self._client.get_run(run_info.run_id)
 
             if full_run.info.run_id == run_id:
                 return full_run
@@ -41,11 +44,11 @@ class RunHandler:
         """
         found_runs = []
 
-        all_run_infos: [] = reversed(self.client.list_run_infos(experiment_id))
+        all_run_infos: [] = reversed(self._client.list_run_infos(experiment_id))
 
         for run_info in all_run_infos:
             full_run: Run
-            full_run = self.client.get_run(run_info.run_id)
+            full_run = self._client.get_run(run_info.run_id)
 
             # Skip unfinished or unsuccessful runs
             if full_run.info.status != 'FINISHED':
@@ -68,11 +71,11 @@ class RunHandler:
         @param experiment_id:
         @return: A run or None
         """
-        all_run_infos: [] = reversed(self.client.list_run_infos(experiment_id))
+        all_run_infos: [] = reversed(self._client.list_run_infos(experiment_id))
         end_time: int = 0
         for run_info in all_run_infos:
             full_run: Run
-            full_run = self.client.get_run(run_info.run_id)
+            full_run = self._client.get_run(run_info.run_id)
 
             # Skip unfinished or unsuccessful runs
             if full_run.info.status != 'FINISHED':
@@ -111,11 +114,11 @@ class RunHandler:
                     return run.info.run_id
 
         # Run not cached
-        all_run_infos: [] = reversed(self.client.list_run_infos(experiment_id))
+        all_run_infos: [] = reversed(self._client.list_run_infos(experiment_id))
         run_info: RunInfo
         for run_info in all_run_infos:
             full_run: Run
-            full_run = self.client.get_run(run_info.run_id)
+            full_run = self._client.get_run(run_info.run_id)
 
             if full_run.data.tags.get('mlflow.runName') == run_name:
                 if parent_run_id is not None and full_run.data.tags.get('mlflow.parentRunId') != parent_run_id:
@@ -151,11 +154,11 @@ class RunHandler:
                     return run
 
         # Run not cached
-        all_run_infos: [] = reversed(self.client.list_run_infos(experiment_id))
+        all_run_infos: [] = reversed(self._client.list_run_infos(experiment_id))
         run_info: RunInfo
         for run_info in all_run_infos:
             full_run: Run
-            full_run = self.client.get_run(run_info.run_id)
+            full_run = self._client.get_run(run_info.run_id)
 
             if full_run.data.tags.get('mlflow.runName') == run_name:
                 if parent_run_id is not None and full_run.data.tags.get('mlflow.parentRunId') != parent_run_id:
@@ -193,10 +196,10 @@ class RunHandler:
             run_save_path = FolderManagement.create_directory(run_save_path, remove_if_exists=False)
             created_directories[run.info.run_id] = run_save_path
             if mlflow_folder is not None:
-                self.client.download_artifacts(run_id=run.info.run_id, path=mlflow_folder,
-                                               dst_path=str(run_save_path))
+                self._client.download_artifacts(run_id=run.info.run_id, path=mlflow_folder,
+                                                dst_path=str(run_save_path))
             else:
-                self.client.download_artifacts(run_id=run.info.run_id, path="", dst_path=str(run_save_path))
+                self._client.download_artifacts(run_id=run.info.run_id, path="", dst_path=str(run_save_path))
 
             return created_directories
 
@@ -207,10 +210,10 @@ class RunHandler:
                 run_path = FolderManagement.create_directory(run_path, remove_if_exists=False)
                 created_directories[run.info.run_id] = run_path
                 if mlflow_folder is not None:
-                    self.client.download_artifacts(run_id=run.info.run_id, path=mlflow_folder,
-                                                   dst_path=str(run_path))
+                    self._client.download_artifacts(run_id=run.info.run_id, path=mlflow_folder,
+                                                    dst_path=str(run_path))
                 else:
-                    self.client.download_artifacts(run_id=run.info.run_id, path="", dst_path=str(run_path))
+                    self._client.download_artifacts(run_id=run.info.run_id, path="", dst_path=str(run_path))
 
             except BaseException as ex:
                 print(ex)
@@ -229,7 +232,7 @@ class RunHandler:
                 if run.info.run_id == run_id:
                     return run
 
-        run: Run = self.client.get_run(run_id)
+        run: Run = self._client.get_run(run_id)
 
         if run is not None:
             # Add to cache

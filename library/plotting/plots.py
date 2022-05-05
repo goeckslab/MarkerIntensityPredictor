@@ -60,6 +60,65 @@ class Plotting:
         mlflow.log_artifact(str(save_path), mlflow_directory)
         plt.close()
 
+    def heat_map(self, data: dict, file_name: str, v_min: float = 0, v_max: float = 1, mlflow_directory: str = None):
+        # Determine number of rows
+        num_rows = 1
+        if len(data.keys()) > 3:
+            num_rows = float(len(data.items()) / 3)
+            if not num_rows.is_integer():
+                num_rows += 1
+
+            num_rows = int(num_rows)
+
+        n_cols = len(data.keys()) if len(data.keys()) <= 3 else 3
+
+        fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(13, 7), dpi=300, sharex=False)
+
+        col: int = 0
+        row: int = 0
+
+        for key in data.keys():
+            value = data[key]
+
+            if num_rows == 1:
+                if n_cols == 1:
+                    sns.heatmap(data=value, ax=axs, vmin=v_min, vmax=v_max)
+                    axs.set_title(f"{key}")
+                    axs.set_xticklabels(axs.get_xticklabels(), rotation=90)
+                    # axs.set_ylim(y_limitations[0], y_limitations[1])
+                    # axs.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+                else:
+                    sns.heatmap(data=value, ax=axs[col], vmin=v_min, vmax=v_max)
+                    axs[col].set_title(f"{key}")
+                    axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
+                    # axs[col].set_ylim(y_limitations[0], y_limitations[1])
+                    # axs[col].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+
+            else:
+                sns.heatmap(data=value, ax=axs[row, col], vmin=v_min, vmax=v_max)
+                axs[row, col].set_title(f"{key}")
+                axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+                # axs[row, col].set_ylim(y_limitations[0], y_limitations[1])
+                # axs[row, col].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+
+            if col == n_cols:
+                row += 1
+                col = 0
+
+            else:
+                col += 1
+
+        plt.tight_layout()
+
+        save_path = Path(self.__base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+
+        if mlflow_directory is not None:
+            mlflow.log_artifact(str(save_path), mlflow_directory)
+        else:
+            mlflow.log_artifact(str(save_path))
+        plt.close()
+
     def plot_feature_intensities(self, train_data: pd.DataFrame, test_data: pd.DataFrame, features: list,
                                  mlflow_directory: str, file_name: str, val_data=None):
         if val_data is not None:

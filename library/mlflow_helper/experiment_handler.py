@@ -7,13 +7,15 @@ from mlflow.exceptions import ErrorCode
 
 
 class ExperimentHandler:
-    client = None
-
     # Cache for already downloaded runs
     __runs: dict = {}
 
     def __init__(self, client):
-        self.client = client
+        self._client = client
+
+    @property
+    def client(self):
+        return self._client
 
     def get_experiment_id_by_name(self, experiment_name: str, experiment_description: str = None,
                                   create_experiment: bool = True) -> Optional[str]:
@@ -29,7 +31,7 @@ class ExperimentHandler:
         # The experiment id
         found_experiment_id = None
 
-        experiments = self.client.list_experiments()  # returns a list of mlflow.entities.Experiment
+        experiments = self._client.list_experiments()  # returns a list of mlflow.entities.Experiment
         for experiment in experiments:
             if experiment.name == experiment_name:
                 found_experiment_id = experiment.experiment_id
@@ -47,8 +49,8 @@ class ExperimentHandler:
         @return: The string of the newly created experiment
         """
         try:
-            experiment_id: str = self.client.create_experiment(name=name)
-            self.client.set_experiment_tag(experiment_id, "description", description)
+            experiment_id: str = self._client.create_experiment(name=name)
+            self._client.set_experiment_tag(experiment_id, "description", description)
             return experiment_id
 
         except mlflow.exceptions.RestException as ex:

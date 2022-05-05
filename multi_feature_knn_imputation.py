@@ -4,7 +4,6 @@ import time
 from library.mlflow_helper.experiment_handler import ExperimentHandler
 import argparse
 from library.data.data_loader import DataLoader
-from library.preprocessing.split import SplitHandler
 import pandas as pd
 from library.preprocessing.preprocessing import Preprocessing
 from library.preprocessing.replacements import Replacer
@@ -47,9 +46,6 @@ if __name__ == '__main__':
     print("Started knn imputation...")
     base_path = Path(f"{base_path}_{str(int(time.time_ns() / 1000))}")
     run_name: str = "KNN Imputation"
-
-    # if args.percentage >= 1:
-    #    sys.exit()
 
     # Create mlflow tracking client
     client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
