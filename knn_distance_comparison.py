@@ -1,3 +1,5 @@
+# Compares the cell distances used by the KNN imputer between included spatial data or not
+
 import mlflow
 from pathlib import Path
 import time
@@ -10,11 +12,8 @@ from library.preprocessing.replacements import Replacer
 from library.data.folder_management import FolderManagement
 from library.mlflow_helper.reporter import Reporter
 from library.plotting.plots import Plotting
-from sklearn.metrics import r2_score
-from library.knn.knn_imputation import KNNImputation
 from sklearn.metrics.pairwise import nan_euclidean_distances
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler
 
 base_path = "knn_imputation_comparison"
 
@@ -45,7 +44,7 @@ if __name__ == '__main__':
     args = get_args()
     print("Started knn imputation...")
     base_path = Path(f"{base_path}_{str(int(time.time_ns() / 1000))}")
-    run_name: str = "KNN Imputation Comparison"
+    run_name: str = "KNN Distance Comparison"
 
     # Create mlflow tracking client
     client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
@@ -105,7 +104,8 @@ if __name__ == '__main__':
 
                     distances = pd.DataFrame(
                         data=nan_euclidean_distances(replaced_test_data_cells,
-                                                     replaced_test_data_cells))  # distance between rows of X
+                                                     replaced_test_data_cells,
+                                                     missing_values=0))  # distance between rows of X
 
                     lowest_distances = pd.DataFrame()
                     lowest_distances['first_neighbor'], lowest_distances['second_neighbor'] = np.sort(distances,
