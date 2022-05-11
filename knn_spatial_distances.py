@@ -9,9 +9,8 @@ import pandas as pd
 from library.preprocessing.preprocessing import Preprocessing
 from library.preprocessing.replacements import Replacer
 from library.data.folder_management import FolderManagement
-from library.mlflow_helper.reporter import Reporter
 from library.plotting.plots import Plotting
-from sklearn.metrics.pairwise import nan_euclidean_distances
+from sklearn.metrics.pairwise import nan_euclidean_distances, euclidean_distances
 import numpy as np
 
 base_path = "knn_spatial_distances"
@@ -101,7 +100,6 @@ if __name__ == '__main__':
             N = 3
             nearest_neighbors_indices = pd.DataFrame(
                 distances.index[np.argsort(-distances.values, axis=0)[-1:-1 - N:-1]], columns=distances.columns)
-            print(nearest_neighbors_indices)
 
             spatial_information = pd.DataFrame()
 
@@ -112,32 +110,21 @@ if __name__ == '__main__':
                 second_neighbor = test_data.iloc[[nearestNeighbors.iloc[2]]][
                     ["X_centroid", "Y_centroid", "Area"]].reset_index(drop=True)
 
-                first_far_x = "F" if abs(
-                    cell.iloc[0]["X_centroid"] - first_neighbor.iloc[0]["X_centroid"]) >= 500 else "N"
-                first_far_y = "F" if abs(
-                    cell.iloc[0]["Y_centroid"] - first_neighbor.iloc[0]["Y_centroid"]) >= 500 else "N"
+                frames = [cell, first_neighbor, second_neighbor]
+                new_df = pd.concat(frames)
 
-                second_far_x = "F" if abs(
-                    cell.iloc[0]["X_centroid"] - second_neighbor.iloc[0]["X_centroid"]) >= 500 else "N"
-                second_far_y = "F" if abs(
-                    cell.iloc[0]["Y_centroid"] - second_neighbor.iloc[0]["Y_centroid"]) >= 500 else "N"
+                distances = euclidean_distances(new_df)
 
                 spatial_information = spatial_information.append({
-                    "first_neighbor_x": first_far_x,
-                    "first_neighbor_y": first_far_y,
-                    "second_neighbor_x": second_far_x,
-                    "second_neighbor_y": second_far_y,
+                    "Cell": cellId,
+                    "First Neighbor": distances[0][1],
+                    "Second Neighbor": distances[0][2],
                 }, ignore_index=True)
 
-            print(spatial_information)
-            input()
-            lowest_distances = pd.DataFrame()
-            lowest_distances['first_neighbor'], lowest_distances['second_neighbor'] = np.sort(distances,
-                                                                                              axis=1)[:, 1:3].T
+            plotter: Plotting = Plotting(base_path=base_path, args=args)
+            plotter.scatter_plot(data=spatial_information, x="First Neighbor", y="Second Neighbor", hue="Cell",
+                                 title="Spatial Distances", file_name="Special Distances")
 
-            # scaler = MinMaxScaler()
-            # lowest_distances = pd.DataFrame(data=scaler.fit_transform(lowest_distances),
-            #                                columns=['first_neighbor', 'second_neighbor'])
 
 
 
