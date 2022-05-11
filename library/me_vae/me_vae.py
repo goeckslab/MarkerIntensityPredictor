@@ -2,7 +2,7 @@ from keras import layers, regularizers
 import pandas as pd
 import keras
 from library.me_vae.sampling import Sampling
-from keras.layers import concatenate
+from keras.layers import concatenate, multiply
 from library.me_vae.me_vae_model import MEVAE
 import tensorflow as tf
 import mlflow

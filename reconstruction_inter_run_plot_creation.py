@@ -87,7 +87,7 @@ class ExperimentComparer:
 
             print(f"Found {len(self.runs)} runs.")
 
-            self.experiment_handler.download_artifacts(base_save_path=self.download_directory, runs=self.runs)
+            self.run_handler.download_artifacts(base_save_path=self.download_directory, runs=self.runs)
 
             ae_mean_scores, ae_combined_scores = DataLoader.load_r2_scores_for_model(self.download_directory,
                                                                                      "ae_r2_score.csv")

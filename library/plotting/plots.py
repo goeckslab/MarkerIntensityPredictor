@@ -936,3 +936,19 @@ class Plotting:
             mlflow.log_artifact(str(save_path), mlflow_folder)
 
         plt.close()
+
+    def scatter_plot(self, data: pd.DataFrame, x: str, y: str, hue: str, title: str, file_name: str,
+                     mlflow_folder: str = None):
+        ax = sns.scatterplot(data=data, x=x, y=y, hue=hue)
+        ax.set_title(title)
+        fig = ax.get_figure()
+        fig.tight_layout()
+
+        save_path = Path(self.__base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+        if mlflow_folder is None:
+            mlflow.log_artifact(str(save_path))
+        else:
+            mlflow.log_artifact(str(save_path), mlflow_folder)
+
+        plt.close()
