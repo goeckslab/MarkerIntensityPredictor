@@ -1,5 +1,6 @@
 import pandas as pd
 import argparse
+from pathlib import Path
 
 
 def get_args():
@@ -20,4 +21,8 @@ if __name__ == '__main__':
     data = pd.read_csv(args.file)
 
     data = data[["CellID", "X_centroid", "Y_centroid"]]
-    data.to_csv(args.out)
+
+    if Path(args.out).suffix == '.csv':
+        data.to_csv(args.out)
+    else:
+        data.to_csv(f"{args.out}.csv", index=False)
