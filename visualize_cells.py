@@ -8,7 +8,7 @@ def get_args():
        Load all provided cli args
        """
     parser = argparse.ArgumentParser()
-    parser.add_argument("-cc", "--cellcount", action="store", required=False,
+    parser.add_argument("-cc", "--cellcount", action="store", required=False, type=int,
                         help="How many cells should be visualized", default=64)
     parser.add_argument("-ch", action="store", required=False, help="A specific channel")
     parser.add_argument("--file", "-f", action="store", required=False, help="The zarr file to load")
