@@ -17,3 +17,4 @@ PyYAML
 keract
 mlflow
 cellcutter
+scikit-image

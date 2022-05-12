@@ -17,12 +17,11 @@ logger = logging.getLogger(__name__)
 # Figsize (7,9) First is width, second is height
 
 class Plotting:
-    # The base path such as AE or VAE. This is the path where the files will be stored
-    __base_path: Path
 
-    def __init__(self, base_path: Path, args):
-        self.__base_path = base_path
-        if args.tracking_url is not None:
+    def __init__(self, base_path: Path, args, use_mlflow: bool = True):
+        self._base_path = base_path
+        self._use_mlflow = use_mlflow
+        if args is not None and args.tracking_url is not None:
             mlflow.set_tracking_uri = args.tracking_url
 
     def plot_model_performance(self, history, file_name: str, mlflow_directory: str = None):
@@ -35,7 +34,7 @@ class Plotting:
         plt.legend()
         plt.tight_layout()
 
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
         if mlflow_directory is not None:
             mlflow.log_artifact(str(save_path), mlflow_directory)
@@ -110,7 +109,7 @@ class Plotting:
 
         plt.tight_layout()
 
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
 
         if mlflow_directory is not None:
@@ -140,7 +139,7 @@ class Plotting:
 
         fig.tight_layout()
 
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
         mlflow.log_artifact(str(save_path), mlflow_directory)
         plt.close()
@@ -160,7 +159,7 @@ class Plotting:
 
         fig = ax.get_figure()
         fig.tight_layout()
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
 
         if mlflow_directory is not None:
@@ -178,7 +177,7 @@ class Plotting:
         plt.ylabel('r2')
         plt.bar(data.pseudo_x, data.Score)
         plt.title(f'Imputed Cell R2 scores, n = {len(data)}')
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
 
         if mlflow_directory is not None:
@@ -256,7 +255,7 @@ class Plotting:
 
         plt.tight_layout()
 
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
 
         if mlflow_directory is not None:
@@ -295,7 +294,7 @@ class Plotting:
                    fancybox=True, shadow=True, ncol=len(relative_score_performance["Model"].unique()))
         plt.tight_layout()
 
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
 
         if mlflow_directory is not None:
@@ -407,7 +406,7 @@ class Plotting:
 
         plt.tight_layout()
 
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
 
         if mlflow_directory is not None:
@@ -493,7 +492,7 @@ class Plotting:
                     col = 0
 
         fig.tight_layout()
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
 
         if mlflow_directory is not None:
@@ -562,7 +561,7 @@ class Plotting:
 
         fig.tight_layout()
 
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
 
         plt.savefig(save_path)
         if use_mlflow:
@@ -644,7 +643,7 @@ class Plotting:
             col = 0
 
         fig.tight_layout()
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
         mlflow.log_artifact(str(save_path))
         plt.close()
@@ -703,7 +702,7 @@ class Plotting:
             col = 0
 
         fig.tight_layout()
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
         mlflow.log_artifact(str(save_path))
         plt.close()
@@ -781,7 +780,7 @@ class Plotting:
         plt.ylim(0, 1)
         plt.legend(title='Model', loc='upper left', labels=['VAE', 'AE', 'EN'])
         fig.tight_layout()
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
         mlflow.log_artifact(str(save_path))
         plt.close()
@@ -845,7 +844,7 @@ class Plotting:
                     col = 0
 
         fig.tight_layout()
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
 
         if mlflow_directory is not None:
@@ -869,9 +868,9 @@ class Plotting:
         plt.legend(loc='lower center')
 
         if prefix is not None:
-            save_path = Path(self.__base_path, f"{prefix}_{layer}_weights_distribution.png")
+            save_path = Path(self._base_path, f"{prefix}_{layer}_weights_distribution.png")
         else:
-            save_path = Path(self.__base_path, f"{layer}_weights_distribution.png")
+            save_path = Path(self._base_path, f"{layer}_weights_distribution.png")
         plt.savefig(save_path)
 
         mlflow.log_artifact(str(save_path))
@@ -892,21 +891,22 @@ class Plotting:
         sns.boxplot(x=df["amount_of_layers"], y=df[f"{value_to_display}"])
         ax.set_title("Cross Fold model performance")
 
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
         mlflow.log_artifact(str(save_path), mlflow_folder)
         plt.close()
 
     def plot_model_architecture(self, model, file_name: str, mlflow_folder: str = None):
 
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
 
         plot_model(model, save_path)
 
-        if mlflow_folder is None:
-            mlflow.log_artifact(str(save_path))
-        else:
-            mlflow.log_artifact(str(save_path), mlflow_folder)
+        if self._use_mlflow:
+            if mlflow_folder is None:
+                mlflow.log_artifact(str(save_path))
+            else:
+                mlflow.log_artifact(str(save_path), mlflow_folder)
 
     def plot_correlation(self, data_set: pd.DataFrame, file_name: str, mlflow_folder: str = None):
         """
@@ -928,7 +928,7 @@ class Plotting:
         fig = ax.get_figure()
         fig.tight_layout()
 
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
         if mlflow_folder is None:
             mlflow.log_artifact(str(save_path))
@@ -944,7 +944,7 @@ class Plotting:
         fig = ax.get_figure()
         fig.tight_layout()
 
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
         if mlflow_folder is None:
             mlflow.log_artifact(str(save_path))

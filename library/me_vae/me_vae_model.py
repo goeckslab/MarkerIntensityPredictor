@@ -22,6 +22,7 @@ class MEVAE(keras.Model):
             self.kl_loss_tracker,
         ]
 
+    @tf.function
     def train_step(self, data):
         with tf.GradientTape() as tape:
             z_mean, z_log_var, z = self.encoder(data)
