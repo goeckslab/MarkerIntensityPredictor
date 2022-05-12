@@ -22,7 +22,7 @@ if __name__ == '__main__':
 
     plt.figure(figsize=(10, 10))
     for i in range(args.cellcount):
-        ax = plt.subplot(8, args.cellcount / 8, i + 1)
+        ax = plt.subplot(int(args.cellcount / 8), 8, i + 1)
         ax.axis("off")
         ax.imshow(x[0, i, ...])
     plt.tight_layout()
