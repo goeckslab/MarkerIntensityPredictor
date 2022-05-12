@@ -30,8 +30,12 @@ if __name__ == '__main__':
         plt.savefig("cell_overview.png")
 
     else:
+
+        rows = int(args.cellcount / 8) if int(args.cellcount / 8) != 0 else 1
+        rows *= 32
+
         for i in range(args.cellcount):
-            ax = plt.subplot(int(args.cellcount / 8) * 32, 8, i + 1)
+            ax = plt.subplot(rows, 8, i + 1)
             ax.axis("off")
             for channel in range(32):
                 ax.imshow(x[channel, i, ...])
