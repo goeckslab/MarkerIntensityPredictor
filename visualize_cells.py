@@ -32,12 +32,13 @@ if __name__ == '__main__':
     else:
 
         rows = int(args.cellcount / 8) if int(args.cellcount / 8) != 0 else 1
-        rows *= 32
+        rows = int(rows * 32 / 8)
 
         for i in range(args.cellcount):
             ax = plt.subplot(rows, 8, i + 1)
             ax.axis("off")
             for channel in range(32):
+                print(f"Cell {i}: Channel {channel}")
                 ax.imshow(x[channel, i, ...])
         plt.tight_layout()
         plt.savefig(f"cell_channel_overview.png")
