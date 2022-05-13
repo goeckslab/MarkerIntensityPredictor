@@ -1,6 +1,6 @@
 ipykernel
 notebook
-numpy~=1.19.2
+numpy
 pandas
 tensorflow
 keras

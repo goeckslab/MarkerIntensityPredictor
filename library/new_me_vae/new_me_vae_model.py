@@ -3,43 +3,12 @@ import tensorflow
 from tensorflow.keras.models import Model
 import tensorflow as tf
 from keras.losses import MeanSquaredError, Loss
-from keras.metrics import mean_squared_error
+from keras.metrics import mean_squared_error, Mean
 from keras.layers import concatenate, Input, Dense, Conv2D, Flatten, Reshape, Conv2DTranspose, Lambda, Multiply
 from typing import Tuple, Dict
 from keras import backend as K
-
-marker_latent_space: Tuple = ()
-morph_latent_space: Tuple = ()
-
-
-def marker_decoder_loss(true, pred):
-    z_mean, z_log_var = marker_latent_space
-    reconstruction_loss_fn = MeanSquaredError()
-    recon_loss = mean_squared_error(true, pred)
-    kl_loss = 1 + z_log_var * 2 - K.square(z_mean) - K.exp(z_log_var * 2)
-    kl_loss = K.sum(kl_loss, axis=-1)
-    kl_loss *= -0.5
-
-    vae_loss = K.mean(recon_loss + kl_loss)
-    return vae_loss / 2
-
-
-def morph_decoder_loss(true, pred):
-    z_mean, z_log_var = morph_latent_space
-    reconstruction_loss_fn = MeanSquaredError()
-    recon_loss = mean_squared_error(true, pred)
-    kl_loss = 1 + z_log_var * 2 - K.square(z_mean) - K.exp(z_log_var * 2)
-    kl_loss = K.sum(kl_loss, axis=-1)
-    kl_loss *= -0.5
-
-    vae_loss = K.mean(recon_loss + kl_loss)
-    return vae_loss / 2
-
-
-def combined_loss(true, pred):
-    marker_loss = marker_decoder_loss(true, pred)
-    morph_loss = morph_decoder_loss(true, pred)
-    return marker_loss + morph_loss
+from tensorflow.python.framework.ops import disable_eager_execution
+disable_eager_execution()
 
 
 class NewMeVAE:
@@ -55,12 +24,18 @@ class NewMeVAE:
 
         self._learning_rate = learning_rate
 
-        # self._marker_latent_space: Tuple = ()
-        # self._morph_latent_space: Tuple = ()
+        self._marker_latent_space: Tuple = ()
+        self._morph_latent_space: Tuple = ()
 
         self.__build_marker_encoder(input_dimensions=marker_input_dimensions, layer_units=[25, 12, 9, 7])
         self.__build_morph_encoder(input_dimensions=morph_input_dimensions, layer_units=[5, 5])
         self.__build_decoder(layer_units=[7, 9, 12, 25])
+
+        self.total_loss_tracker = Mean(name="total_loss")
+        self.reconstruction_loss_tracker = Mean(
+            name="reconstruction_loss"
+        )
+        self.kl_loss_tracker = Mean(name="kl_loss")
 
     @property
     def morph_encoder(self):
@@ -78,6 +53,14 @@ class NewMeVAE:
     def vae(self):
         return self._vae
 
+    @property
+    def metrics(self):
+        return [
+            self.total_loss_tracker,
+            self.reconstruction_loss_tracker,
+            self.kl_loss_tracker,
+        ]
+
     def build_model(self):
 
         decoder_output = self.decoder(Multiply()([self._marker_encoder.output[2], self._morph_encoder.output[2]]))
@@ -86,6 +69,33 @@ class NewMeVAE:
                           outputs=[decoder_output],
                           name="vae")
         self._vae.summary()
+
+        def marker_decoder_loss(true, pred):
+            z_mean, z_log_var = self._marker_latent_space
+            reconstruction_loss_fn = MeanSquaredError()
+            recon_loss = mean_squared_error(true, pred)
+            kl_loss = 1 + z_log_var * 2 - K.square(z_mean) - K.exp(z_log_var * 2)
+            kl_loss = K.sum(kl_loss, axis=-1)
+            kl_loss *= -0.5
+
+            vae_loss = K.mean(recon_loss + kl_loss)
+            return vae_loss / 2
+
+        def morph_decoder_loss(true, pred):
+            z_mean, z_log_var = self._morph_latent_space
+            reconstruction_loss_fn = MeanSquaredError()
+            recon_loss = mean_squared_error(true, pred)
+            kl_loss = 1 + z_log_var * 2 - K.square(z_mean) - K.exp(z_log_var * 2)
+            kl_loss = K.sum(kl_loss, axis=-1)
+            kl_loss *= -0.5
+
+            vae_loss = K.mean(recon_loss + kl_loss)
+            return vae_loss / 2
+
+        def combined_loss(true, pred):
+            marker_loss = marker_decoder_loss(true, pred)
+            morph_loss = morph_decoder_loss(true, pred)
+            return marker_loss + morph_loss
 
         # me_vae.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))
         losses = {"decoder": combined_loss}
@@ -107,7 +117,6 @@ class NewMeVAE:
             callbacks=callbacks, batch_size=192, epochs=100)
 
     def __build_marker_encoder(self, input_dimensions: int, layer_units: list):
-        global marker_latent_space
         encoder_input = Input(shape=(input_dimensions,), name="marker_encoder_input")
         x = encoder_input
 
@@ -121,12 +130,11 @@ class NewMeVAE:
         z = Lambda(self.sampling, output_shape=(self._embedding_dimensions,), name='z_marker_encoder')(
             [z_mean, z_log_var])
 
-        marker_latent_space = (z_mean, z_log_var)
+        self._marker_latent_space = (z_mean, z_log_var)
         self._marker_encoder = Model(inputs=encoder_input, outputs=[z_mean, z_log_var, z], name="marker_encoder")
         self._marker_encoder.summary()
 
     def __build_morph_encoder(self, input_dimensions: int, layer_units: list):
-        global morph_latent_space
         encoder_input = Input(shape=(input_dimensions,), name="morph_encoder_input")
         x = encoder_input
 
@@ -140,7 +148,7 @@ class NewMeVAE:
         z = Lambda(self.sampling, output_shape=(self._embedding_dimensions,), name='z_morph_encoder')(
             [z_mean, z_log_var])
 
-        morph_latent_space = (z_mean, z_log_var)
+        self._morph_latent_space = (z_mean, z_log_var)
         self._morph_encoder = Model(inputs=encoder_input, outputs=[z_mean, z_log_var, z], name="morph_encoder")
         self._morph_encoder.summary()
 
