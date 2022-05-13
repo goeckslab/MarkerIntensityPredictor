@@ -5,11 +5,13 @@ import pandas as pd
 
 class Preprocessing:
     @staticmethod
-    def normalize(data: pd.DataFrame, set_negative_to_zero: bool = False):
+    def normalize(data: pd.DataFrame, set_negative_to_zero: bool = False, create_dataframe: bool = False,
+                  columns: list = None):
         """
         Normalizes the data. Mean is close to 0 and std is close to 1
         @param data:
         @param set_negative_to_zero:
+        @param create_dataframe:
         @return:
         """
         # Input data contains some zeros which results in NaN (or Inf)
@@ -17,6 +19,9 @@ class Preprocessing:
         # values for downstream analysis. Therefore, zeros are replaced by
         # a small value; see the following thread for related discussion.
         # https://www.researchgate.net/post/Log_transformation_of_values_that_include_0_zero_for_statistical_analyses2
+
+        if create_dataframe and columns is None:
+            raise ValueError("If create dataframe is true, please provide the columns for the dataframe")
 
         data[data == 0] = 1e-32
 
@@ -31,4 +36,5 @@ class Preprocessing:
 
         # min_max_scaler = MinMaxScaler(feature_range=(0, 1))
         #  data = min_max_scaler.fit_transform(data)
-        return data
+
+        return data if not create_dataframe else pd.DataFrame(columns=columns, data=data)
