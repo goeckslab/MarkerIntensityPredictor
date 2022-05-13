@@ -3,8 +3,23 @@ from library.image_vae.image_vae_model import ImageVAE
 from library.plotting.plots import Plotting
 from pathlib import Path
 from library.data.folder_management import FolderManagement
+import argparse
 
 base_path = Path("ImageVAE")
+
+
+def get_args():
+    """
+       Load all provided cli args
+       """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--exclude", action="store", required=True, help="The file used for testing")
+    parser.add_argument("--folder", action="store", required=True,
+                        help="The folder to use for training")
+    parser.add_argument("--seed", "-s", action="store", help="The see to use", type=int, default=1)
+
+    return parser.parse_args()
+
 
 if __name__ == '__main__':
     FolderManagement.create_directory(path=base_path)
