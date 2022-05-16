@@ -3,6 +3,11 @@ from library.data import DataLoader, FolderManagement
 from library.preprocessing import SplitHandler, Preprocessing
 from library.new_me_vae.new_me_vae_model import NewMeVAE
 import argparse
+from pathlib import Path
+from library.predictions.predictions import Predictions
+from library.evalation.evaluation import Evaluation
+
+base_path = Path("new_me_vae")
 
 
 def get_args():
@@ -37,6 +42,8 @@ def get_args():
 if __name__ == '__main__':
     args = get_args()
 
+    FolderManagement.create_directory(path=base_path)
+
     # Load data
     me_vae_train_cells, features, files_used = DataLoader.load_files_in_folder(folder=args.folder,
                                                                                file_to_exclude=args.exclude)
@@ -60,16 +67,21 @@ if __name__ == '__main__':
         data=Preprocessing.normalize(me_vae_morph_train_data.copy()),
         columns=me_vae_morph_train_data.columns)
 
-    me_vae_marker_validation_data: pd.DataFrame = pd.DataFrame(
-        data=Preprocessing.normalize(me_vae_marker_validation_data.copy()),
-        columns=me_vae_marker_validation_data.columns)
+    me_vae_marker_validation_data: pd.DataFrame = Preprocessing.normalize(data=me_vae_marker_validation_data.copy(),
+                                                                          create_dataframe=True,
+                                                                          columns=me_vae_marker_validation_data.columns.tolist())
 
-    me_vae_morph_validation_data: pd.DataFrame = pd.DataFrame(
-        data=Preprocessing.normalize(me_vae_morph_validation_data.copy()),
-        columns=me_vae_morph_validation_data.columns)
+    me_vae_morph_validation_data: pd.DataFrame = Preprocessing.normalize(data=me_vae_morph_validation_data.copy(),
+                                                                         create_dataframe=True,
+                                                                         columns=me_vae_morph_validation_data.columns.tolist())
 
-    me_vae_target_data: pd.DataFrame = Preprocessing.normalize(data=me_vae_train_data.copy(), create_dataframe=True,
-                                                               columns=features)
+    me_vae_train_target_data: pd.DataFrame = Preprocessing.normalize(data=me_vae_train_data.copy(),
+                                                                     create_dataframe=True,
+                                                                     columns=features)
+
+    me_vae_val_target_data: pd.DataFrame = Preprocessing.normalize(data=me_vae_validation_data.copy(),
+                                                                   create_dataframe=True,
+                                                                   columns=features)
 
     # Load test cell, which is the excluded data file
     me_vae_test_cells, _ = DataLoader.load_single_cell_data(file_name=args.exclude)
@@ -81,28 +93,44 @@ if __name__ == '__main__':
         data_set=me_vae_test_cells.copy())
 
     # Normalize test data
-    marker_test_data = pd.DataFrame(data=Preprocessing.normalize(marker_test_data),
-                                    columns=marker_test_data.columns)
-    morph_test_data = pd.DataFrame(data=Preprocessing.normalize(morph_test_data), columns=morph_test_data.columns)
+    marker_test_data: pd.DataFrame = Preprocessing.normalize(data=marker_test_data, create_dataframe=True,
+                                                             columns=marker_test_data.columns.tolist())
 
-    me_vae_test_data = pd.DataFrame(data=Preprocessing.normalize(me_vae_test_cells.copy()), columns=features)
+    morph_test_data: pd.DataFrame = Preprocessing.normalize(data=morph_test_data, create_dataframe=True,
+                                                            columns=morph_test_data.columns.tolist())
+
+    me_vae_test_data = Preprocessing.normalize(data=me_vae_test_cells.copy(), create_dataframe=True, columns=features)
 
     me_vae: NewMeVAE = NewMeVAE(embedding_dimensions=5, marker_input_dimensions=me_vae_marker_train_data.shape[1],
-                                morph_input_dimensions=me_vae_morph_validation_data.shape[1], learning_rate=0.0001)
+                                morph_input_dimensions=me_vae_morph_validation_data.shape[1], learning_rate=0.0001,
+                                results_path=base_path)
     me_vae.build_model()
+
+
+    print(me_vae_marker_train_data)
+    input()
+    print(me_vae_morph_train_data)
+    input()
+
     me_vae.train(marker_train_data=me_vae_marker_train_data, marker_val_data=me_vae_marker_validation_data,
                  morph_train_data=me_vae_morph_train_data, morph_val_data=me_vae_morph_validation_data,
-                 target_data=me_vae_target_data)
+                 train_target_data=me_vae_train_target_data, val_target_data=me_vae_val_target_data)
 
     # Predictions
-    # encoded_data, reconstructed_data = Predictions.encode_decode_me_vae_data(encoder, decoder,
-    #                                                                         data=[marker_test_data,
-    #                                                                               morph_test_data],
-    #                                                                         features=features,
-    #                                                                         save_path=results_folder,
-    #                                                                         mlflow_directory="Evaluation")
+    encoded_data, reconstructed_data = Predictions.encode_decode_new_me_vae_data(marker_encoder=me_vae.marker_encoder,
+                                                                                 morph_encoder=me_vae.morph_encoder,
+                                                                                 decoder=me_vae.decoder,
+                                                                                 marker_data=marker_test_data,
+                                                                                 morph_data=morph_test_data,
+                                                                                 features=features,
+                                                                                 save_path=base_path,
+                                                                                 use_mlflow=False)
+
+    print(reconstructed_data)
+    input()
 
     # Evaluate
-    # me_vae_r2_scores = Evaluation.calculate_r2_scores(ground_truth_data=me_vae_test_data,
-    #                                                  compare_data=reconstructed_data,
-    #                                                  features=features)
+    me_vae_r2_scores = Evaluation.calculate_r2_scores(ground_truth_data=me_vae_test_data,
+                                                      compare_data=reconstructed_data,
+                                                      features=features)
+    print(me_vae_r2_scores)
