@@ -12,7 +12,7 @@ def get_args():
                         help="How many cells should be visualized", default=64)
     parser.add_argument("--n_channels", action="store", required=False, help="The number of channels")
     parser.add_argument("--file", "-f", action="store", required=True, help="The zarr file to load")
-    parser.add_argument("--iterate_channels", "-c", action="store_true", required=False, help="The zarr file to load",
+    parser.add_argument("--iterate_channels", "-ic", action="store_true", required=False, help="The zarr file to load",
                         default=False)
 
     return parser.parse_args()
