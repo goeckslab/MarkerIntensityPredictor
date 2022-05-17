@@ -39,7 +39,7 @@ if __name__ == '__main__':
         for i in range(args.cellcount):
             ax = plt.subplot(rows, 8, i + 1)
             ax.axis("off")
-            for channel in range(args.n_channel):
+            for channel in range(args.n_channels):
                 print(f"Cell {i}: Channel {channel}")
                 ax.imshow(x[channel, i, ...])
         plt.tight_layout()
