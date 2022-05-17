@@ -1,5 +1,4 @@
 # Compares the cell distances used by the KNN imputer between included spatial data or not
-
 import mlflow
 from pathlib import Path
 import time
@@ -12,8 +11,9 @@ from library.preprocessing.replacements import Replacer
 from library.data.folder_management import FolderManagement
 from library.mlflow_helper.reporter import Reporter
 from library.plotting.plots import Plotting
-from sklearn.metrics.pairwise import nan_euclidean_distances
+from sklearn.metrics.pairwise import nan_euclidean_distances, euclidean_distances
 import numpy as np
+from typing import Dict
 
 base_path = "knn_imputation_comparison"
 
@@ -70,9 +70,11 @@ if __name__ == '__main__':
 
         with mlflow.start_run(experiment_id=associated_experiment_id, nested=True,
                               run_name=f"{run_name} Percentage {args.percentage}") as run:
+            plotter: Plotting = Plotting(base_path=base_path, args=args)
 
             # The distances for each run. Spatial and No Spatial
-            run_distances: dict = {}
+            run_distances_per_cell: dict = {}
+            run_distances_per_neighbor: dict = {}
 
             run_options: list = ["No Spatial", "Spatial"]
 
@@ -102,37 +104,70 @@ if __name__ == '__main__':
                                                                                                    features=features,
                                                                                                    percentage=args.percentage)
 
-                    distances = pd.DataFrame(
-                        data=nan_euclidean_distances(replaced_test_data_cells,
-                                                     replaced_test_data_cells,
-                                                     missing_values=0))  # distance between rows of X
+                    distances = pd.DataFrame(data=nan_euclidean_distances(replaced_test_data_cells,
+                                                                          replaced_test_data_cells,
+                                                                          missing_values=0))  # distance between rows of X
 
-                    lowest_distances = pd.DataFrame()
-                    lowest_distances['first_neighbor'], lowest_distances['second_neighbor'] = np.sort(distances,
-                                                                                                      axis=1)[:, 1:3].T
+                    # Get the indices of the nearest neighbors
+                    N = 3
+                    nearest_neighbors_indices = pd.DataFrame(
+                        distances.index[np.argsort(-distances.values, axis=0)[-1:-1 - N:-1]], columns=distances.columns)
 
-                    # scaler = MinMaxScaler()
-                    # lowest_distances = pd.DataFrame(data=scaler.fit_transform(lowest_distances),
-                    #                                columns=['first_neighbor', 'second_neighbor'])
+                    spatial_information_per_cell = pd.DataFrame()
+                    distances_per_neighbor = pd.DataFrame()
 
-                    run_distances[run_option] = lowest_distances
+                    # Load dataframe again to include x and y data
+                    if run_option == "No Spatial":
+                        test_cells, _ = DataLoader.load_single_cell_data(file_name=args.file,
+                                                                         keep_spatial=True)
 
-            for key in run_distances.keys():
+                    for cellId, nearestNeighbors in nearest_neighbors_indices.iteritems():
+                        cell = test_cells.iloc[[cellId]][["X_centroid", "Y_centroid"]].reset_index(drop=True)
+                        first_neighbor = test_cells.iloc[[nearestNeighbors.iloc[1]]][
+                            ["X_centroid", "Y_centroid"]].reset_index(drop=True)
+                        second_neighbor = test_cells.iloc[[nearestNeighbors.iloc[2]]][
+                            ["X_centroid", "Y_centroid"]].reset_index(drop=True)
+
+                        frames = [cell, first_neighbor, second_neighbor]
+                        new_df = pd.concat(frames)
+
+                        euclidian_distances = euclidean_distances(new_df)
+
+                        spatial_information_per_cell = spatial_information_per_cell.append({
+                            "Cell": cellId,
+                            "First Neighbor": euclidian_distances[0][1],
+                            "Second Neighbor": euclidian_distances[0][2],
+                        }, ignore_index=True)
+
+                        distances_per_neighbor = distances_per_neighbor.append({
+                            "Neighbor": "First",
+                            "Distance": euclidian_distances[0][1]
+                        }, ignore_index=True)
+
+                        distances_per_neighbor = distances_per_neighbor.append({
+                            "Neighbor": "Second",
+                            "Distance": euclidian_distances[0][2]
+                        }, ignore_index=True)
+
+                    plotter.scatter_plot(data=spatial_information_per_cell, x="First Neighbor", y="Second Neighbor",
+                                         title="Spatial Distances", file_name="Special Distances")
+
+                    run_distances_per_cell[run_option] = spatial_information_per_cell
+                    run_distances_per_neighbor[run_option] = distances_per_neighbor
+
+            for key in run_distances_per_cell.keys():
                 prefix = "no_spatial" if key == "No Spatial" else "spatial"
-                Reporter.upload_csv(data=run_distances[key], file_name=f"{prefix}_neighbors", save_path=base_path)
+                Reporter.upload_csv(data=run_distances_per_cell[key], file_name=f"{prefix}_distance_neighbors_per_cell",
+                                    save_path=base_path)
 
-            vmax: float = 0
-            vmin: float = 99999
-            for key in run_distances.keys():
-                if run_distances[key].values.max().max() > vmax:
-                    vmax = run_distances[key].values.max().max()
+            for key in run_distances_per_neighbor.keys():
+                prefix = "no_spatial" if key == "No Spatial" else "spatial"
+                Reporter.upload_csv(data=run_distances_per_neighbor[key], file_name=f"{prefix}_distance_neighbors",
+                                    save_path=base_path)
 
-                if run_distances[key].values.min().min() < vmin:
-                    vmin = run_distances[key].values.min().min()
+            plotter.box_plot(data=run_distances_per_neighbor, x="Neighbor", y="Distance",
+                             title="Neighbor Spatial Distances", file_name="Neighbor Spatial Distances")
 
-            # Use distances and plot heatmap
-            plotter: Plotting = Plotting(base_path=base_path, args=args)
-            plotter.heat_map(data=run_distances, file_name="Run Distances", v_min=vmin, v_max=vmax)
 
     except BaseException as ex:
         raise

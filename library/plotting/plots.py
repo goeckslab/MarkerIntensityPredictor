@@ -5,7 +5,7 @@ import mlflow
 import pandas as pd
 import seaborn as sns
 from itertools import combinations
-from typing import Tuple
+from typing import Tuple, Union, Dict
 from tensorflow.keras.utils import plot_model
 import numpy as np
 from library.evalation.evaluation import Evaluation
@@ -937,9 +937,13 @@ class Plotting:
 
         plt.close()
 
-    def scatter_plot(self, data: pd.DataFrame, x: str, y: str, hue: str, title: str, file_name: str,
-                     mlflow_folder: str = None):
-        ax = sns.scatterplot(data=data, x=x, y=y, hue=hue)
+    def scatter_plot(self, data: pd.DataFrame, x: str, y: str, title: str, file_name: str,
+                     mlflow_folder: str = None, hue: str = None):
+
+        if hue is not None:
+            ax = sns.scatterplot(data=data, x=x, y=y, hue=hue)
+        else:
+            ax = sns.scatterplot(data=data, x=x, y=y)
         ax.set_title(title)
         fig = ax.get_figure()
         fig.tight_layout()
@@ -952,3 +956,81 @@ class Plotting:
             mlflow.log_artifact(str(save_path), mlflow_folder)
 
         plt.close()
+
+    def box_plot(self, data: Union[pd.DataFrame, Dict], x: str, y: str, file_name: str, title: str,
+                 mlflow_folder: str = None):
+
+        if isinstance(data, pd.DataFrame):
+            ax = sns.boxplot(x=x, y=y, data=data)
+
+            ax.set_title(title)
+            fig = ax.get_figure()
+
+        else:
+            n_rows: int = self.__calculate_n_rows(data)
+            n_cols: int = 2
+
+            col: int = 0
+            row: int = 0
+
+            fig, axs = self.__get_fig_and_axs(n_cols=n_cols, n_rows=n_rows)
+
+            if n_rows == 1:
+                for title, value in data.items():
+                    if len(data.items()) == 1:
+                        sns.boxplot(x=x, y=y, data=value, ax=axs)
+                        axs.set_title(title)
+                        axs.set_xticklabels(axs.get_xticklabels(), rotation=90)
+                    else:
+                        sns.boxplot(x=x, y=y, data=value, ax=axs[col])
+                        axs[col].set_title(title)
+                        axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
+                        col += 1
+
+            else:
+                for title, value in data.items():
+                    sns.boxplot(x=x, y=y, data=value, ax=axs[row, col])
+                    axs[row, col].set_title(title)
+                    axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
+                    col += 1
+
+                    if col == n_cols:
+                        row += 1
+                        col = 0
+
+        fig.tight_layout()
+
+        save_path = Path(self._base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+        if mlflow_folder is None:
+            mlflow.log_artifact(str(save_path))
+        else:
+            mlflow.log_artifact(str(save_path), mlflow_folder)
+
+        plt.close()
+
+    @staticmethod
+    def __calculate_n_rows(dict_length: Dict):
+        num_rows = 1
+        if len(dict_length.items()) > 3:
+            num_rows = float(len(dict_length.items()) / 3)
+            if not num_rows.is_integer():
+                num_rows += 1
+
+            num_rows = int(num_rows)
+
+        return num_rows
+
+    @staticmethod
+    def __get_fig_and_axs(n_cols, n_rows: int):
+        # Adjust figure size
+        if n_rows == 1:
+            fig, axs = plt.subplots(ncols=n_cols, nrows=n_rows, figsize=(12, 7), dpi=300, sharex=False)
+        elif n_rows == 2:
+            fig, axs = plt.subplots(ncols=n_cols, nrows=n_rows, figsize=(12, 9), dpi=300, sharex=False)
+        elif n_rows == 3:
+            fig, axs = plt.subplots(ncols=n_cols, nrows=n_rows, figsize=(12, 11), dpi=300, sharex=False)
+        else:
+            fig, axs = plt.subplots(ncols=n_cols, nrows=n_rows, figsize=(12, 13), dpi=300, sharex=False)
+
+        return fig, axs

@@ -29,7 +29,7 @@ class DataLoader:
             columns_to_keep.extend(["Area", "MajorAxisLength", "MinorAxisLength", "Solidity", "Extent"])
 
         if keep_spatial:
-            columns_to_keep.extend(["X_centroid", "Y_centroid", "Eccentricity"])
+            columns_to_keep.extend(["X_centroid", "Y_centroid"])
 
         new_cells: pd.DataFrame = pd.DataFrame()
 

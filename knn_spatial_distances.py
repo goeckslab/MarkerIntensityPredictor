@@ -104,11 +104,11 @@ if __name__ == '__main__':
             spatial_information = pd.DataFrame()
 
             for cellId, nearestNeighbors in nearest_neighbors_indices.iteritems():
-                cell = test_data.iloc[[cellId]][["X_centroid", "Y_centroid", "Area"]].reset_index(drop=True)
+                cell = test_data.iloc[[cellId]][["X_centroid", "Y_centroid"]].reset_index(drop=True)
                 first_neighbor = test_data.iloc[[nearestNeighbors.iloc[1]]][
-                    ["X_centroid", "Y_centroid", "Area"]].reset_index(drop=True)
+                    ["X_centroid", "Y_centroid"]].reset_index(drop=True)
                 second_neighbor = test_data.iloc[[nearestNeighbors.iloc[2]]][
-                    ["X_centroid", "Y_centroid", "Area"]].reset_index(drop=True)
+                    ["X_centroid", "Y_centroid"]].reset_index(drop=True)
 
                 frames = [cell, first_neighbor, second_neighbor]
                 new_df = pd.concat(frames)
@@ -123,7 +123,7 @@ if __name__ == '__main__':
 
             plotter: Plotting = Plotting(base_path=base_path, args=args)
             plotter.scatter_plot(data=spatial_information, x="First Neighbor", y="Second Neighbor", hue="Cell",
-                                 title="Spatial Distances", file_name="Special Distances")
+                                 title="Spatial Distances", file_name="Spatial Distances")
 
 
 
