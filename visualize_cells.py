@@ -23,7 +23,7 @@ if __name__ == '__main__':
     x = zarr.open(args.file, mode="r")
 
     plt.figure(figsize=(10, 10))
-    if not args.iterate_channel:
+    if not args.iterate_channels:
         for i in range(args.cellcount):
             ax = plt.subplot(int(args.cellcount / 8), 8, i + 1)
             ax.axis("off")
