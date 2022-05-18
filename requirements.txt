@@ -18,3 +18,4 @@ keract
 mlflow
 cellcutter
 scikit-image
+scipy
