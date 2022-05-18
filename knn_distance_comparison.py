@@ -75,9 +75,11 @@ if __name__ == '__main__':
                               run_name=f"{run_name} Percentage {args.percentage}") as run:
             plotter: Plotting = Plotting(base_path=base_path, args=args)
 
-            # The distances for each run. Spatial and No Spatial
+            # The euclidean distances for each run. Spatial and No Spatial
             euclidean_distances_all_cells: Dict = {}
             micron_distances_all_cells: Dict = {}
+
+            # The euclidean distances for each cell, just in a different setup
             run_distances_per_neighbor: Dict = {}
 
             run_options: list = ["No Spatial", "Spatial"]
@@ -172,17 +174,17 @@ if __name__ == '__main__':
             outlier_count: pd.DataFrame = pd.DataFrame()
             for key, distances in run_distances_per_neighbor.items():
                 outlier_count = outlier_count.append({
-                    "Combination": f"{key}_first",
-                    "Count": len(
-                        [y for stat in boxplot_stats(distances[["Neighbor"] == 'First']['Distance']) for y in
-                         stat['fliers']])
+                    "Combination": f"{key} First",
+                    "Count": int(len(
+                        [y for stat in boxplot_stats(distances.loc[distances["Neighbor"] == 'First']['Distance']) for y
+                         in stat['fliers']]))
                 }, ignore_index=True)
 
                 outlier_count = outlier_count.append({
-                    "Combination": f"{key}_second",
-                    "Count": len(
-                        [y for stat in boxplot_stats(distances[["Neighbor"] == 'Second']['Distance']) for y in
-                         stat['fliers']])
+                    "Combination": f"{key} Second",
+                    "Count": int(len(
+                        [y for stat in boxplot_stats(distances.loc[distances["Neighbor"] == 'Second']['Distance']) for y
+                         in stat['fliers']]))
                 }, ignore_index=True)
 
             Reporter.upload_csv(data=outlier_count, save_path=base_path, file_name="outlier_count")
