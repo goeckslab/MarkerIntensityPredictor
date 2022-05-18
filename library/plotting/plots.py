@@ -1009,6 +1009,20 @@ class Plotting:
 
         plt.close()
 
+    def bar_plot(self, data: Union[pd.DataFrame, Dict], x: str, y: str, file_name: str, mlflow_folder: str = None):
+        ax = sns.barplot(x=x, y=y, data=data)
+
+        #fig.tight_layout()
+
+        save_path = Path(self._base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+        if mlflow_folder is None:
+            mlflow.log_artifact(str(save_path))
+        else:
+            mlflow.log_artifact(str(save_path), mlflow_folder)
+
+        plt.close()
+
     @staticmethod
     def __calculate_n_rows(dict_length: Dict):
         num_rows = 1
