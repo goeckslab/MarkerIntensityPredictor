@@ -14,6 +14,7 @@ def get_args():
     parser.add_argument("--file", "-f", action="store", required=True, help="The zarr file to load")
     parser.add_argument("--iterate_channels", "-ic", action="store_true", required=False, help="The zarr file to load",
                         default=False)
+    parser.add_argument("--out", "-o", action="store", required=True, help="The output name of the file")
 
     return parser.parse_args()
 
@@ -29,7 +30,7 @@ if __name__ == '__main__':
             ax.axis("off")
             ax.imshow(x[0, i, ...])
         plt.tight_layout()
-        plt.savefig("cell_overview.png")
+        plt.savefig(f"{args.out}.png")
 
     else:
 
@@ -40,7 +41,7 @@ if __name__ == '__main__':
             ax = plt.subplot(rows, 8, i + 1)
             ax.axis("off")
             for channel in range(args.n_channels):
-                print(f"Cell {i}: Channel {channel}")
+                print(f"Cell {i}: Channel {channel + 1}")
                 ax.imshow(x[channel, i, ...])
         plt.tight_layout()
-        plt.savefig(f"cell_channel_overview.png")
+        plt.savefig(f"{args.out}.png")
