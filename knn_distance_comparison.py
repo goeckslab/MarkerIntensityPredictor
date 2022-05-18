@@ -13,6 +13,7 @@ from library.mlflow_helper.reporter import Reporter
 from library.plotting.plots import Plotting
 from sklearn.metrics.pairwise import nan_euclidean_distances, euclidean_distances
 import numpy as np
+from matplotlib.cbook import boxplot_stats
 from typing import Dict
 
 base_path = "knn_imputation_comparison"
@@ -24,14 +25,15 @@ def get_args():
        """
     parser = argparse.ArgumentParser()
     parser.add_argument("--experiment", "-e", action="store", required=False,
-                        help="The name of the experiment which should be evaluated",
+                        help="The name of the experiment which should be used to store the results",
                         default="Default", type=str)
     parser.add_argument("--tracking_url", "-t", action="store", required=False,
                         help="The tracking url for the mlflow tracking server", type=str,
                         default="http://127.0.0.1:5000")
-    parser.add_argument("--file", action="store", required=True, help="The file to use for imputation")
+    parser.add_argument("--file", action="store", required=True,
+                        help="The file to use for imputation. Will be excluded from training")
     parser.add_argument("--folder", action="store", required=True,
-                        help="The folder to use for training KNN and simple imputer")
+                        help="The folder to use for training the KNN")
     parser.add_argument("--seed", "-s", action="store", help="Include morphological data", type=int, default=1)
     parser.add_argument("--percentage", "-p", action="store", help="The percentage of data being replaced",
                         default=0.2, required=False, type=float)
@@ -55,7 +57,8 @@ if __name__ == '__main__':
 
     experiment_name = args.experiment
     if experiment_name is not None:
-        associated_experiment_id = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name)
+        associated_experiment_id = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name,
+                                                                                create_experiment=True)
 
     # Experiment not found
     if associated_experiment_id is None:
@@ -73,8 +76,9 @@ if __name__ == '__main__':
             plotter: Plotting = Plotting(base_path=base_path, args=args)
 
             # The distances for each run. Spatial and No Spatial
-            run_distances_per_cell: dict = {}
-            run_distances_per_neighbor: dict = {}
+            euclidean_distances_all_cells: Dict = {}
+            micron_distances_all_cells: Dict = {}
+            run_distances_per_neighbor: Dict = {}
 
             run_options: list = ["No Spatial", "Spatial"]
 
@@ -113,7 +117,8 @@ if __name__ == '__main__':
                     nearest_neighbors_indices = pd.DataFrame(
                         distances.index[np.argsort(-distances.values, axis=0)[-1:-1 - N:-1]], columns=distances.columns)
 
-                    spatial_information_per_cell = pd.DataFrame()
+                    euclidean_distances_per_cell: pd.DataFrame = pd.DataFrame()
+                    micron_distances_per_cell: pd.DataFrame = pd.DataFrame()
                     distances_per_neighbor = pd.DataFrame()
 
                     # Load dataframe again to include x and y data
@@ -130,10 +135,9 @@ if __name__ == '__main__':
 
                         frames = [cell, first_neighbor, second_neighbor]
                         new_df = pd.concat(frames)
-
                         euclidian_distances = euclidean_distances(new_df)
 
-                        spatial_information_per_cell = spatial_information_per_cell.append({
+                        euclidean_distances_per_cell = euclidean_distances_per_cell.append({
                             "Cell": cellId,
                             "First Neighbor": euclidian_distances[0][1],
                             "Second Neighbor": euclidian_distances[0][2],
@@ -149,15 +153,15 @@ if __name__ == '__main__':
                             "Distance": euclidian_distances[0][2]
                         }, ignore_index=True)
 
-                    plotter.scatter_plot(data=spatial_information_per_cell, x="First Neighbor", y="Second Neighbor",
+                    plotter.scatter_plot(data=euclidean_distances_per_cell, x="First Neighbor", y="Second Neighbor",
                                          title="Spatial Distances", file_name="Special Distances")
 
-                    run_distances_per_cell[run_option] = spatial_information_per_cell
+                    euclidean_distances_all_cells[run_option] = euclidean_distances_per_cell
                     run_distances_per_neighbor[run_option] = distances_per_neighbor
 
-            for key in run_distances_per_cell.keys():
+            for key in euclidean_distances_all_cells.keys():
                 prefix = "no_spatial" if key == "No Spatial" else "spatial"
-                Reporter.upload_csv(data=run_distances_per_cell[key], file_name=f"{prefix}_distance_neighbors_per_cell",
+                Reporter.upload_csv(data=euclidean_distances_all_cells[key], file_name=f"{prefix}_euclidean_distances",
                                     save_path=base_path)
 
             for key in run_distances_per_neighbor.keys():
@@ -165,8 +169,26 @@ if __name__ == '__main__':
                 Reporter.upload_csv(data=run_distances_per_neighbor[key], file_name=f"{prefix}_distance_neighbors",
                                     save_path=base_path)
 
+            outlier_count: pd.DataFrame = pd.DataFrame()
+            for key, distances in run_distances_per_neighbor.items():
+                outlier_count = outlier_count.append({
+                    "Combination": f"{key}_first",
+                    "Count": len(
+                        [y for stat in boxplot_stats(distances[["Neighbor"] == 'First']['Distance']) for y in
+                         stat['fliers']])
+                }, ignore_index=True)
+
+                outlier_count = outlier_count.append({
+                    "Combination": f"{key}_second",
+                    "Count": len(
+                        [y for stat in boxplot_stats(distances[["Neighbor"] == 'Second']['Distance']) for y in
+                         stat['fliers']])
+                }, ignore_index=True)
+
+            Reporter.upload_csv(data=outlier_count, save_path=base_path, file_name="outlier_count")
             plotter.box_plot(data=run_distances_per_neighbor, x="Neighbor", y="Distance",
                              title="Neighbor Spatial Distances", file_name="Neighbor Spatial Distances")
+
 
 
     except BaseException as ex:
