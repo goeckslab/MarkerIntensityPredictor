@@ -189,7 +189,7 @@ if __name__ == '__main__':
 
             Reporter.upload_csv(data=outlier_count, save_path=base_path, file_name="outlier_count")
             plotter.box_plot(data=run_distances_per_neighbor, x="Neighbor", y="Distance",
-                             title="Neighbor Spatial Distances", file_name="Neighbor Spatial Distances")
+                             title="Neighbor Spatial Distances", file_name="Euclidean Distances")
 
 
 
