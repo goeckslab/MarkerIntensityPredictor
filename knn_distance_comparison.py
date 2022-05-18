@@ -154,7 +154,7 @@ if __name__ == '__main__':
                         }, ignore_index=True)
 
                     plotter.scatter_plot(data=euclidean_distances_per_cell, x="First Neighbor", y="Second Neighbor",
-                                         title="Spatial Distances", file_name="Special Distances")
+                                         title="Spatial Distances", file_name="Spatial Distances")
 
                     euclidean_distances_all_cells[run_option] = euclidean_distances_per_cell
                     run_distances_per_neighbor[run_option] = distances_per_neighbor
