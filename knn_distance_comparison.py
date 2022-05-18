@@ -15,6 +15,7 @@ from sklearn.metrics.pairwise import nan_euclidean_distances, euclidean_distance
 import numpy as np
 from matplotlib.cbook import boxplot_stats
 from typing import Dict
+from scipy import stats
 
 base_path = "knn_imputation_comparison"
 
@@ -100,12 +101,18 @@ if __name__ == '__main__':
                     train_cells, features, files_used = DataLoader.load_files_in_folder(folder=args.folder,
                                                                                         file_to_exclude=args.file,
                                                                                         keep_spatial=use_spatial_information)
-                    train_data = pd.DataFrame(data=Preprocessing.normalize(train_cells.copy()), columns=features)
+                    train_data: pd.DataFrame = Preprocessing.normalize(data=train_cells.copy(), columns=features,
+                                                                       create_dataframe=True)
 
+                    # Load the test dataset
                     test_cells, _ = DataLoader.load_single_cell_data(file_name=args.file,
                                                                      keep_spatial=use_spatial_information)
-                    test_data = pd.DataFrame(data=Preprocessing.normalize(test_cells.copy()), columns=features)
 
+                    # Normalize test data set
+                    test_data: pd.DataFrame = Preprocessing.normalize(data=test_cells.copy(), columns=features,
+                                                                      create_dataframe=True)
+
+                    # Replace values and return indices
                     replaced_test_data_cells, index_replacements = Replacer.replace_values_by_cell(data=test_data,
                                                                                                    features=features,
                                                                                                    percentage=args.percentage)
@@ -125,14 +132,17 @@ if __name__ == '__main__':
 
                     # Load dataframe again to include x and y data
                     if run_option == "No Spatial":
-                        test_cells, _ = DataLoader.load_single_cell_data(file_name=args.file,
-                                                                         keep_spatial=True)
+                        test_cells, features = DataLoader.load_single_cell_data(file_name=args.file,
+                                                                                keep_spatial=True)
+                        # Normalize test data set
+                        test_data: pd.DataFrame = Preprocessing.normalize(data=test_cells.copy(), columns=features,
+                                                                          create_dataframe=True)
 
                     for cellId, nearestNeighbors in nearest_neighbors_indices.iteritems():
-                        cell = test_cells.iloc[[cellId]][["X_centroid", "Y_centroid"]].reset_index(drop=True)
-                        first_neighbor = test_cells.iloc[[nearestNeighbors.iloc[1]]][
+                        cell = test_data.iloc[[cellId]][["X_centroid", "Y_centroid"]].reset_index(drop=True)
+                        first_neighbor = test_data.iloc[[nearestNeighbors.iloc[1]]][
                             ["X_centroid", "Y_centroid"]].reset_index(drop=True)
-                        second_neighbor = test_cells.iloc[[nearestNeighbors.iloc[2]]][
+                        second_neighbor = test_data.iloc[[nearestNeighbors.iloc[2]]][
                             ["X_centroid", "Y_centroid"]].reset_index(drop=True)
 
                         frames = [cell, first_neighbor, second_neighbor]
@@ -187,7 +197,29 @@ if __name__ == '__main__':
                          in stat['fliers']]))
                 }, ignore_index=True)
 
+            t_test: pd.DataFrame = pd.DataFrame()
+
+            first_neighbor_t_test = stats.ttest_ind(euclidean_distances_all_cells[run_options[0]]["First Neighbor"],
+                                                    euclidean_distances_all_cells[run_options[1]]["First Neighbor"])
+            second_neighbor_t_test = stats.ttest_ind(euclidean_distances_all_cells[run_options[0]]["Second Neighbor"],
+                                                     euclidean_distances_all_cells[run_options[1]]["Second Neighbor"])
+
+            t_test = t_test.append({
+                "Neighbor": "First",
+                "T-Value": first_neighbor_t_test[0],
+                "p-Value": first_neighbor_t_test[1]
+
+            }, ignore_index=True)
+
+            t_test = t_test.append({
+                "Neighbor": "Second",
+                "T-Value": second_neighbor_t_test[0],
+                "p-Value": second_neighbor_t_test[1]
+
+            }, ignore_index=True)
+
             Reporter.upload_csv(data=outlier_count, save_path=base_path, file_name="outlier_count")
+            Reporter.upload_csv(data=t_test, save_path=base_path, file_name="t_test_data")
             plotter.box_plot(data=run_distances_per_neighbor, x="Neighbor", y="Distance",
                              title="Neighbor Spatial Distances", file_name="Euclidean Distances")
 
