@@ -219,9 +219,9 @@ class ExperimentComparer:
             absolute_performance_scores: dict = {args.experiment: Evaluation.create_absolute_score_performance(
                 r2_scores=r2_mean_scores, features=features)}
 
-            plotter.r2_scores_absolute_performance(absolute_score_performance=absolute_performance_scores,
-                                                   file_name=f"{args.experiment} Absolute Performance Comparison",
-                                                   mlflow_directory="Plots")
+            plotter.r2_scores_combined_bar_plot(r2_scores=absolute_performance_scores,
+                                                file_name=f"{args.experiment} Absolute Performance Comparison",
+                                                mlflow_directory="Plots")
 
             Reporter.upload_csv(data=pd.DataFrame(data=features, columns=["Features"]), save_path=self.base_path,
                                 file_name="Features")
