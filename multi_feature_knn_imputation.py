@@ -68,8 +68,14 @@ if __name__ == '__main__':
     FolderManagement.create_directory(base_path)
 
     try:
+
+        run_name: str = f"{run_name} Percentage {args.percentage}"
+
+        if args.spatial:
+            run_name = f"{run_name} Percentage {args.percentage} Spatial"
+
         with mlflow.start_run(experiment_id=associated_experiment_id, nested=True,
-                              run_name=f"{run_name} Percentage {args.percentage}") as run:
+                              run_name=run_name) as run:
             mlflow.log_param("Percentage of replaced values", args.percentage)
             mlflow.log_param("Files", args.file)
             mlflow.log_param("Seed", args.seed)
