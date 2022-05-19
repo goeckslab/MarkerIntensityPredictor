@@ -1009,10 +1009,55 @@ class Plotting:
 
         plt.close()
 
-    def bar_plot(self, data: Union[pd.DataFrame, Dict], x: str, y: str, file_name: str, mlflow_folder: str = None):
-        ax = sns.barplot(x=x, y=y, data=data)
+    def bar_plot(self, data: Union[pd.DataFrame, Dict], x: str, y: str, title: str, file_name: str,
+                 mlflow_folder: str = None):
 
-        #fig.tight_layout()
+        if isinstance(data, pd.DataFrame):
+            ax = sns.barplot(x=x, y=y, data=data)
+            ax.set_title(title)
+            fig = ax.get_figure()
+        else:
+            raise NotImplementedError("Support of dictionaries for bar_plot is not yet implemented!")
+
+        fig.tight_layout()
+
+        save_path = Path(self._base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+        if mlflow_folder is None:
+            mlflow.log_artifact(str(save_path))
+        else:
+            mlflow.log_artifact(str(save_path), mlflow_folder)
+
+        plt.close()
+
+    def dist_plot(self, data: Union[pd.DataFrame, Dict], x: str, title: str, file_name: str, mlflow_folder: str = None):
+
+        if isinstance(data, pd.DataFrame):
+            ax = sns.displot(data=data, x=x)
+            ax.set_title(title)
+            fig = ax.get_figure()
+        else:
+            raise NotImplementedError("Support of dictionaries for dist_plot is not yet implemented!")
+
+        fig.tight_layout()
+
+        save_path = Path(self._base_path, f"{file_name}.png")
+        plt.savefig(save_path)
+        if mlflow_folder is None:
+            mlflow.log_artifact(str(save_path))
+        else:
+            mlflow.log_artifact(str(save_path), mlflow_folder)
+
+        plt.close()
+
+    def joint_plot(self, data: Union[pd.DataFrame, Dict], x: str, y: str, file_name: str,
+                   mlflow_folder: str = None, kind: str = "hist"):
+
+        if isinstance(data, pd.DataFrame):
+            ax = sns.jointplot(data=data, x=x, y=y, kind=kind)
+
+        else:
+            raise NotImplementedError("Support of dictionaries for joint_plot is not yet implemented!")
 
         save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)

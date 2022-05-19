@@ -167,6 +167,10 @@ if __name__ == '__main__':
 
                     plotter.scatter_plot(data=euclidean_distances_per_cell, x="First Neighbor", y="Second Neighbor",
                                          title="Spatial Distances", file_name="Spatial Distances")
+                    plotter.joint_plot(data=euclidean_distances_per_cell, x="First Neighbor", y="Second Neighbor",
+                                       file_name="Distances of cells")
+                    plotter.joint_plot(data=euclidean_distances_per_cell, x="First Neighbor", y="Second Neighbor",
+                                       file_name="KDE Distances of cells", kind="kde")
 
                     euclidean_distances_all_cells[run_option] = euclidean_distances_per_cell
                     run_distances_per_neighbor[run_option] = distances_per_neighbor
@@ -222,6 +226,18 @@ if __name__ == '__main__':
             Reporter.upload_csv(data=t_test, save_path=base_path, file_name="t_test_data")
             plotter.box_plot(data=run_distances_per_neighbor, x="Neighbor", y="Distance",
                              title="Neighbor Spatial Distances", file_name="Euclidean Distances")
+            plotter.dist_plot(data=euclidean_distances_per_cell, x="First Neighbor",
+                              title="First Neighbor Distance distribution",
+                              file_name="First Neighbor Distance distribution")
+
+            plotter.dist_plot(data=euclidean_distances_per_cell, x="Second Neighbor",
+                              title="Second Neighbor Distance distribution",
+                              file_name="Second Neighbor Distance distribution")
+
+            plotter.joint_plot(data=euclidean_distances_per_cell, x="First Neighbor", y="Second Neighbor",
+                               file_name="Distances of cells")
+            plotter.joint_plot(data=euclidean_distances_per_cell, x="First Neighbor", y="Second Neighbor",
+                               file_name="KDE Distances of cells", kind="kde")
 
 
 
