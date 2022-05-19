@@ -1,3 +1,4 @@
+# Application to create plots using the summary run in the model folder
 import mlflow
 import logging
 from pathlib import Path
