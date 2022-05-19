@@ -1034,11 +1034,9 @@ class Plotting:
 
         if isinstance(data, pd.DataFrame):
             ax = sns.displot(data=data, x=x)
-            fig = ax.get_figure()
+
         else:
             raise NotImplementedError("Support of dictionaries for dist_plot is not yet implemented!")
-
-        fig.tight_layout()
 
         save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
