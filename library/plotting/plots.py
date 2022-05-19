@@ -1030,11 +1030,10 @@ class Plotting:
 
         plt.close()
 
-    def dist_plot(self, data: Union[pd.DataFrame, Dict], x: str, title: str, file_name: str, mlflow_folder: str = None):
+    def dist_plot(self, data: Union[pd.DataFrame, Dict], x: str, file_name: str, mlflow_folder: str = None):
 
         if isinstance(data, pd.DataFrame):
             ax = sns.displot(data=data, x=x)
-            ax.set_title(title)
             fig = ax.get_figure()
         else:
             raise NotImplementedError("Support of dictionaries for dist_plot is not yet implemented!")

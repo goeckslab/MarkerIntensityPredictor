@@ -227,11 +227,9 @@ if __name__ == '__main__':
             plotter.box_plot(data=run_distances_per_neighbor, x="Neighbor", y="Distance",
                              title="Neighbor Spatial Distances", file_name="Euclidean Distances")
             plotter.dist_plot(data=euclidean_distances_per_cell, x="First Neighbor",
-                              title="First Neighbor Distance distribution",
                               file_name="First Neighbor Distance distribution")
 
             plotter.dist_plot(data=euclidean_distances_per_cell, x="Second Neighbor",
-                              title="Second Neighbor Distance distribution",
                               file_name="Second Neighbor Distance distribution")
 
             plotter.joint_plot(data=euclidean_distances_per_cell, x="First Neighbor", y="Second Neighbor",
