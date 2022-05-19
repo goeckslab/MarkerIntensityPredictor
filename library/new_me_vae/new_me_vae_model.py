@@ -3,8 +3,8 @@ import pandas as pd
 from tensorflow.keras.models import Model
 import tensorflow as tf
 from keras.losses import MeanSquaredError
-from keras.metrics import mean_squared_error, Mean
-from keras.layers import Input, Dense, Lambda, Multiply, Concatenate
+from keras.metrics import Mean
+from keras.layers import Input, Dense, Multiply
 from typing import Tuple
 from keras import backend as K
 from keras.callbacks import CSVLogger, EarlyStopping, ModelCheckpoint
@@ -21,7 +21,7 @@ disable_eager_execution()
 
 class NewMeVAE:
     def __init__(self, embedding_dimensions: int, marker_input_dimensions: int, morph_input_dimensions: int,
-                 learning_rate: float, results_path: Path, **kwargs):
+                 learning_rate: float, results_path: Path):
         self._results_path: Path = results_path
         self._embedding_dimensions: int = embedding_dimensions
         self._marker_encoder: Model = None
