@@ -19,3 +19,6 @@ mlflow
 cellcutter
 scikit-image
 scipy
+Cython
+scimap
+anndata

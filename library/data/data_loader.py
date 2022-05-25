@@ -8,7 +8,7 @@ from typing import Tuple, Optional
 class DataLoader:
 
     @staticmethod
-    def load_single_cell_data(file_name: str, keep_morph: bool = True, keep_spatial: bool = False):
+    def load_single_cell_data(file_name: str, keep_morph: bool = True, keep_spatial: bool = False, return_df: bool = False):
         """
         Loads the marker data, given the provided information
         @param file_name: The file name to load from the os
@@ -54,8 +54,11 @@ class DataLoader:
             column = re.sub("_nucleiMasks", "", column)
             assert f"{column}" not in features, f"{column} should not be in features"
 
-        # return cells, markers
-        return new_cells.iloc[:, :], features
+        if return_df:
+            return pd.DataFrame(data=new_cells, columns=features)
+        else:
+            # return cells, markers
+            return new_cells.iloc[:, :], features
 
     @staticmethod
     def load_r2_scores_for_model(load_path: Path, file_name: str) -> Tuple[pd.DataFrame, pd.DataFrame]:

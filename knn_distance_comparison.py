@@ -2,20 +2,17 @@
 import mlflow
 from pathlib import Path
 import time
-from library.mlflow_helper.experiment_handler import ExperimentHandler
 import argparse
-from library.data.data_loader import DataLoader
 import pandas as pd
-from library.preprocessing.preprocessing import Preprocessing
 from library.preprocessing.replacements import Replacer
-from library.data.folder_management import FolderManagement
-from library.mlflow_helper.reporter import Reporter
 from library.plotting.plots import Plotting
 from sklearn.metrics.pairwise import nan_euclidean_distances, euclidean_distances
 import numpy as np
 from matplotlib.cbook import boxplot_stats
-from typing import Dict
+from typing import Dict, List
 from scipy import stats
+from library import DataLoader, FolderManagement, PhenotypeMapper, TTest, Preprocessing, Reporter, ExperimentHandler
+import os
 
 base_path = "knn_imputation_comparison"
 
@@ -39,8 +36,40 @@ def get_args():
     parser.add_argument("--percentage", "-p", action="store", help="The percentage of data being replaced",
                         default=0.2, required=False, type=float)
     parser.add_argument("--morph", action="store_true", help="Include morphological data", default=True)
+    parser.add_argument("--phenotypes", "-ph", action="store", required=False, help="The phenotype association")
 
     return parser.parse_args()
+
+
+def process_phenotyping(args):
+    phenotypes: pd.DataFrame = pd.read_csv(args.phenotypes)
+    cells: pd.DataFrame = DataLoader.load_single_cell_data(file_name=args.file, keep_spatial=True, return_df=True)
+
+    phenotype_spatial_data = pd.DataFrame(columns=["X", "Y", "Phenotype"])
+    phenotype_spatial_data["X"] = cells["X_centroid"]
+    phenotype_spatial_data["Y"] = cells["Y_centroid"]
+    phenotype_spatial_data["Phenotype"] = phenotypes["phenotype"]
+
+    keys = phenotypes["phenotype"].value_counts().keys().tolist()
+    counts = phenotypes["phenotype"].value_counts().tolist()
+
+    unique_phenotypes = pd.DataFrame(columns=keys)
+    unique_phenotypes.loc[len(unique_phenotypes)] = counts
+    Reporter.upload_csv(data=unique_phenotypes, save_path=base_path,
+                        file_name="unique_phenotype_count")
+
+    # Map the phenotypes to the indexes
+    phenotype_mapping: pd.DataFrame = PhenotypeMapper.map_nn_to_phenotype(
+        nearest_neighbors=nearest_neighbors_indices, phenotypes=phenotypes)
+
+    phenotype_mapping = phenotype_mapping.T
+    phenotype_mapping.rename(columns={1: "First Neighbor", 2: "Second Neighbor"}, inplace=True)
+
+    Reporter.upload_csv(data=phenotype_mapping, save_path=base_path,
+                        file_name="mapped_phenotypes")
+
+    plotter.scatter_plot(data=phenotype_spatial_data, x="X", y="Y", hue="Phenotype", file_name="Phenotype Localization",
+                         title="Phenotype Localization", marker='')
 
 
 if __name__ == '__main__':
@@ -126,9 +155,13 @@ if __name__ == '__main__':
                     nearest_neighbors_indices = pd.DataFrame(
                         distances.index[np.argsort(-distances.values, axis=0)[-1:-1 - N:-1]], columns=distances.columns)
 
-                    euclidean_distances_per_cell: pd.DataFrame = pd.DataFrame()
-                    micron_distances_per_cell: pd.DataFrame = pd.DataFrame()
-                    distances_per_neighbor = pd.DataFrame()
+                    if args.phenotypes is not None:
+                        process_phenotyping(args)
+
+                    # Save data
+                    euclidean_distances_per_cell_data: List = []
+                    micron_distances_per_cell_data: List = []
+                    distances_per_neighbor_data: List = []
 
                     # Load dataframe again to include x and y data
                     if run_option == "No Spatial":
@@ -149,21 +182,27 @@ if __name__ == '__main__':
                         new_df = pd.concat(frames)
                         euclidian_distances = euclidean_distances(new_df)
 
-                        euclidean_distances_per_cell = euclidean_distances_per_cell.append({
+                        euclidean_distances_per_cell_data.append({
                             "Cell": cellId,
                             "First Neighbor": euclidian_distances[0][1],
                             "Second Neighbor": euclidian_distances[0][2],
-                        }, ignore_index=True)
+                        })
 
-                        distances_per_neighbor = distances_per_neighbor.append({
+                        distances_per_neighbor_data.append({
                             "Neighbor": "First",
                             "Distance": euclidian_distances[0][1]
-                        }, ignore_index=True)
+                        })
 
-                        distances_per_neighbor = distances_per_neighbor.append({
+                        distances_per_neighbor_data.append({
                             "Neighbor": "Second",
                             "Distance": euclidian_distances[0][2]
-                        }, ignore_index=True)
+                        })
+
+                    # Create dfs
+                    euclidean_distances_per_cell: pd.DataFrame = pd.DataFrame.from_records(
+                        euclidean_distances_per_cell_data)
+                    micron_distances_per_cell: pd.DataFrame = pd.DataFrame()
+                    distances_per_neighbor = pd.DataFrame.from_records(distances_per_neighbor_data)
 
                     plotter.scatter_plot(data=euclidean_distances_per_cell, x="First Neighbor", y="Second Neighbor",
                                          title="Spatial Distances", file_name="Spatial Distances")
@@ -185,43 +224,46 @@ if __name__ == '__main__':
                 Reporter.upload_csv(data=run_distances_per_neighbor[key], file_name=f"{prefix}_distance_neighbors",
                                     save_path=base_path)
 
-            outlier_count: pd.DataFrame = pd.DataFrame()
+            outlier_count_data: List = []
             for key, distances in run_distances_per_neighbor.items():
-                outlier_count = outlier_count.append({
-                    "Combination": f"{key} First",
-                    "Count": int(len(
-                        [y for stat in boxplot_stats(distances.loc[distances["Neighbor"] == 'First']['Distance']) for y
-                         in stat['fliers']]))
-                }, ignore_index=True)
+                outlier_count_data.append({"Combination": f"{key} First", "Count": int(
+                    len([y for stat in boxplot_stats(distances.loc[distances["Neighbor"] == 'First']['Distance']) for y
+                         in stat['fliers']]))})
 
-                outlier_count = outlier_count.append({
+                outlier_count_data.append({
                     "Combination": f"{key} Second",
                     "Count": int(len(
                         [y for stat in boxplot_stats(distances.loc[distances["Neighbor"] == 'Second']['Distance']) for y
                          in stat['fliers']]))
-                }, ignore_index=True)
+                })
 
-            t_test: pd.DataFrame = pd.DataFrame()
+            outlier_count: pd.DataFrame = pd.DataFrame.from_records(outlier_count_data)
 
-            first_neighbor_t_test = stats.ttest_ind(euclidean_distances_all_cells[run_options[0]]["First Neighbor"],
-                                                    euclidean_distances_all_cells[run_options[1]]["First Neighbor"])
-            second_neighbor_t_test = stats.ttest_ind(euclidean_distances_all_cells[run_options[0]]["Second Neighbor"],
-                                                     euclidean_distances_all_cells[run_options[1]]["Second Neighbor"])
+            # first_neighbor_t_test = stats.ttest_ind(euclidean_distances_all_cells[run_options[0]]["First Neighbor"],
+            #                                        euclidean_distances_all_cells[run_options[1]]["First Neighbor"])
+            # second_neighbor_t_test = stats.ttest_ind(euclidean_distances_all_cells[run_options[0]]["Second Neighbor"],
+            #                        euclidean_distances_all_cells[run_options[1]]["Second Neighbor"])
 
-            t_test = t_test.append({
-                "Neighbor": "First",
-                "T-Value": first_neighbor_t_test[0],
-                "p-Value": first_neighbor_t_test[1]
+            # t_test_data: List = [{
+            #    "Neighbor": "First",
+            #    "T-Value": first_neighbor_t_test[0],
+            #    "p-Value": first_neighbor_t_test[1]
+            #
+            #           }, {
+            #              "Neighbor": "Second",
+            #             "T-Value": second_neighbor_t_test[0],
+            #            "p-Value": second_neighbor_t_test[1]
+            #
+            #           }]
 
-            }, ignore_index=True)
+            t_test_data: List = [TTest.calculateTTest(euclidean_distances_all_cells[run_options[0]]["First Neighbor"],
+                                                      euclidean_distances_all_cells[run_options[1]]["First Neighbor"],
+                                                      column="Neighbor", column_value="First Neighbor"),
+                                 TTest.calculateTTest(euclidean_distances_all_cells[run_options[0]]["Second Neighbor"],
+                                                      euclidean_distances_all_cells[run_options[1]]["Second Neighbor"],
+                                                      column="Neighbor", column_value="Second Neighbor")]
 
-            t_test = t_test.append({
-                "Neighbor": "Second",
-                "T-Value": second_neighbor_t_test[0],
-                "p-Value": second_neighbor_t_test[1]
-
-            }, ignore_index=True)
-
+            t_test: pd.DataFrame = pd.concat(t_test_data)
             Reporter.upload_csv(data=outlier_count, save_path=base_path, file_name="outlier_count")
             Reporter.upload_csv(data=t_test, save_path=base_path, file_name="t_test_data")
             plotter.box_plot(data=run_distances_per_neighbor, x="Neighbor", y="Distance",

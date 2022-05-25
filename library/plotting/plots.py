@@ -938,12 +938,18 @@ class Plotting:
         plt.close()
 
     def scatter_plot(self, data: pd.DataFrame, x: str, y: str, title: str, file_name: str,
-                     mlflow_folder: str = None, hue: str = None):
+                     mlflow_folder: str = None, hue: str = None, marker: str = None):
 
         if hue is not None:
             ax = sns.scatterplot(data=data, x=x, y=y, hue=hue)
+        elif hue is not None and marker is not None:
+            ax = sns.scatterplot(data=data, x=x, y=y, hue=hue, marker=marker)
+
+        elif hue is None and marker is not None:
+            ax = sns.scatterplot(data=data, x=x, y=y, marker=marker)
         else:
             ax = sns.scatterplot(data=data, x=x, y=y)
+
         ax.set_title(title)
         fig = ax.get_figure()
         fig.tight_layout()

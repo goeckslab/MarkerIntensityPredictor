@@ -1,3 +1,7 @@
+phenotyping
+new_me_vae/checkpoints
+*.c
+*.so
 *.zarr
 # Byte-compiled / optimized / DLL files
 __pycache__/

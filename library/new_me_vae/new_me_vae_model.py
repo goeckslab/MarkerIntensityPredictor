@@ -71,8 +71,10 @@ class NewMeVAE:
         ]
 
     def build_model(self):
-        decoder_output = self._decoder(Multiply()([self._marker_encoder.output[2], self._morph_encoder.output[2]]))
 
+        # decoder_output = self._decoder(Multiply()([self._marker_encoder.output[2], self._morph_encoder.output[2]]))
+        decoder_output = self._decoder(Multiply()(
+            [self._marker_encoder(self.marker_encoder.inputs)[2], self.morph_encoder(self.morph_encoder.inputs)[2]]))
         self._vae = Model(inputs=[self._marker_encoder.input, self._morph_encoder.input],
                           outputs=[decoder_output], name="vae")
         self._vae.summary()
@@ -105,7 +107,7 @@ class NewMeVAE:
         losses = {"decoder": combined_loss}
         loss_weights = {"decoder": 1.0}
 
-        self._vae.compile(loss=losses, loss_weights=loss_weights,
+        self._vae.compile(loss=losses, loss_weights=loss_weights, metrics=["accuracy"],
                           optimizer=tf.keras.optimizers.Adam(learning_rate=self._learning_rate))
 
     def train(self, marker_train_data: pd.DataFrame, marker_val_data: pd.DataFrame, morph_train_data: pd.DataFrame,
@@ -116,7 +118,6 @@ class NewMeVAE:
                                        restore_best_weights=True)
 
         csv_save_path: Path = Path.joinpath(self._results_path, "training.log")
-        # if not csv_save_path.exists():
         csv_logger = CSVLogger(csv_save_path, separator=',')
 
         checkpoint_folder: Path = Path.joinpath(self._results_path, "checkpoints")
@@ -130,10 +131,7 @@ class NewMeVAE:
         callbacks = [early_stopping, csv_logger, checkpoint]
         self._history = self._vae.fit(
             x={"marker_encoder_input": marker_train_data, "morph_encoder_input": morph_train_data},
-            validation_data=[({"marker_encoder_input": marker_val_data, "morph_encoder_input": morph_val_data,
-                               "decoder": val_target_data}),
-                             ({"marker_encoder_input": marker_val_data, "morph_encoder_input": morph_val_data,
-                               "decoder": val_target_data})],
+            y=train_target_data,
             callbacks=callbacks, batch_size=192, epochs=250)
 
     def __build_marker_encoder(self, input_dimensions: int, layer_units: list):
