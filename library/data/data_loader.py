@@ -8,7 +8,8 @@ from typing import Tuple, Optional
 class DataLoader:
 
     @staticmethod
-    def load_single_cell_data(file_name: str, keep_morph: bool = True, keep_spatial: bool = False, return_df: bool = False):
+    def load_single_cell_data(file_name: str, keep_morph: bool = True, keep_spatial: bool = False,
+                              return_df: bool = False):
         """
         Loads the marker data, given the provided information
         @param file_name: The file name to load from the os
@@ -101,17 +102,22 @@ class DataLoader:
         return None
 
     @staticmethod
-    def load_file(load_path: Path, file_name: str) -> Optional[pd.DataFrame]:
+    def load_file(load_path: Path, file_name: str = None) -> Optional[pd.DataFrame]:
         """
         Loads a file with the given name from the given path
         @param load_path: The path to search for the file
         @param file_name: File name with extensions
         @return: None or a loaded dataframe
         """
-        for p in load_path.rglob("*"):
-            if p.name == f"{file_name}":
-                df = pd.read_csv(p.absolute(), header=0)
-                return df
+
+        if file_name is not None:
+            for p in load_path.rglob("*"):
+                if p.name == f"{file_name}":
+                    df = pd.read_csv(p.absolute(), header=0)
+                    return df
+
+        else:
+            return pd.read_csv(load_path, header=0)
 
         return None
 

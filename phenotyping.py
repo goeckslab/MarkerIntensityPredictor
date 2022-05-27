@@ -5,6 +5,7 @@ import anndata as ad
 import os
 import argparse
 from pathlib import Path
+from typing import List
 
 results_folder = Path("phenotyping")
 
@@ -32,22 +33,39 @@ cells: pd.DataFrame = DataLoader.load_single_cell_data(file_name=args.file, retu
 columns = ["Unnamed: 0", "Unnamed: 1"]
 columns.extend(cells.columns)
 
-phenotype_workflow: pd.DataFrame = pd.DataFrame(columns=columns)
+# phenotype_workflow: pd.DataFrame = pd.DataFrame(columns=columns)
 
-phenotype_workflow = phenotype_workflow.append({
-    "Unnamed: 0": "all",
-    "Unnamed: 1": "Neoplastic Epithelial",
-    "CK19": "anypos",
-    "CK14": "anypos",
-    "CK17": "anypos",
-    "CK7": "anypos"
-}, ignore_index=True)
+conditions: List = [
+    {
+        "Unnamed: 0": "all",
+        "Unnamed: 1": "Neoplastic Epithelial",
+        "CK19": "anypos",
+        "CK14": "anypos",
+        "CK17": "anypos",
+        "CK7": "anypos"
+    },
 
-phenotype_workflow = phenotype_workflow.append({
-    "Unnamed: 0": "all",
-    "Unnamed: 1": "Immune",
-    "CD45": "anypos"
-}, ignore_index=True)
+    {
+        "Unnamed: 0": "Neoplastic Epithelial",
+        "Unnamed: 1": "Basal",
+        "CK14": "anypos",
+        "CK17": "anypos",
+    },
+
+    {
+        "Unnamed: 0": "Neoplastic Epithelial",
+        "Unnamed: 1": "Luminal",
+        "CK19": "anypos",
+        "CK7": "anypos",
+    },
+
+    {
+        "Unnamed: 0": "all",
+        "Unnamed: 1": "Immune",
+        "CD45": "anypos"
+    }]
+
+phenotype_workflow = pd.DataFrame(columns=columns).from_records(conditions)
 
 adata = ad.AnnData(cells)
 
@@ -58,12 +76,3 @@ file_name: str = Path(args.file).name
 adata = sm.tl.phenotype_cells(adata, phenotype=phenotype_workflow, label="phenotype")
 
 adata.obs.to_csv(f"{os.path.join(results_folder, file_name)}_phenotypes.csv", index=False)
-print(f"Amount of cells: {len(cells)}")
-print(f"Immune: {len(adata.obs[adata.obs['phenotype'] == 'Immune'])}")
-print(f"Neo: {len(adata.obs[adata.obs['phenotype'] == 'Neoplastic Epithelial'])}")
-
-immune_cells: pd.DataFrame = cells.iloc[adata.obs[adata.obs['phenotype'] == 'Immune'].index]
-print(immune_cells.mean(axis=0))
-
-tumor_cells: pd.DataFrame = cells.iloc[adata.obs[adata.obs['phenotype'] == 'Neoplastic Epithelial'].index]
-print(tumor_cells.mean(axis=0))

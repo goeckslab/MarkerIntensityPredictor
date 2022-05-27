@@ -38,7 +38,9 @@ class ExperimentHandler:
 
         if found_experiment_id is None and create_experiment:
             found_experiment_id = self.create_experiment(name=experiment_name, description=experiment_description)
-
+        elif found_experiment_id is None and not create_experiment:
+            raise ValueError(
+                "Could not find experiment! Please provide a valid experiment name, or set create_experiment to True")
         return found_experiment_id
 
     def create_experiment(self, name: str, description: str = "") -> str:

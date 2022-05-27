@@ -25,10 +25,6 @@ def get_args():
                         help="Assigns the run to a particular experiment. "
                              "If the experiment does not exists it will create a new one.",
                         default="Default", type=str)
-    parser.add_argument("--description", "-d", action="store", required=False,
-                        help="A description for the experiment to give a broad overview. "
-                             "This is only used when a new experiment is being created. Ignored if experiment exists",
-                        type=str)
     parser.add_argument("--folder", action="store", required=True,
                         help="The folder used to load the data")
     parser.add_argument("--exclude", action="store", required=False,
@@ -106,12 +102,6 @@ if __name__ == '__main__':
                                 results_path=base_path)
     me_vae.build_model()
 
-
-    print(me_vae_marker_train_data)
-    input()
-    print(me_vae_morph_train_data)
-    input()
-
     me_vae.train(marker_train_data=me_vae_marker_train_data, marker_val_data=me_vae_marker_validation_data,
                  morph_train_data=me_vae_morph_train_data, morph_val_data=me_vae_morph_validation_data,
                  train_target_data=me_vae_train_target_data, val_target_data=me_vae_val_target_data)
@@ -127,7 +117,6 @@ if __name__ == '__main__':
                                                                                  use_mlflow=False)
 
     print(reconstructed_data)
-    input()
 
     # Evaluate
     me_vae_r2_scores = Evaluation.calculate_r2_scores(ground_truth_data=me_vae_test_data,

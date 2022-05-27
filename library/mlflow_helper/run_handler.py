@@ -1,5 +1,5 @@
 from mlflow.entities import Run, RunInfo
-from typing import Optional
+from typing import Optional, Dict
 from pathlib import Path
 from library.data.folder_management import FolderManagement
 
@@ -101,6 +101,7 @@ class RunHandler:
         Returns a run id for a given name in a given experiment
         @param experiment_id: The experiment id in which the run is located
         @param run_name:  The run name to search for
+        @param parent_run_id:  The run name to search for
         @return: A run or None if not found
         """
         run: Run
@@ -115,11 +116,11 @@ class RunHandler:
 
         # Run not cached
         all_run_infos: [] = reversed(self._client.list_run_infos(experiment_id))
+
         run_info: RunInfo
         for run_info in all_run_infos:
             full_run: Run
             full_run = self._client.get_run(run_info.run_id)
-
             if full_run.data.tags.get('mlflow.runName') == run_name:
                 if parent_run_id is not None and full_run.data.tags.get('mlflow.parentRunId') != parent_run_id:
                     continue
@@ -174,6 +175,48 @@ class RunHandler:
         # Run not found
         return None
 
+    def get_run_and_child_runs(self, experiment_id: str, run_name: str) -> Dict:
+        """
+        Get all runs for a specific experiment id and run name.
+        Key is the parent run, values are the children runs
+        @param experiment_id:
+        @param run_name:
+        @return: Returns a dictionary with the parent run as key and the children runs as values
+        Values returns are run objects
+        """
+
+        runs: Dict = {}
+
+        parent_run_id: str = self.get_run_id_by_name(experiment_id=experiment_id, run_name=run_name)
+        if parent_run_id is None:
+            return runs
+
+        parent_run: Run = self._client.get_run(parent_run_id)
+        runs[parent_run] = []
+
+        # Run not cached
+        all_run_infos: [] = reversed(self._client.list_run_infos(experiment_id))
+        run_info: RunInfo
+        for run_info in all_run_infos:
+            full_run: Run
+            full_run = self._client.get_run(run_info.run_id)
+
+            if full_run.data.tags.get('mlflow.parentRunId') == parent_run_id:
+                runs[parent_run].append(full_run)
+
+        return runs
+
+    def delete_runs_and_child_runs(self, experiment_id: str, run_name: str):
+
+        runs: Dict = self.get_run_and_child_runs(experiment_id=experiment_id, run_name=run_name)
+
+        if len(runs) != 0:
+            for parent_run, children_runs in runs.items():
+                for children_run in children_runs:
+                    self._client.delete_run(children_run.info.run_id)
+
+                self._client.delete_run(parent_run.info.run_id)
+
     def download_artifacts(self, base_save_path: Path, run: Run = None, runs: [] = None,
                            mlflow_folder: str = None) -> dict:
         """
@@ -218,7 +261,7 @@ class RunHandler:
             except BaseException as ex:
                 print(ex)
                 continue
-
+        print("Download complete.")
         return created_directories
 
     def __get_run_by_id(self, experiment_id: str, run_id: str) -> Run:
