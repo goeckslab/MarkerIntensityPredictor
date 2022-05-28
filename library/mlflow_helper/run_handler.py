@@ -228,6 +228,8 @@ class RunHandler:
         @return: Returns a dictionary with the run name as key and the directory as value
         """
 
+        print("Started download of files...")
+
         if run is None and runs is None:
             raise ValueError("Please provide either a run to download or a list of runs")
 

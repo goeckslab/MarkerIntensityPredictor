@@ -1,14 +1,12 @@
-from library import ExperimentHandler, RunHandler, Reporter, FolderManagement, DataLoader, Plotting, \
+from library import ExperimentHandler, RunHandler, Reporter, Plotting, \
     KNNDataAnalysisPlotting
 import pandas as pd
-import numpy as np
 from pathlib import Path
 import argparse
 import mlflow
 from typing import List, Dict
-from sklearn.metrics import confusion_matrix
-import seaborn as sns
-import matplotlib.pyplot as plt
+from compiled_src.data_loader import DataLoader
+from compiled_src.folder_management import FolderManagement
 
 base_path = Path("knn_neighbor_hood_analysis")
 
@@ -123,6 +121,7 @@ if __name__ == "__main__":
 
 
     except:
-        run_handler.delete_runs_and_child_runs(experiment_id=associated_experiment_id, run_name=run_name)
+        raise
     finally:
+        print("Analysis done")
         FolderManagement.delete_directory(path=base_path)
