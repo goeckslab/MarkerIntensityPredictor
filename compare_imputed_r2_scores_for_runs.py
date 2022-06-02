@@ -1,3 +1,4 @@
+# Compares imputed r2 scores for the given runs. Such as spatial vs no spatial
 import argparse
 import pandas as pd
 from library.plotting.plots import Plotting
@@ -45,23 +46,17 @@ if __name__ == '__main__':
     experiment_handler: ExperimentHandler = ExperimentHandler(client=client)
     run_handler: RunHandler = RunHandler(client=client)
 
-    # The id of the associated
-    associated_experiment_id = None
-
     experiment_name = args.experiment
-    if experiment_name is not None:
-        associated_experiment_id = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name)
-
-    # Experiment not found
-    if associated_experiment_id is None:
-        raise ValueError(
-            f"Experiment {experiment_name} not found!")
+    # The id of the associated
+    associated_experiment_id = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name)
 
     mlflow.set_experiment(experiment_id=associated_experiment_id)
 
     FolderManagement.create_directory(base_path)
 
     try:
+
+        run_handler.delete_runs_and_child_runs(experiment_id=associated_experiment_id, run_name=args.run)
 
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=args.run) as run:
 
@@ -75,8 +70,8 @@ if __name__ == '__main__':
                     runs_to_download.append(run_to_download)
 
             # Download all run data
-            directory_for_run: dict = experiment_handler.download_artifacts(base_save_path=base_path,
-                                                                            runs=runs_to_download)
+            directory_for_run: dict = run_handler.download_artifacts(base_save_path=base_path,
+                                                                     runs=runs_to_download)
 
             r2_scores: dict = {}
             features: list = []
