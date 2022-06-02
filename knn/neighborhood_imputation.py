@@ -2,9 +2,10 @@ import sys, os
 from pathlib import Path
 import mlflow
 import numpy as np
-from typing import List
+from typing import List, Dict
 import pandas as pd
 import time
+from tqdm import tqdm
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import argparse
@@ -81,6 +82,8 @@ if __name__ == '__main__':
 
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=run_name) as run:
 
+            knn_imputer_instances: Dict = {}
+
             # The run data
             r2_score_data: List = []
             for run_option in run_options:
@@ -134,8 +137,9 @@ if __name__ == '__main__':
                     #                    save_path=results_folder)
 
                     print("Started imputation...")
-                    for origin_cell_data in nearest_cell_indexes.iteritems():
-                        imputed_data: pd.DataFrame = replaced_test_data_cells.copy()
+                    imputed_cells: List = []
+                    for origin_cell_data in tqdm(nearest_cell_indexes.iteritems()):
+
                         origin_cell = origin_cell_data[0]
                         neighbor_cell_indexes = origin_cell_data[1]
 
@@ -143,20 +147,32 @@ if __name__ == '__main__':
                         neighbor_cell_indexes.insert(0, origin_cell)
 
                         # Select the cell environment for the specific distance
-                        cell_micro_environment: pd.DataFrame = imputed_data.iloc[neighbor_cell_indexes]
+                        cell_micro_environment_with_origin: pd.DataFrame = replaced_test_data_cells.iloc[
+                            neighbor_cell_indexes]
 
-                        # replaced features for the particular cell
-                        replaced_features: list = index_replacements[origin_cell]
-
-                        # Convert 0 to nan for easier calculations
-                        prepared_cell_micro_environment = cell_micro_environment.replace(0, np.nan)
                         # Select only cells which are not origin cell
-                        prepared_cell_micro_environment = prepared_cell_micro_environment[1:]
+                        prepared_cell_micro_environment = cell_micro_environment_with_origin[1:]
 
-                        for replaced_feature in replaced_features:
-                            imputed_data.at[origin_cell, replaced_feature] = prepared_cell_micro_environment[
-                                replaced_feature].mean()
+                        # Get train imputer instance
 
+                        neighbor_count: int = prepared_cell_micro_environment.shape[0]
+                        knn_imputer = knn_imputer_instances.get(f"{distance}_{run_option}_{neighbor_count}")
+
+                        # Train new imputer
+                        if knn_imputer is None:
+                            print(f"Fitting new imputer for neighbor count {neighbor_count}")
+                            knn_imputer = KNNImputation.fit_imputer(train_data=train_data, missing_values=0,
+                                                                    n_neighbors=neighbor_count)
+                            knn_imputer_instances[f"{distance}_{run_option}_{neighbor_count}"] = knn_imputer
+
+                        # Imputed data for the cell
+                        print("Imputing data...")
+                        cell_imputed_data = knn_imputer.transform(X=cell_micro_environment_with_origin)
+                        imputed_cells.append(cell_imputed_data[0, :])
+
+                    imputed_data: pd.DataFrame = pd.concat(imputed_cells)
+                    print(imputed_data)
+                    input()
                     for feature in features:
                         if "X_centroid" in feature or "Y_centroid" in feature:
                             continue
@@ -172,7 +188,8 @@ if __name__ == '__main__':
                             "Score": r2_score(test_data[feature].iloc[cell_indexes_to_compare],
                                               imputed_data[feature].iloc[cell_indexes_to_compare]),
                             "Distance": distance,
-                            "Spatial": "Y" if run_option == "spatial" else "N"
+                            "Spatial": "Y" if run_option == "spatial" else "N",
+                            "Used Neighbors": prepared_cell_micro_environment.shape[0]
                         })
 
             # Create dataframe

@@ -22,3 +22,4 @@ scipy
 Cython
 scimap
 anndata
+tqdm

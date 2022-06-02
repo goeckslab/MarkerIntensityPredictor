@@ -5,13 +5,14 @@ from typing import List
 class PhenotypeMapper:
 
     @staticmethod
-    def map_nn_to_phenotype(nearest_neighbors: pd.DataFrame, phenotypes: pd.DataFrame) -> pd.DataFrame:
+    def map_nn_to_phenotype(nearest_neighbors: pd.DataFrame, phenotypes: pd.DataFrame,
+                            neighbor_count: int) -> pd.DataFrame:
         nearest_neighbors = nearest_neighbors.iloc[1:, :].copy()
         nearest_neighbors_lists = nearest_neighbors.apply(PhenotypeMapper.convert_index_to_phenotype,
                                                           phenotypes=phenotypes, axis=1)
 
-        nearest_neighbors.iloc[0] = nearest_neighbors_lists.iloc[0]
-        nearest_neighbors.iloc[1] = nearest_neighbors_lists.iloc[1]
+        for i in range(neighbor_count):
+            nearest_neighbors.iloc[i] = nearest_neighbors_lists.iloc[i]
 
         return nearest_neighbors
 

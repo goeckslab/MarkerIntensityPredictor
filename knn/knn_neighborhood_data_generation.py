@@ -3,7 +3,7 @@
 import os, sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+from tqdm import tqdm
 import mlflow
 from pathlib import Path
 import time
@@ -14,7 +14,7 @@ import numpy as np
 from matplotlib.cbook import boxplot_stats
 from typing import Dict, List
 from library import DataLoader, FolderManagement, PhenotypeMapper, TTest, Preprocessing, Reporter, ExperimentHandler, \
-    RunHandler, Replacer
+    RunHandler, Replacer, KNNImputation
 
 base_path = "knn_neighbor_data_generation"
 
@@ -38,39 +38,8 @@ def get_args():
     parser.add_argument("--percentage", "-p", action="store", help="The percentage of data being replaced",
                         default=0.2, required=False, type=float)
     parser.add_argument("--morph", action="store_true", help="Include morphological data", default=True)
-    parser.add_argument("--phenotypes", "-ph", action="store", required=False, help="The phenotype association")
 
     return parser.parse_args()
-
-
-def process_phenotyping(args) -> pd.DataFrame:
-    phenotypes: pd.DataFrame = pd.read_csv(args.phenotypes)
-    cells: pd.DataFrame = DataLoader.load_single_cell_data(file_name=args.file, keep_spatial=True, return_df=True)
-
-    phenotype_spatial_data = pd.DataFrame(columns=["X", "Y", "Phenotype"])
-    phenotype_spatial_data["X"] = cells["X_centroid"]
-    phenotype_spatial_data["Y"] = cells["Y_centroid"]
-    phenotype_spatial_data["Phenotype"] = phenotypes["phenotype"]
-
-    keys = phenotypes["phenotype"].value_counts().keys().tolist()
-    counts = phenotypes["phenotype"].value_counts().tolist()
-
-    unique_phenotypes = pd.DataFrame(columns=keys)
-    unique_phenotypes.loc[len(unique_phenotypes)] = counts
-    Reporter.upload_csv(data=unique_phenotypes, save_path=base_path,
-                        file_name="unique_phenotype_count")
-
-    # Map the phenotypes to the indexes
-    phenotype_mapping: pd.DataFrame = PhenotypeMapper.map_nn_to_phenotype(
-        nearest_neighbors=nearest_neighbors_indices, phenotypes=phenotypes)
-
-    phenotype_mapping = phenotype_mapping.T
-    phenotype_mapping.rename(columns={1: "First Neighbor", 2: "Second Neighbor"}, inplace=True)
-
-    Reporter.upload_csv(data=phenotype_mapping, save_path=base_path,
-                        file_name="mapped_phenotypes")
-
-    return phenotype_mapping
 
 
 if __name__ == '__main__':
@@ -112,140 +81,108 @@ if __name__ == '__main__':
 
             mapped_phenotype_data: List = []
 
-            run_options: list = ["No Spatial", "Spatial"]
+            run_options: list = ["no_spatial", "spatial"]
+
+            amount_of_neighbors = np.arange(2, 7)
 
             for run_option in run_options:
                 print(f"Processing {run_option}")
-                use_spatial_information: bool = True if "Spatial" in run_option else False
+                spatial: bool = True if run_option == 'spatial' else False
 
-                with mlflow.start_run(experiment_id=associated_experiment_id, nested=True,
-                                      run_name=f"{run_option}") as ml_run_option:
-                    mlflow.log_param("Percentage of replaced values", args.percentage)
-                    mlflow.log_param("Files", args.file)
-                    mlflow.log_param("Seed", args.seed)
-                    mlflow.set_tag("Percentage", args.percentage)
-                    mlflow.log_param("Keep morph", args.morph)
-                    mlflow.log_param("Keep spatial", True if "Spatial" in run_option else False)
+                train_cells, features, files_used = DataLoader.load_files_in_folder(folder=args.folder,
+                                                                                    file_to_exclude=args.file,
+                                                                                    keep_spatial=spatial)
+                train_data = pd.DataFrame(data=Preprocessing.normalize(train_cells.copy()), columns=features)
 
-                    # Load the test dataset
-                    test_cells, _ = DataLoader.load_single_cell_data(file_name=args.file,
-                                                                     keep_spatial=use_spatial_information)
+                # Load the test dataset
+                test_cells, _ = DataLoader.load_single_cell_data(file_name=args.file,
+                                                                 keep_spatial=spatial)
 
-                    # Normalize test data set
-                    test_data: pd.DataFrame = Preprocessing.normalize(data=test_cells.copy(), columns=features,
-                                                                      create_dataframe=True)
+                # Normalize test data set
+                test_data: pd.DataFrame = Preprocessing.normalize(data=test_cells.copy(), columns=features,
+                                                                  create_dataframe=True)
 
-                    # Replace values and return indices
-                    replaced_test_data_cells, index_replacements = Replacer.replace_values_by_cell(data=test_data,
-                                                                                                   features=features,
-                                                                                                   percentage=args.percentage)
+                # Replace values and return indices
+                replaced_test_data_cells, index_replacements = Replacer.replace_values_by_cell(data=test_data,
+                                                                                               features=features,
+                                                                                               percentage=args.percentage)
 
-                    distances = pd.DataFrame(data=nan_euclidean_distances(replaced_test_data_cells,
-                                                                          replaced_test_data_cells,
-                                                                          missing_values=0))  # distance between rows of X
+                distances = pd.DataFrame(data=nan_euclidean_distances(replaced_test_data_cells,
+                                                                      replaced_test_data_cells,
+                                                                      missing_values=0))  # distance between rows of X
 
+                for neighbor_count in amount_of_neighbors:
+                    print(f"Processing {neighbor_count} neighbors... ")
+                    folder_name: str = f"{'spatial' if spatial else 'no_spatial'}_{neighbor_count}"
                     # Get the indices of the nearest neighbors
-                    N = 3
+
+                    N = neighbor_count + 1
                     nearest_neighbors_indices = pd.DataFrame(
-                        distances.index[np.argsort(-distances.values, axis=0)[-1:-1 - N:-1]], columns=distances.columns)
+                        distances.index[np.argsort(-distances.values, axis=0)[-1:-1 - N:-1]],
+                        columns=distances.columns)
 
                     # Upload nearest neighbor indices
                     Reporter.upload_csv(data=nearest_neighbors_indices, save_path=base_path,
-                                        file_name="nearest_neighbor_indices")
-
-                    if args.phenotypes is not None:
-                        mapped_phenotypes: pd.DataFrame = process_phenotyping(args)
-                        mapped_phenotypes["Mode"] = run_option
-                        mapped_phenotype_data.append(mapped_phenotypes)
+                                        file_name="nearest_neighbor_indices", mlflow_folder=folder_name)
 
                     # Save data
                     euclidean_distances_per_cell_data: List = []
-                    micron_distances_per_cell_data: List = []
-                    distances_per_neighbor_data: List = []
 
                     # Load dataframe again to include x and y data
-                    if "No Spatial" in run_option:
+                    if not spatial:
                         test_cells, features = DataLoader.load_single_cell_data(file_name=args.file,
                                                                                 keep_spatial=True)
                         # Normalize test data set
                         test_data: pd.DataFrame = Preprocessing.normalize(data=test_cells.copy(), columns=features,
                                                                           create_dataframe=True)
 
-                    for cellId, nearestNeighbors in nearest_neighbors_indices.iteritems():
+                    print("Identifying nearest neighbors and distances...")
+                    for cellId, nearestNeighbors in tqdm(nearest_neighbors_indices.iteritems()):
                         origin = test_data.iloc[[cellId]][["X_centroid", "Y_centroid"]].reset_index(drop=True)
-                        first_neighbor = test_data.iloc[[nearestNeighbors.iloc[1]]][
-                            ["X_centroid", "Y_centroid"]].reset_index(drop=True)
-                        second_neighbor = test_data.iloc[[nearestNeighbors.iloc[2]]][
-                            ["X_centroid", "Y_centroid"]].reset_index(drop=True)
+                        frames = [origin]
+                        for i, neighbors in enumerate(nearestNeighbors):
+                            # Skip first cell
+                            if i == 0:
+                                continue
+                            frames.append(test_data.iloc[[nearestNeighbors.iloc[i]]][
+                                              ["X_centroid", "Y_centroid"]].reset_index(drop=True))
 
-                        frames = [origin, first_neighbor, second_neighbor]
+                        # Create cell neighborhood
                         cell_neighbor_hood: pd.DataFrame = pd.concat(frames).reset_index(drop=True)
-
                         euclidian_distances = euclidean_distances(cell_neighbor_hood)
 
-                        euclidean_distances_per_cell_data.append({
-                            "Cell": cellId,
-                            "First Neighbor": euclidian_distances[0][1],
-                            "Second Neighbor": euclidian_distances[0][2],
-                        })
+                        neighbor_data: Dict = {"Cell": cellId}
+                        for i, euclidian_distance in enumerate(euclidian_distances):
+                            for j in range(neighbor_count + 1):
+                                if j == 0:
+                                    continue
+                                neighbor_data[f"{j} Neighbor"] = euclidian_distances[0][j]
 
-                        distances_per_neighbor_data.append({
-                            "Neighbor": "First",
-                            "Distance": euclidian_distances[0][1]
-                        })
-
-                        distances_per_neighbor_data.append({
-                            "Neighbor": "Second",
-                            "Distance": euclidian_distances[0][2]
-                        })
+                        euclidean_distances_per_cell_data.append(neighbor_data)
 
                     # Create dfs
                     euclidean_distances_per_cell: pd.DataFrame = pd.DataFrame.from_records(
                         euclidean_distances_per_cell_data)
-                    micron_distances_per_cell: pd.DataFrame = pd.DataFrame()
-                    distances_per_neighbor = pd.DataFrame.from_records(distances_per_neighbor_data)
 
-                    euclidean_distances_all_cells[run_option] = euclidean_distances_per_cell
-                    run_distances_per_neighbor[run_option] = distances_per_neighbor
+                    Reporter.upload_csv(data=euclidean_distances_per_cell,
+                                        file_name=f"euclidean_distances",
+                                        save_path=base_path, mlflow_folder=folder_name)
 
-            mapped_phenotype: pd.DataFrame = pd.concat(mapped_phenotype_data)
-            Reporter.upload_csv(data=mapped_phenotype, file_name="combined_phenotype_neighbors", save_path=base_path)
+                    print("Imputing data")
+                    imputed_cells: pd.DataFrame = KNNImputation.impute(train_data=train_data,
+                                                                       test_data=replaced_test_data_cells,
+                                                                       missing_values=0,
+                                                                       n_neighbors=neighbor_count)
 
-            for key in euclidean_distances_all_cells.keys():
-                prefix = "no_spatial" if key == "No Spatial" else "spatial"
-                Reporter.upload_csv(data=euclidean_distances_all_cells[key], file_name=f"{prefix}_euclidean_distances",
-                                    save_path=base_path)
+                    print("Evaluating r2 scores...")
+                    r2_scores = KNNImputation.evaluate_performance(features=features,
+                                                                   index_replacements=index_replacements,
+                                                                   test_data=test_data,
+                                                                   imputed_data=imputed_cells)
 
-            for key in run_distances_per_neighbor.keys():
-                prefix = "no_spatial" if key == "No Spatial" else "spatial"
-                Reporter.upload_csv(data=run_distances_per_neighbor[key], file_name=f"{prefix}_distance_neighbors",
-                                    save_path=base_path)
-
-            outlier_count_data: List = []
-            for key, distances in run_distances_per_neighbor.items():
-                outlier_count_data.append({"Combination": f"{key} First", "Count": int(
-                    len([y for stat in boxplot_stats(distances.loc[distances["Neighbor"] == 'First']['Distance']) for y
-                         in stat['fliers']]))})
-
-                outlier_count_data.append({
-                    "Combination": f"{key} Second",
-                    "Count": int(len(
-                        [y for stat in boxplot_stats(distances.loc[distances["Neighbor"] == 'Second']['Distance']) for y
-                         in stat['fliers']]))
-                })
-
-            outlier_count: pd.DataFrame = pd.DataFrame.from_records(outlier_count_data)
-
-            t_test_data: List = [TTest.calculateTTest(euclidean_distances_all_cells[run_options[0]]["First Neighbor"],
-                                                      euclidean_distances_all_cells[run_options[1]]["First Neighbor"],
-                                                      column="Neighbor", column_value="First Neighbor"),
-                                 TTest.calculateTTest(euclidean_distances_all_cells[run_options[0]]["Second Neighbor"],
-                                                      euclidean_distances_all_cells[run_options[1]]["Second Neighbor"],
-                                                      column="Neighbor", column_value="Second Neighbor")]
-
-            t_test: pd.DataFrame = pd.concat(t_test_data)
-            Reporter.upload_csv(data=outlier_count, save_path=base_path, file_name="outlier_count")
-            Reporter.upload_csv(data=t_test, save_path=base_path, file_name="t_test_data")
+                    Reporter.report_r2_scores(r2_scores=r2_scores, save_path=base_path,
+                                              mlflow_folder=folder_name,
+                                              prefix="imputed")
 
 
 
