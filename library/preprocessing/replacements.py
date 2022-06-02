@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from typing import Tuple
 import random
+import copy
 
 
 class Replacer:
@@ -34,8 +35,17 @@ class Replacer:
     def replace_values_by_cell(data: pd.DataFrame, features: list, percentage: float) -> (pd.DataFrame, dict):
         df = data.copy()
         replaced_feature_per_index: dict = {}
+
+        available_features = copy.deepcopy(features)
+        # Remove x and y from features
+
+        if "Y_centroid" in available_features:
+            available_features.remove("Y_centroid")
+        if "X_centroid" in available_features:
+            available_features.remove("X_centroid")
+
         for index, row in df.iterrows():
-            features_to_replace: list = random.sample(features, int(len(features) * percentage))
+            features_to_replace: list = random.sample(available_features, int(len(available_features) * percentage))
             replaced_feature_per_index[index] = features_to_replace
             for feature_to_replace in features_to_replace:
                 df.at[index, feature_to_replace] = 0

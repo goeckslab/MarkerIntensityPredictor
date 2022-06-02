@@ -2,13 +2,18 @@ from mlflow.entities import Run, RunInfo
 from typing import Optional, Dict
 from pathlib import Path
 from library.data.folder_management import FolderManagement
+import mlflow
 
 
 class RunHandler:
     # Cache for already downloaded runs
     __runs: dict = {}
 
-    def __init__(self, client):
+    def __init__(self, client=None, tracking_url: str = None):
+
+        if client is None:
+            client = mlflow.tracking.MlflowClient(tracking_uri=tracking_url)
+
         self._client = client
 
     @property

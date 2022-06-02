@@ -1,17 +1,13 @@
 import mlflow
 from pathlib import Path
 import time
-from library.mlflow_helper.experiment_handler import ExperimentHandler
 import argparse
-from library.data.data_loader import DataLoader
 import pandas as pd
-from library.preprocessing.preprocessing import Preprocessing
-from library.preprocessing.replacements import Replacer
-from library.data.folder_management import FolderManagement
-from library.mlflow_helper.reporter import Reporter
-from library.plotting.plots import Plotting
 from sklearn.metrics import r2_score
-from library.knn.knn_imputation import KNNImputation
+from library import ExperimentHandler, RunHandler, Replacer, Preprocessing, FolderManagement, Reporter, Plotting, \
+    KNNImputation, DataLoader
+
+from typing import List
 
 base_path = "multi_feature_knn_imputation"
 
@@ -24,8 +20,6 @@ def get_args():
     parser.add_argument("--experiment", "-e", action="store", required=False,
                         help="The name of the experiment which should be evaluated",
                         default="Default", type=str)
-    parser.add_argument("--run", "-r", action="store", required=True,
-                        help="The name of the run being run", type=str)
     parser.add_argument("--tracking_url", "-t", action="store", required=False,
                         help="The tracking url for the mlflow tracking server", type=str,
                         default="http://127.0.0.1:5000")
@@ -45,23 +39,14 @@ if __name__ == '__main__':
     args = get_args()
     print("Started knn imputation...")
     base_path = Path(f"{base_path}_{str(int(time.time_ns() / 1000))}")
-    run_name: str = "KNN Imputation"
+    run_name: str = "Multi Feature KNN Imputation"
 
     # Create mlflow tracking client
-    client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
-    experiment_handler: ExperimentHandler = ExperimentHandler(client=client)
-
-    # The id of the associated
-    associated_experiment_id = None
+    experiment_handler: ExperimentHandler = ExperimentHandler(tracking_url=args.tracking_url)
+    run_handler: RunHandler = RunHandler(tracking_url=args.tracking_url)
 
     experiment_name = args.experiment
-    if experiment_name is not None:
-        associated_experiment_id = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name)
-
-    # Experiment not found
-    if associated_experiment_id is None:
-        raise ValueError(
-            f"Experiment {experiment_name} not found!")
+    associated_experiment_id = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name)
 
     mlflow.set_experiment(experiment_id=associated_experiment_id)
 
@@ -73,6 +58,9 @@ if __name__ == '__main__':
 
         if args.spatial:
             run_name = f"{run_name} Percentage {args.percentage} Spatial"
+
+        # Delete previous runs
+        run_handler.delete_runs_and_child_runs(experiment_id=associated_experiment_id, run_name=run_name)
 
         with mlflow.start_run(experiment_id=associated_experiment_id, nested=True,
                               run_name=run_name) as run:
@@ -97,10 +85,12 @@ if __name__ == '__main__':
 
             print("Imputing data...")
             imputed_cells: pd.DataFrame = KNNImputation.impute(train_data=train_data,
-                                                               test_data=replaced_test_data_cells)
+                                                               test_data=replaced_test_data_cells,
+                                                               missing_values=0)
 
             print("Calculating r2 scores...")
-            imputed_r2_scores: pd.DataFrame = pd.DataFrame()
+
+            score_data: List = []
 
             for feature in features:
                 # Store all cell indexes, to be able to select the correct cells later for r2 comparison
@@ -109,11 +99,13 @@ if __name__ == '__main__':
                     if feature in replaced_features:
                         cell_indexes_to_compare.append(key)
 
-                imputed_r2_scores = imputed_r2_scores.append({
+                score_data.append({
                     "Marker": feature,
                     "Score": r2_score(test_data[feature].iloc[cell_indexes_to_compare],
                                       imputed_cells[feature].iloc[cell_indexes_to_compare])
-                }, ignore_index=True)
+                })
+
+            imputed_r2_scores: pd.DataFrame = pd.DataFrame().from_records(score_data)
 
             plotter = Plotting(base_path=base_path, args=args)
             plotter.plot_scores(scores={"Imputed": imputed_r2_scores},
@@ -123,10 +115,6 @@ if __name__ == '__main__':
             Reporter.report_r2_scores(r2_scores=imputed_r2_scores, save_path=base_path, prefix="imputed")
             Reporter.upload_csv(data=pd.DataFrame(data=features, columns=["Features"]), save_path=base_path,
                                 file_name="Features")
-
-
-
-
 
     except BaseException as ex:
         raise

@@ -1,4 +1,9 @@
 # Compares the cell distances used by the KNN imputer between included spatial data or not
+
+import os, sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import mlflow
 from pathlib import Path
 import time
@@ -10,7 +15,6 @@ from matplotlib.cbook import boxplot_stats
 from typing import Dict, List
 from library import DataLoader, FolderManagement, PhenotypeMapper, TTest, Preprocessing, Reporter, ExperimentHandler, \
     RunHandler, Replacer
-import os
 
 base_path = "knn_neighbor_data_generation"
 
@@ -122,12 +126,6 @@ if __name__ == '__main__':
                     mlflow.set_tag("Percentage", args.percentage)
                     mlflow.log_param("Keep morph", args.morph)
                     mlflow.log_param("Keep spatial", True if "Spatial" in run_option else False)
-
-                    train_cells, features, files_used = DataLoader.load_files_in_folder(folder=args.folder,
-                                                                                        file_to_exclude=args.file,
-                                                                                        keep_spatial=use_spatial_information)
-                    train_data: pd.DataFrame = Preprocessing.normalize(data=train_cells.copy(), columns=features,
-                                                                       create_dataframe=True)
 
                     # Load the test dataset
                     test_cells, _ = DataLoader.load_single_cell_data(file_name=args.file,

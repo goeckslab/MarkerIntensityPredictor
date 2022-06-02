@@ -507,7 +507,7 @@ class Plotting:
         @param scores: A dict which contains all r2 scores. Keys are used as sub plot titles. Values are scores
         @param file_name: The file name to use for storing the file
         @param mlflow_directory: The mlflow directory to save the file
-        @param prefix: An optional prefix for the file
+        @param use_mlflow: Whether mlflow should be used
         @return:
         """
         num_rows = 1
@@ -1016,10 +1016,13 @@ class Plotting:
         plt.close()
 
     def bar_plot(self, data: Union[pd.DataFrame, Dict], x: str, y: str, title: str, file_name: str,
-                 mlflow_folder: str = None):
+                 mlflow_folder: str = None, hue: str = None):
 
         if isinstance(data, pd.DataFrame):
-            ax = sns.barplot(x=x, y=y, data=data)
+            if hue is None:
+                ax = sns.barplot(x=x, y=y, data=data)
+            else:
+                ax = sns.barplot(x=x, y=y, hue=hue, data=data)
             ax.set_title(title)
             fig = ax.get_figure()
         else:

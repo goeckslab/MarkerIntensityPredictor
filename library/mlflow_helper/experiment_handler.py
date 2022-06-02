@@ -10,7 +10,13 @@ class ExperimentHandler:
     # Cache for already downloaded runs
     __runs: dict = {}
 
-    def __init__(self, client):
+    def __init__(self, client=None, tracking_url: str = None):
+        if client is None and tracking_url is None:
+            raise ValueError("Please provide either a client object or a tracking url")
+
+        if client is None:
+            client = mlflow.tracking.MlflowClient(tracking_uri=tracking_url)
+            
         self._client = client
 
     @property

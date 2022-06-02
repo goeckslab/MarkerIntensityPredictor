@@ -1,3 +1,7 @@
+import os, sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from library import ExperimentHandler, RunHandler, Reporter, Plotting, \
     KNNDataAnalysisPlotting
 import pandas as pd
@@ -33,7 +37,7 @@ def get_args():
 if __name__ == "__main__":
     args = get_args()
 
-    run_name = "KNN Neighbor Data Analysis"
+    run_name = f"KNN Neighbor Data Analysis {args.percentage}"
 
     # Create mlflow tracking client
     client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)
