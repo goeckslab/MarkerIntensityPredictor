@@ -2,7 +2,7 @@ import pandas as pd
 from pathlib import Path
 import re
 import os
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union, Dict
 
 
 class DataLoader:
@@ -102,7 +102,8 @@ class DataLoader:
         return None
 
     @staticmethod
-    def load_file(load_path: Path, file_name: str = None) -> Optional[pd.DataFrame]:
+    def load_file(load_path: Union[Path, str], file_name: str = None) -> Optional[
+        pd.DataFrame]:
         """
         Loads a file with the given name from the given path
         @param load_path: The path to search for the file
@@ -111,15 +112,35 @@ class DataLoader:
         """
 
         if file_name is not None:
+            if isinstance(load_path, str):
+                load_path: Path = Path(load_path)
+
             for p in load_path.rglob("*"):
                 if p.name == f"{file_name}":
                     df = pd.read_csv(p.absolute(), header=0)
                     return df
-
         else:
             return pd.read_csv(load_path, header=0)
 
         return None
+
+    @staticmethod
+    def load_files(load_path: Union[Path, str], file_name: str) -> Dict:
+        """
+        Load all files with a given name from all subfolders into a dictionary
+        @param load_path:
+        @param file_name:
+        @return:
+        """
+        loaded_files: Dict = {}
+
+        for subdir, dirs, files in os.walk(load_path):
+            for file in files:
+                if file == f"{file_name}":
+                    path = Path(os.path.join(subdir, file))
+                    loaded_files[path.parent.name] = pd.read_csv(os.path.join(subdir, file), header=0)
+
+        return loaded_files
 
     @staticmethod
     def load_layer_weights(load_path: Path, file_name: str) -> pd.DataFrame:

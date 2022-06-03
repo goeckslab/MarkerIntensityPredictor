@@ -397,7 +397,7 @@ class Plotting:
                     axs[row, col].legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0,
                                          labels=legend_labels)
 
-            if col == n_cols:
+            if col == n_cols - 1:
                 row += 1
                 col = 0
 

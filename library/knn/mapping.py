@@ -8,6 +8,7 @@ class PhenotypeMapper:
     def map_nn_to_phenotype(nearest_neighbors: pd.DataFrame, phenotypes: pd.DataFrame,
                             neighbor_count: int) -> pd.DataFrame:
         nearest_neighbors = nearest_neighbors.iloc[1:, :].copy()
+
         nearest_neighbors_lists = nearest_neighbors.apply(PhenotypeMapper.convert_index_to_phenotype,
                                                           phenotypes=phenotypes, axis=1)
 

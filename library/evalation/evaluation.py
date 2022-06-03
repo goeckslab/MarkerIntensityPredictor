@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn.metrics import r2_score
+from typing import List
 
 
 class Evaluation:
@@ -64,20 +65,23 @@ class Evaluation:
         @param features:
         @return:
         """
-        absolute_score_performance: pd.DataFrame = pd.DataFrame()
+        data: List = []
         for feature in features:
-            for model in r2_scores.keys():
+            for model in sorted(r2_scores):
                 model_scores = r2_scores.get(model)
 
-                if feature in model_scores["Marker"].tolist():
-                    model_performance = model_scores.loc[model_scores['Marker'] == feature]["Score"].tolist()[0]
+                if "Marker" in model_scores:
+                    model_scores.rename(columns={"Marker": "Feature"}, inplace=True)
+
+                if feature in model_scores["Feature"].tolist():
+                    model_performance = model_scores.loc[model_scores['Feature'] == feature]["Score"].tolist()[0]
                 else:
                     model_performance = 0
 
-                absolute_score_performance = absolute_score_performance.append({
+                data.append({
                     "Feature": feature,
                     "Score": model_performance,
                     "Model": model,
-                }, ignore_index=True)
+                })
 
-        return absolute_score_performance
+        return pd.DataFrame().from_records(data)

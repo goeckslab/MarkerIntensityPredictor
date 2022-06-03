@@ -1,16 +1,15 @@
 import os, sys
+from tqdm import tqdm
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from library import ExperimentHandler, RunHandler, Reporter, Plotting, \
-    KNNDataAnalysisPlotting
+    KNNDataAnalysisPlotting, DataLoader, FolderManagement, PhenotypeMapper, Evaluation
 import pandas as pd
 from pathlib import Path
 import argparse
 import mlflow
 from typing import List, Dict
-from compiled_src.data_loader import DataLoader
-from compiled_src.folder_management import FolderManagement
 
 base_path = Path("knn_neighbor_hood_analysis")
 
@@ -32,6 +31,16 @@ def get_args():
     parser.add_argument("--phenotypes", "-ph", action="store", required=False, help="The phenotype association")
 
     return parser.parse_args()
+
+
+def translate_key(key: str):
+    if "no_spatial" in key:
+        new_key = f"No Spatial {key.split('_')[-1]}"
+
+    else:
+        new_key = f"Spatial {key.split('_')[-1]}"
+
+    return new_key
 
 
 if __name__ == "__main__":
@@ -75,54 +84,96 @@ if __name__ == "__main__":
         run_handler.delete_runs_and_child_runs(experiment_id=source_experiment_id, run_name=run_name)
 
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=run_name) as run:
-            phenotype_associations_for_neighbors: pd.DataFrame = DataLoader.load_file(
-                load_path=list(download_paths.values())[0],
-                file_name="combined_phenotype_neighbors.csv")
-
             # Load phenotype associations
             cell_phenotypes: pd.DataFrame = DataLoader.load_file(load_path=args.phenotypes)
 
-            # Combine phenotypes with neighbor data
-            spatial: pd.DataFrame = phenotype_associations_for_neighbors[
-                phenotype_associations_for_neighbors["Mode"] == "Spatial"].reset_index(drop=True)
-            spatial["Origin"] = cell_phenotypes["phenotype"]
+            loaded_frames: Dict = DataLoader.load_files(load_path=list(download_paths.values())[0],
+                                                        file_name="imputed_r2_score.csv")
 
-            # Combine phenotypes with neighbor data
-            non_spatial = phenotype_associations_for_neighbors[
-                phenotype_associations_for_neighbors["Mode"] == "No Spatial"].reset_index(drop=True)
-            non_spatial["Origin"] = cell_phenotypes["phenotype"]
+            frames: List = []
+            value: pd.DataFrame
+            for key, value in loaded_frames.items():
+                value["Origin"] = translate_key(key)
+                value["Model"] = translate_key(key)
+
+                if "Marker" in value:
+                    value.rename(columns={"Marker": "Feature"}, inplace=True)
+
+                frames.append(value)
+
+            imputed_scores: pd.DataFrame = pd.concat(frames, axis=0)
+
+            features = imputed_scores["Feature"].unique()
+
+            spatial_performance: Dict = {}
+            non_spatial_performance: Dict = {}
+            for key in loaded_frames.keys():
+                if "no_spatial" in key:
+                    non_spatial_performance[key] = loaded_frames.get(key)
+
+                else:
+                    spatial_performance[key] = loaded_frames.get(key)
+
+            absolute_r2_score_performance: Dict = {
+                "Spatial Imputation Performance": Evaluation.create_absolute_score_performance(
+                    r2_scores=spatial_performance,
+                    features=features)}
+
+            plotter.r2_scores_combined_bar_plot(r2_scores=absolute_r2_score_performance, file_name="Spatial R2 Scores",
+                                                features=features)
+
+            absolute_r2_score_performance: dict = {
+                "No Spatial Imputation Performance": Evaluation.create_absolute_score_performance(
+                    r2_scores=non_spatial_performance,
+                    features=features)}
+            plotter.r2_scores_combined_bar_plot(r2_scores=absolute_r2_score_performance,
+                                                file_name="Non Spatial R2 Scores",
+                                                features=features)
+
+            # Load nn indices
+            loaded_frames = DataLoader.load_files(load_path=list(download_paths.values())[0],
+                                                  file_name="nearest_neighbor_indices.csv")
+            frames: List = []
+            for key, value in loaded_frames.items():
+                value["Origin"] = translate_key(key)
+                value["Neighbor Count"] = key.split('_')[-1]
+                frames.append(value)
+
+            nearest_neighbor_indices: pd.DataFrame = pd.concat(frames)
+
+            print(nearest_neighbor_indices)
+            phenotype_labeling: Dict = {}
+            for origin in tqdm(nearest_neighbor_indices["Origin"].unique()):
+                indexes = nearest_neighbor_indices[nearest_neighbor_indices["Origin"] == origin]
+                neighbor_count = int(indexes.at[0, "Neighbor Count"])
+
+                cleaned_df = indexes.drop(columns=["Origin", "Neighbor Count"])
+                phenotypes = PhenotypeMapper.map_nn_to_phenotype(nearest_neighbors=cleaned_df,
+                                                                 phenotypes=cell_phenotypes,
+                                                                 neighbor_count=neighbor_count)
+
+                phenotype_labeling[origin] = phenotypes
 
             colors = {'Luminal': 'red',
                       'Basal': 'green',
                       'Immune': 'blue'}
 
-            for phenotype in spatial["Origin"].unique():
-                data_plotter.pie_chart(
-                    keys=spatial[spatial["Origin"] == phenotype]["First Neighbor"].unique(),
-                    data=spatial[spatial["Origin"] == phenotype]["First Neighbor"].value_counts().to_list(),
-                    file_name=f"Spatial First Neighbor {phenotype} Distribution", colors=colors,
-                    title=f"Phenotype of nearest neighbor for {phenotype} cells including spatial data")
+            for origin in phenotype_labeling.keys():
+                spatial = "no spatial" if origin == "no spatial" else "spatial"
+                head_spatial = "No Spatial" if origin == "no spatial" else "Spatial"
+                data = phenotype_labeling.get(origin).T
+                data["Base Cell"] = cell_phenotypes["phenotype"].values
 
-                data_plotter.pie_chart(keys=spatial[spatial["Origin"] == phenotype]["Second Neighbor"].unique(),
-                                       data=spatial[spatial["Origin"] == phenotype][
-                                           "Second Neighbor"].value_counts().to_list(),
-                                       file_name=f"Spatial Second Neighbor {phenotype} Distribution", colors=colors,
-                                       title=f"Phenotype of nearest neighbor for {phenotype} cells including spatial data")
+                Reporter.upload_csv(data=data, save_path=base_path, file_name=f"{origin}_phenotypes")
 
-                for phenotype in non_spatial["Origin"].unique():
-                    data_plotter.pie_chart(
-                        keys=non_spatial[non_spatial["Origin"] == phenotype]["First Neighbor"].unique(),
-                        data=non_spatial[non_spatial["Origin"] == phenotype]["First Neighbor"].value_counts().to_list(),
-                        file_name=f"No Spatial First Neighbor {phenotype} Distribution", colors=colors,
-                        title=f"Phenotype of nearest neighbor for {phenotype} cells without spatial data")
+                for phenotype in cell_phenotypes["phenotype"].unique():
 
-                data_plotter.pie_chart(keys=non_spatial[non_spatial["Origin"] == phenotype]["Second Neighbor"].unique(),
-                                       data=non_spatial[non_spatial["Origin"] == phenotype][
-                                           "Second Neighbor"].value_counts().to_list(),
-                                       file_name=f"No Spatial Second Neighbor {phenotype} Distribution",
-                                       colors=colors,
-                                       title=f"Phenotype of nearest neighbor for {phenotype} cells without spatial data")
-
+                    for neighbor in data.columns:
+                        data_plotter.pie_chart(
+                            keys=data[data["Base Cell"] == phenotype][neighbor].unique(),
+                            data=data[data["Base Cell"] == phenotype][neighbor].value_counts().to_list(),
+                            file_name=f"{head_spatial} {neighbor} Neighbor {phenotype} Distribution", colors=colors,
+                            title=f"Phenotype of nearest neighbor for {phenotype} cells including {spatial} data")
 
     except:
         raise
