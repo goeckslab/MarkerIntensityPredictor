@@ -3,6 +3,7 @@ from pathlib import Path
 import re
 import os
 from typing import Tuple, Optional, Union, Dict
+from tqdm import tqdm
 
 
 class DataLoader:
@@ -134,7 +135,7 @@ class DataLoader:
         """
         loaded_files: Dict = {}
 
-        for subdir, dirs, files in os.walk(load_path):
+        for subdir, dirs, files in tqdm(os.walk(load_path)):
             for file in files:
                 if file == f"{file_name}":
                     path = Path(os.path.join(subdir, file))

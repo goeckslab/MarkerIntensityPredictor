@@ -3,6 +3,8 @@ from typing import Optional, Dict
 from pathlib import Path
 from library.data.folder_management import FolderManagement
 import mlflow
+from tqdm import tqdm
+
 
 
 class RunHandler:
@@ -254,7 +256,7 @@ class RunHandler:
             return created_directories
 
         # Download multiple runs
-        for run in runs:
+        for run in tqdm(runs):
             try:
                 run_path = Path(base_save_path, run.info.run_id)
                 run_path = FolderManagement.create_directory(run_path, remove_if_exists=False)

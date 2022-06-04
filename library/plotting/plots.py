@@ -347,7 +347,7 @@ class Plotting:
         elif num_rows == 3:
             fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(13, 9), dpi=300, sharex=False)
         else:
-            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(13, 11), dpi=300, sharex=False)
+            fig, axs = plt.subplots(ncols=n_cols, nrows=num_rows, figsize=(9, 7), dpi=300, sharex=False)
 
         col: int = 0
         row: int = 0
@@ -964,13 +964,22 @@ class Plotting:
         plt.close()
 
     def box_plot(self, data: Union[pd.DataFrame, Dict], x: str, y: str, file_name: str, title: str,
-                 mlflow_folder: str = None):
+                 mlflow_folder: str = None, hue: str = None, show_outliers: bool = True):
 
         if isinstance(data, pd.DataFrame):
-            ax = sns.boxplot(x=x, y=y, data=data)
+
+            if data.empty:
+                print("Dataframe is empty! Skipping...")
+                return
+
+            if hue is None:
+                ax = sns.boxplot(x=x, y=y, data=data, showfliers=show_outliers)
+            else:
+                ax = sns.boxplot(x=x, y=y, data=data, hue=hue, showfliers=show_outliers)
 
             ax.set_title(title)
             fig = ax.get_figure()
+            fig.set_size_inches(9, 7)
 
         else:
             n_rows: int = self.__calculate_n_rows(data)
