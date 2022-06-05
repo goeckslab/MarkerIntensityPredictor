@@ -119,10 +119,10 @@ if __name__ == "__main__":
             non_spatial_performance: Dict = {}
             for key in loaded_frames.keys():
                 if "no_spatial" in key:
-                    non_spatial_performance[key] = loaded_frames.get(key)
+                    non_spatial_performance[translate_key(key)] = loaded_frames.get(key)
 
                 else:
-                    spatial_performance[key] = loaded_frames.get(key)
+                    spatial_performance[translate_key(key)] = loaded_frames.get(key)
 
             # Plot scores
             plot_r2_scores(r2_scores=spatial_performance, title="Spatial Imputation Performance",
@@ -199,6 +199,7 @@ if __name__ == "__main__":
                 no_spatial_data = neighbor_distances[(neighbor_distances["Neighbor Count"] == neighbor_count) & (
                         neighbor_distances["Spatial"] == "N")]
 
+                # Calculate mean difference distance
                 for neighbor in spatial_data["Neighbor"].unique():
                     mean_difference = no_spatial_data[spatial_data["Neighbor"] == neighbor]["Distance"].mean() - \
                                       spatial_data[spatial_data["Neighbor"] == neighbor]["Distance"].mean()
@@ -210,21 +211,47 @@ if __name__ == "__main__":
                         "Neighbor": neighbor,
                         "Mean Difference": mean_difference,
                         "Median Difference": median_difference,
+                        "Data": "Difference N. Spatial vs Spatial"
+                    })
+
+                # Calculate mean and median for no spatial
+                for neighbor in no_spatial_data["Neighbor"].unique():
+                    mean_difference = no_spatial_data[no_spatial_data["Neighbor"] == neighbor]["Distance"].mean()
+                    median_difference = no_spatial_data[no_spatial_data["Neighbor"] == neighbor]["Distance"].median()
+
+                    frames.append({
+                        "Neighbor": neighbor,
+                        "Mean Difference": mean_difference,
+                        "Median Difference": median_difference,
+                        "Data": "No Spatial"
+                    })
+
+                # Calculate mean and median for no spatial
+                for neighbor in spatial_data["Neighbor"].unique():
+                    mean_difference = spatial_data[spatial_data["Neighbor"] == neighbor]["Distance"].mean()
+                    median_difference = spatial_data[spatial_data["Neighbor"] == neighbor]["Distance"].median()
+
+                    frames.append({
+                        "Neighbor": neighbor,
+                        "Mean Difference": mean_difference,
+                        "Median Difference": median_difference,
+                        "Data": "Spatial"
                     })
 
             neighbor_differences: pd.DataFrame = pd.DataFrame.from_records(frames)
-            neighbor_differences.drop_duplicates(inplace=True, subset=["Neighbor"], keep='first')
+            neighbor_differences.drop_duplicates(inplace=True, subset=["Neighbor", "Data"], keep='first')
             neighbor_differences["Experiment"] = f"{args.experiment} {args.percentage}"
+
             # Upload csv
             Reporter.upload_csv(data=neighbor_differences, save_path=base_path,
                                 file_name="Neighbor Distance Differences")
 
-            neighbor_differences = pd.melt(neighbor_differences, id_vars=['Neighbor'],
+            neighbor_differences = pd.melt(neighbor_differences, id_vars=['Neighbor', "Data"],
                                            value_vars=['Mean Difference', 'Median Difference'], var_name='Metric',
-                                           value_name='Value')
+                                           value_name='Distance')
 
-            data_plotter.line_plot(data=neighbor_differences, x="Neighbor", y="Value", hue="Metric",
-                                   file_name="Mean & Median Metric", title="Metrics")
+            data_plotter.line_plot(data=neighbor_differences, x="Neighbor", y="Distance", hue="Metric",
+                                   file_name="Metrics", title="Metrics", style="Data")
 
             # Load nn indices
             loaded_frames = DataLoader.load_files(load_path=list(download_paths.values())[0],
@@ -265,6 +292,12 @@ if __name__ == "__main__":
 
             Reporter.upload_csv(data=spatial_phenotypes, save_path=base_path, file_name=f"spatial_phenotypes")
             Reporter.upload_csv(data=no_spatial_phenotypes, save_path=base_path, file_name=f"no_spatial_phenotypes")
+
+            # Report value count for each phenotype for each neighbor
+            Reporter.upload_csv(data=spatial_phenotypes.apply(lambda x: x.unique()), save_path=base_path,
+                                file_name=f"spatial_phenotypes_value_counts")
+            Reporter.upload_csv(data=no_spatial_phenotypes.apply(lambda x: x.unique()), save_path=base_path,
+                                file_name=f"no_spatial_phenotypes_value_counts")
 
             keys = sorted(spatial_phenotypes["Base Cell"].unique())
 

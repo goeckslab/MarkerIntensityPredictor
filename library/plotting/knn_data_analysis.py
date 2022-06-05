@@ -71,12 +71,18 @@ class KNNDataAnalysisPlotting:
         plt.close()
 
     def line_plot(self, data, x: str, y: str, title: str, file_name: str, hue: str = None,
-                  mlflow_directory: str = None):
-        sns.lineplot(data=data, x=x, y=y, hue=hue)
+                  mlflow_directory: str = None, style: str = None):
+
+        if style is None:
+            sns.lineplot(data=data, x=x, y=y, hue=hue)
+        else:
+            sns.lineplot(data=data, x=x, y=y, hue=hue, style=style)
+
         plt.title(title)
         plt.tight_layout()
+        plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left', ncol=1)
         save_path = Path(self._base_path, f"{file_name}.png")
-        plt.savefig(save_path)
+        plt.savefig(save_path, bbox_inches='tight')
 
         if mlflow_directory is not None:
             mlflow.log_artifact(str(save_path), mlflow_directory)
