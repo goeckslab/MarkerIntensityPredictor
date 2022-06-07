@@ -29,8 +29,6 @@ def get_args():
     parser.add_argument("--percentage", "-p", action="store", help="The percentage of data being replaced",
                         default=0.2, required=False, type=float)
 
-    parser.add_argument("--phenotypes", "-ph", action="store", required=False, help="The phenotype association")
-
     return parser.parse_args()
 
 
@@ -101,9 +99,6 @@ if __name__ == "__main__":
         run_handler.delete_runs_and_child_runs(experiment_id=source_experiment_id, run_name=run_name)
 
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=run_name) as run:
-            # Load phenotype associations
-            cell_phenotypes: pd.DataFrame = DataLoader.load_file(load_path=args.phenotypes)
-
             loaded_frames: Dict = DataLoader.load_files(load_path=list(download_paths.values())[0],
                                                         file_name="imputed_r2_score.csv")
 
@@ -284,13 +279,8 @@ if __name__ == "__main__":
 
             max_neighbor_count: int = nearest_neighbor_indices["Neighbor Count"].max()
 
-            spatial_phenotypes = mapped_phenotypes.get(f"Spatial {max_neighbor_count}")
-            spatial_phenotypes = spatial_phenotypes.T
-            spatial_phenotypes["Base Cell"] = cell_phenotypes["phenotype"].values
-
-            no_spatial_phenotypes = mapped_phenotypes.get(f"No Spatial {max_neighbor_count}")
-            no_spatial_phenotypes = no_spatial_phenotypes.T
-            no_spatial_phenotypes["Base Cell"] = cell_phenotypes["phenotype"].values
+            spatial_phenotypes = mapped_phenotypes[mapped_phenotypes["Origin"] == f"Spatial {max_neighbor_count}"]
+            no_spatial_phenotypes = mapped_phenotypes[mapped_phenotypes["Origin"] == f"No Spatial {max_neighbor_count}"]
 
             Reporter.upload_csv(data=spatial_phenotypes, save_path=base_path, file_name=f"spatial_phenotypes")
             Reporter.upload_csv(data=no_spatial_phenotypes, save_path=base_path, file_name=f"no_spatial_phenotypes")
@@ -301,18 +291,18 @@ if __name__ == "__main__":
             Reporter.upload_csv(data=no_spatial_phenotypes.apply(lambda x: x.unique()), save_path=base_path,
                                 file_name=f"no_spatial_phenotypes_value_counts")
 
-            keys = sorted(spatial_phenotypes["Base Cell"].unique())
-
-            pie_chart_data: Dict = {}
-            for column in spatial_phenotypes.columns:
-                if column == "Base Cell":
-                    continue
-                pie_chart_data[column] = spatial_phenotypes[column]
-
             colors = {'Luminal': 'red',
                       'Basal': 'green',
                       'Immune': 'blue',
                       'Neoplastic Epithelial': "yellow"}
+
+            keys = sorted(spatial_phenotypes["Base Cell"].unique())
+
+            pie_chart_data: Dict = {}
+            for column in spatial_phenotypes.columns:
+                if column == "Base Cell" or column == "Origin" or column == "Neighbor Count":
+                    continue
+                pie_chart_data[column] = spatial_phenotypes[column]
 
             data_plotter.pie_chart(data=pie_chart_data, file_name="Spatial Phenotype Composition", keys=keys,
                                    colors=colors)
@@ -320,7 +310,7 @@ if __name__ == "__main__":
             keys = no_spatial_phenotypes["Base Cell"].unique()
             pie_chart_data: Dict = {}
             for column in no_spatial_phenotypes.columns:
-                if column == "Base Cell":
+                if column == "Base Cell" or column == "Origin" or column == "Neighbor Count":
                     continue
 
                 pie_chart_data[column] = no_spatial_phenotypes[column]

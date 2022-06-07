@@ -45,7 +45,9 @@ class Replacer:
             available_features.remove("X_centroid")
 
         for index, row in df.iterrows():
-            features_to_replace: list = random.sample(available_features, int(len(available_features) * percentage))
+            amount_to_replace = 1 if int(len(available_features) * percentage) == 0 else int(
+                len(available_features) * percentage) == 0
+            features_to_replace: list = random.sample(available_features, amount_to_replace)
             replaced_feature_per_index[index] = features_to_replace
             for feature_to_replace in features_to_replace:
                 df.at[index, feature_to_replace] = 0

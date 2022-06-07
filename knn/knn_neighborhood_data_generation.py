@@ -132,7 +132,7 @@ if __name__ == '__main__':
                                                                      neighbor_count=neighbor_count)
                     # Add new information about cell origin phenotypes
                     phenotypes = phenotypes.T
-                    phenotypes["Origin"] = cell_phenotypes["phenotype"].values
+                    phenotypes["Base Cell"] = cell_phenotypes["phenotype"].values
                     Reporter.upload_csv(data=phenotypes, save_path=base_path, file_name="mapped_phenotypes",
                                         mlflow_folder=folder_name)
 
