@@ -29,10 +29,13 @@ def get_args():
                         default="http://127.0.0.1:5000")
     parser.add_argument("--percentage", "-p", action="store", help="The percentage of data being replaced",
                         default=0.2, required=False, type=float)
-    parser.add_argument("--distance", "-d", nargs='+', action="store", help="The max distance from a centroid.")
+    parser.add_argument("--distance", "-d", nargs='+', action="store", required=True,
+                        help="The max distance from a centroid.")
     parser.add_argument("--phenotypes", "-ph", action="store", required=True, help="The phenotype association")
     parser.add_argument("--file", "-f", action="store", required=True,
                         help="The file to use for imputation. Will be excluded from training")
+    parser.add_argument("--folder", action="store", required=True,
+                        help="The folder to use for training the KNN")
 
     return parser.parse_args()
 
@@ -88,11 +91,11 @@ if __name__ == '__main__':
             use_spatial_information: bool = True if run_option == "spatial" else False
 
             # Load the train dataset
-            train_data, features = DataLoader.load_single_cell_data(file_name=args.file,
-                                                                    keep_spatial=use_spatial_information)
+            train_data, features = DataLoader.load_files_in_folder(folder=args.folder, file_to_exclude=args.file,
+                                                                   keep_spatial=use_spatial_information)
 
             # Normalize train data set
-            train_data: pd.DataFrame = Preprocessing.normalize(data=train_data.copy(), columns=features,
+            train_data: pd.DataFrame = Preprocessing.normalize(data=train_data, columns=features,
                                                                create_dataframe=True)
 
             # Load the test dataset
