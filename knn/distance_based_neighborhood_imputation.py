@@ -59,9 +59,6 @@ if __name__ == '__main__':
     if len(args.distance) < 2 or len(args.distance) > 2:
         raise ValueError("Please specify only a maximum and minimum distance")
 
-    experiment_handler: ExperimentHandler = ExperimentHandler(tracking_url=args.tracking_url)
-    run_handler: RunHandler = RunHandler(tracking_url=args.tracking_url)
-
     FolderManagement.create_directory(path=results_folder)
 
     try:
@@ -71,14 +68,9 @@ if __name__ == '__main__':
         distance_grid = np.linspace(min_distance, max_distance, 10)
         print(distance_grid)
 
-        associated_experiment_id: str = experiment_handler.get_experiment_id_by_name(experiment_name=args.experiment)
-
         run_options: List = ["spatial", "no_spatial"]
 
         run_name: str = f"KNN Distance Based Data Imputation Percentage {args.percentage}"
-
-        # Delete previous run
-        run_handler.delete_runs_and_child_runs(experiment_id=associated_experiment_id, run_name=run_name)
 
         # Load phenotypes
         phenotypes_per_cell: pd.DataFrame = DataLoader.load_file(load_path=args.phenotypes)
