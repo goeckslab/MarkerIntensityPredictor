@@ -7,7 +7,7 @@ import argparse
 from pathlib import Path
 from typing import List
 
-results_folder = Path("phenotyping")
+results_folder = Path("phenotypes")
 
 
 def get_args():
@@ -44,21 +44,18 @@ conditions: List = [
         "CK17": "anypos",
         "CK7": "anypos"
     },
-
-    {
-        "Unnamed: 0": "Neoplastic Epithelial",
-        "Unnamed: 1": "Basal",
-        "CK14": "anypos",
-        "CK17": "anypos",
-    },
-
     {
         "Unnamed: 0": "Neoplastic Epithelial",
         "Unnamed: 1": "Luminal",
         "CK19": "anypos",
         "CK7": "anypos",
     },
-
+    {
+        "Unnamed: 0": "Neoplastic Epithelial",
+        "Unnamed: 1": "Basal",
+        "CK14": "anypos",
+        "CK17": "anypos",
+    },
     {
         "Unnamed: 0": "all",
         "Unnamed: 1": "Immune",
@@ -68,7 +65,6 @@ conditions: List = [
 phenotype_workflow = pd.DataFrame(columns=columns).from_records(conditions)
 
 adata = ad.AnnData(cells)
-
 file_name: str = Path(args.file).name
 
 # phenotype = pd.read_csv('path/to/csv/file/')
