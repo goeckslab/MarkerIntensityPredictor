@@ -12,7 +12,18 @@ class KNNDataAnalysisPlotting:
         self._base_path = base_path
 
     def pie_chart(self, keys: List, data: Union[pd.Series, Dict], file_name: str, title: str = None,
-                  mlflow_directory: str = None, colors: Dict = None):
+                  mlflow_directory: str = None, colors: Dict = None, label_func=None):
+        """
+
+        @param keys:
+        @param data:
+        @param file_name:
+        @param title:
+        @param mlflow_directory:
+        @param colors:
+        @param label_func: A function to create the labels on top of the pieces
+        @return:
+        """
 
         if title is None:
             title = file_name
@@ -40,16 +51,27 @@ class KNNDataAnalysisPlotting:
 
                 if n_rows == 1:
                     if n_cols == 1:
-                        axs.pie(value, labels=keys, colors=color_map, autopct='%.0f%%')
+                        if label_func is None:
+                            axs.pie(value, labels=keys, colors=color_map, autopct='%.0f%%')
+                        else:
+                            axs.pie(value, labels=keys, color=color_map, autopct=lambda pct: label_func(pct, data))
                         axs.set_title(f"Neighbo {key}")
                         axs.set_xticklabels(axs.get_xticklabels(), rotation=90)
                     else:
-                        axs[col].pie(value, labels=keys, colors=color_map, autopct='%.0f%%')
+                        if label_func is None:
+                            axs[col].pie(value, labels=keys, colors=color_map, autopct='%.0f%%')
+                        else:
+                            axs[col].pie(value, labels=keys, colors=color_map,
+                                         autopct=lambda pct: label_func(pct, data))
                         axs[col].set_title(f"Neighbor {key}")
                         axs[col].set_xticklabels(axs[col].get_xticklabels(), rotation=90)
 
                 else:
-                    axs[row, col].pie(value, labels=keys, colors=color_map, autopct='%.0f%%')
+                    if label_func is None:
+                        axs[row, col].pie(value, labels=keys, colors=color_map, autopct='%.0f%%')
+                    else:
+                        axs[row, col].pie(value, labels=keys, colors=color_map,
+                                          autopct=lambda pct: label_func(pct, data))
                     axs[row, col].set_title(f"Neighbor {key}")
                     axs[row, col].set_xticklabels(axs[row, col].get_xticklabels(), rotation=90)
 

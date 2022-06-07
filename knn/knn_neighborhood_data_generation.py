@@ -38,6 +38,7 @@ def get_args():
     parser.add_argument("--percentage", "-p", action="store", help="The percentage of data being replaced",
                         default=0.2, required=False, type=float)
     parser.add_argument("--morph", action="store_true", help="Include morphological data", default=True)
+    parser.add_argument("--phenotypes", "-ph", action="store", required=False, help="The phenotype association")
 
     return parser.parse_args()
 
@@ -124,6 +125,16 @@ if __name__ == '__main__':
                     # Upload nearest neighbor indices
                     Reporter.upload_csv(data=nearest_neighbors_indices, save_path=base_path,
                                         file_name="nearest_neighbor_indices", mlflow_folder=folder_name)
+
+                    cell_phenotypes: pd.DataFrame = DataLoader.load_file(args.phenotypes)
+                    phenotypes = PhenotypeMapper.map_nn_to_phenotype(nearest_neighbors=nearest_neighbors_indices,
+                                                                     phenotypes=cell_phenotypes,
+                                                                     neighbor_count=neighbor_count)
+                    # Add new information about cell origin phenotypes
+                    phenotypes = phenotypes.T
+                    phenotypes["Origin"] = cell_phenotypes["phenotype"].values
+                    Reporter.upload_csv(data=phenotypes, save_path=base_path, file_name="mapped_phenotypes",
+                                        mlflow_folder=folder_name)
 
                     # Save data
                     euclidean_distances_per_cell_data: List = []

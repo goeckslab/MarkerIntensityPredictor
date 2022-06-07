@@ -1,5 +1,6 @@
 import os, sys
 from tqdm import tqdm
+import numpy as np
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -51,6 +52,12 @@ def translate_key(key: str):
         new_key = f"Spatial {key.split('_')[-1]}"
 
     return new_key
+
+
+# Creating autocpt arguments
+def show_rel_and_absolute_values(pct, allvalues):
+    absolute = int(pct / 100. * np.sum(allvalues))
+    return "{:.1f}%\n({:d} )".format(pct, absolute)
 
 
 if __name__ == "__main__":
@@ -264,29 +271,24 @@ if __name__ == "__main__":
 
             nearest_neighbor_indices: pd.DataFrame = pd.concat(frames)
 
-            phenotype_labeling: Dict = {}
-            for origin in tqdm(nearest_neighbor_indices["Origin"].unique()):
-                indexes = nearest_neighbor_indices[nearest_neighbor_indices["Origin"] == origin]
-                neighbor_count = int(indexes.at[0, "Neighbor Count"])
+            # Load mapped phenotypes
+            loaded_frames = DataLoader.load_files(load_path=list(download_paths.values())[0],
+                                                  file_name="mapped_phenotypes.csv")
+            frames: List = []
+            for key, value in loaded_frames.items():
+                value["Origin"] = translate_key(key)
+                value["Neighbor Count"] = key.split('_')[-1]
+                frames.append(value)
 
-                cleaned_df = indexes.drop(columns=["Origin", "Neighbor Count"])
-                phenotypes = PhenotypeMapper.map_nn_to_phenotype(nearest_neighbors=cleaned_df,
-                                                                 phenotypes=cell_phenotypes,
-                                                                 neighbor_count=neighbor_count)
-
-                phenotype_labeling[origin] = phenotypes
-
-            colors = {'Luminal': 'red',
-                      'Basal': 'green',
-                      'Immune': 'blue'}
+            mapped_phenotypes: pd.DataFrame = pd.concat(frames)
 
             max_neighbor_count: int = nearest_neighbor_indices["Neighbor Count"].max()
 
-            spatial_phenotypes = phenotype_labeling.get(f"Spatial {max_neighbor_count}")
+            spatial_phenotypes = mapped_phenotypes.get(f"Spatial {max_neighbor_count}")
             spatial_phenotypes = spatial_phenotypes.T
             spatial_phenotypes["Base Cell"] = cell_phenotypes["phenotype"].values
 
-            no_spatial_phenotypes = phenotype_labeling.get(f"No Spatial {max_neighbor_count}")
+            no_spatial_phenotypes = mapped_phenotypes.get(f"No Spatial {max_neighbor_count}")
             no_spatial_phenotypes = no_spatial_phenotypes.T
             no_spatial_phenotypes["Base Cell"] = cell_phenotypes["phenotype"].values
 
@@ -307,7 +309,13 @@ if __name__ == "__main__":
                     continue
                 pie_chart_data[column] = spatial_phenotypes[column]
 
-            data_plotter.pie_chart(data=pie_chart_data, file_name="Spatial Phenotype Composition", keys=keys)
+            colors = {'Luminal': 'red',
+                      'Basal': 'green',
+                      'Immune': 'blue',
+                      'Neoplastic Epithelial': "yellow"}
+
+            data_plotter.pie_chart(data=pie_chart_data, file_name="Spatial Phenotype Composition", keys=keys,
+                                   colors=colors)
 
             keys = no_spatial_phenotypes["Base Cell"].unique()
             pie_chart_data: Dict = {}
@@ -317,7 +325,8 @@ if __name__ == "__main__":
 
                 pie_chart_data[column] = no_spatial_phenotypes[column]
 
-            data_plotter.pie_chart(data=pie_chart_data, file_name="No Spatial Phenotype Composition", keys=keys)
+            data_plotter.pie_chart(data=pie_chart_data, file_name="No Spatial Phenotype Composition", keys=keys,
+                                   colors=colors)
 
 
 
