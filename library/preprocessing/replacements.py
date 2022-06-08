@@ -46,7 +46,8 @@ class Replacer:
 
         for index, row in df.iterrows():
             amount_to_replace = 1 if int(len(available_features) * percentage) == 0 else int(
-                len(available_features) * percentage) == 0
+                len(available_features) * percentage)
+
             features_to_replace: list = random.sample(available_features, amount_to_replace)
             replaced_feature_per_index[index] = features_to_replace
             for feature_to_replace in features_to_replace:

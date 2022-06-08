@@ -107,10 +107,16 @@ if __name__ == '__main__':
                 replaced_test_data_cells, index_replacements = Replacer.replace_values_by_cell(data=test_data,
                                                                                                features=features,
                                                                                                percentage=args.percentage)
+                # Upload replaced data for analysis
+                Reporter.upload_csv(data=replaced_test_data_cells, file_name="replaced_test_data", save_path=base_path)
 
                 distances = pd.DataFrame(data=nan_euclidean_distances(replaced_test_data_cells,
                                                                       replaced_test_data_cells,
                                                                       missing_values=0))  # distance between rows of X
+
+
+                # Reporter.upload_csv(data=distances, file_name="euclidean_distances", save_path=base_path)
+                Reporter.upload_csv(data=test_data, file_name="normalized_test_data", save_path=base_path)
 
                 for neighbor_count in amount_of_neighbors:
                     print(f"Processing {neighbor_count} neighbors... ")
