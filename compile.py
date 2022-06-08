@@ -5,30 +5,32 @@ from pathlib import Path
 
 library_name = "compiled"
 
-for file in os.listdir("compiled_src"):
-    if file.endswith(".so"):
-        print(os.path.join("compiled_src", file))
-        os.remove(os.path.join("compiled_src", file))
+source_folder: str = "compiled_src"
 
-    if file.endswith(".c"):
-        print(os.path.join("compiled_src", file))
-        os.remove(os.path.join("compiled_src", file))
+# Path(source_folder, "compiled").mkdir(exist_ok=True)
 
-sourcefiles = []
-
-for root, dirs, files in os.walk("./compiled_src"):
+for subdir, dirs, files in os.walk(source_folder):
     for file in files:
-        if file.endswith(".pyx"):
-            sourcefiles.append(os.path.join(root, file))
+        if file.endswith(".so"):
+            print(os.path.join(subdir, file))
+            os.remove(os.path.join(subdir, file))
 
-print(f"Detected {len(sourcefiles)} files")
+        if file.endswith(".c"):
+            print(os.path.join(subdir, file))
+            os.remove(os.path.join(subdir, file))
 
-extensions = [Extension(library_name, sourcefiles)]
+ext_modules = [
+    Extension('mlflow_helper', ["compiled_src/mlflow_helper/*.pyx"]),
+    Extension('data_management', ["compiled_src/data_management/*.pyx"])
+]
 
 setup(
     name='Compiled Library',
     # ext_modules=cythonize(extensions),
     ext_modules=cythonize(["compiled_src/**/*.pyx"],
-                          compiler_directives={"always_allow_keywords": True}),
+                          compiler_directives={"always_allow_keywords": True, "language_level": 3,
+                                               "emit_code_comments": True}),
+    # ext_modules=cythonize(ext_modules, compiler_directives={"always_allow_keywords": True, "language_level": 3,
+    #                                                        "emit_code_comments": True}),
     zip_safe=False,
 )

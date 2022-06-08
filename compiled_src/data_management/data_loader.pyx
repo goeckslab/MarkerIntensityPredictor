@@ -1,4 +1,3 @@
-#cython: language_level=3
 import pandas as pd
 from pathlib import Path
 import re
@@ -6,7 +5,7 @@ import os
 from typing import Tuple, Optional
 
 
-class DataLoader:
+cdef class DataLoader:
 
     @staticmethod
     def load_single_cell_data(file_name: str, keep_morph: bool = True, keep_spatial: bool = False,
