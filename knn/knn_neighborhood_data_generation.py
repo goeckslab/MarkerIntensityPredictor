@@ -83,8 +83,15 @@ if __name__ == '__main__':
             mapped_phenotype_data: List = []
 
             run_options: list = ["no_spatial", "spatial"]
-
+            min_neighbors = 2
+            max_neighbors = 7
             amount_of_neighbors = np.arange(2, 7)
+
+            # R2 data for all runs and all options
+            combined_r2_score_data: List = []
+            combined_nearest_neighbor_indices_data: List = []
+            combined_mapped_phenotype_data: List = []
+            combined_imputed_data: List = []
 
             for run_option in run_options:
                 print(f"Processing {run_option}")
@@ -109,11 +116,13 @@ if __name__ == '__main__':
                                                                                                percentage=args.percentage)
                 # Upload replaced data for analysis
                 Reporter.upload_csv(data=replaced_test_data_cells, file_name="replaced_test_data", save_path=base_path)
+                # Upload index replacement for data analysis
+                Reporter.upload_csv(data=pd.DataFrame.from_dict(index_replacements).T, file_name="index_replacements",
+                                    save_path=base_path)
 
                 distances = pd.DataFrame(data=nan_euclidean_distances(replaced_test_data_cells,
                                                                       replaced_test_data_cells,
                                                                       missing_values=0))  # distance between rows of X
-
 
                 # Reporter.upload_csv(data=distances, file_name="euclidean_distances", save_path=base_path)
                 Reporter.upload_csv(data=test_data, file_name="normalized_test_data", save_path=base_path)
@@ -191,6 +200,10 @@ if __name__ == '__main__':
                                                                        missing_values=0,
                                                                        n_neighbors=neighbor_count)
 
+                    # Upload the imputed cells
+                    Reporter.upload_csv(data=imputed_cells, save_path=base_path, file_name="imputed_cells",
+                                        mlflow_folder=folder_name)
+
                     print("Evaluating r2 scores...")
                     r2_scores = KNNImputation.evaluate_performance(features=features,
                                                                    index_replacements=index_replacements,
@@ -201,6 +214,34 @@ if __name__ == '__main__':
                                               mlflow_folder=folder_name,
                                               prefix="imputed")
 
+                    r2_scores["Origin"] = f"{run_option} {neighbor_count}"
+                    combined_r2_score_data.append(r2_scores)
+
+                    if neighbor_count == max_neighbors - 1:
+                        nearest_neighbors_indices = nearest_neighbors_indices.T
+                        nearest_neighbors_indices.rename(columns={0: "Base Cell"}, inplace=True)
+                        nearest_neighbors_indices["Origin"] = f"{run_option} {neighbor_count}"
+                        combined_nearest_neighbor_indices_data.append(nearest_neighbors_indices)
+
+                        phenotypes["Origin"] = f"{run_option} {neighbor_count}"
+                        combined_mapped_phenotype_data.append(phenotypes)
+
+                        imputed_cells["Origin"] = f"{run_option} {neighbor_count}"
+                        combined_imputed_data.append(imputed_cells)
+
+            combined_r2_scores = pd.concat([scores for scores in combined_r2_score_data])
+            combined_nearest_neighbors = pd.concat(
+                [nearest_neighbors for nearest_neighbors in combined_nearest_neighbor_indices_data])
+            combined_mapped_phenotypes = pd.concat([phenotype for phenotype in combined_mapped_phenotype_data])
+            combined_imputed_cells = pd.concat([imputed_data for imputed_data in combined_imputed_data])
+
+            Reporter.upload_csv(data=combined_r2_scores, file_name="combined_r2_scores", save_path=base_path)
+            Reporter.upload_csv(data=combined_nearest_neighbors, file_name="combined_nearest_neighbors",
+                                save_path=base_path)
+            Reporter.upload_csv(data=combined_mapped_phenotypes, file_name="combined_mapped_phenotypes",
+                                save_path=base_path)
+            Reporter.upload_csv(data=combined_imputed_cells, file_name="combined_imputed_data",
+                                save_path=base_path)
 
 
     except BaseException as ex:
