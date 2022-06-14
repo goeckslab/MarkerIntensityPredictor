@@ -85,13 +85,28 @@ if __name__ == '__main__':
             run_options: list = ["no_spatial", "spatial"]
             min_neighbors = 2
             max_neighbors = 7
-            amount_of_neighbors = np.arange(2, 7)
+            amount_of_neighbors = np.arange(min_neighbors, max_neighbors)
+
+            # Load the dataset for data information collection
+            test_cells, features = DataLoader.load_single_cell_data(file_name=args.file,
+                                                                    keep_spatial=True)
+
+            # Create index replacements
+            index_replacements: Dict = Replacer.select_index_and_features_to_replace(features=features,
+                                                                                     length_of_data=test_cells.shape[0],
+                                                                                     percentage=args.percentage)
+
+            # Upload index replacement for data analysis
+            Reporter.upload_csv(data=pd.DataFrame.from_dict(index_replacements).T, file_name="index_replacements",
+                                save_path=base_path)
 
             # R2 data for all runs and all options
             combined_r2_score_data: List = []
             combined_nearest_neighbor_indices_data: List = []
             combined_mapped_phenotype_data: List = []
             combined_imputed_data: List = []
+            combined_replaced_cell_data: List = []
+            combined_euclidean_distances_data: List = []
 
             for run_option in run_options:
                 print(f"Processing {run_option}")
@@ -100,6 +115,9 @@ if __name__ == '__main__':
                 train_cells, features, files_used = DataLoader.load_files_in_folder(folder=args.folder,
                                                                                     file_to_exclude=args.file,
                                                                                     keep_spatial=spatial)
+
+                mlflow.log_param("Run Option Files Used", files_used)
+
                 train_data = pd.DataFrame(data=Preprocessing.normalize(train_cells.copy()), columns=features)
 
                 # Load the test dataset
@@ -111,14 +129,8 @@ if __name__ == '__main__':
                                                                   create_dataframe=True)
 
                 # Replace values and return indices
-                replaced_test_data_cells, index_replacements = Replacer.replace_values_by_cell(data=test_data,
-                                                                                               features=features,
-                                                                                               percentage=args.percentage)
-                # Upload replaced data for analysis
-                Reporter.upload_csv(data=replaced_test_data_cells, file_name="replaced_test_data", save_path=base_path)
-                # Upload index replacement for data analysis
-                Reporter.upload_csv(data=pd.DataFrame.from_dict(index_replacements).T, file_name="index_replacements",
-                                    save_path=base_path)
+                replaced_test_data_cells = Replacer.replace_values_by_cell(data=test_data,
+                                                                           index_replacements=index_replacements)
 
                 distances = pd.DataFrame(data=nan_euclidean_distances(replaced_test_data_cells,
                                                                       replaced_test_data_cells,
@@ -133,15 +145,16 @@ if __name__ == '__main__':
                     # Get the indices of the nearest neighbors
 
                     N = neighbor_count + 1
-                    nearest_neighbors_indices = pd.DataFrame(
-                        distances.index[np.argsort(-distances.values, axis=0)[-1:-1 - N:-1]],
-                        columns=distances.columns)
+                    # Select the nearest neighbors ascending
+                    nearest_neighbors_indices = pd.DataFrame(np.argsort(distances.values, axis=0)[:N],
+                                                             columns=distances.columns)
 
                     # Upload nearest neighbor indices
                     Reporter.upload_csv(data=nearest_neighbors_indices, save_path=base_path,
                                         file_name="nearest_neighbor_indices", mlflow_folder=folder_name)
 
                     cell_phenotypes: pd.DataFrame = DataLoader.load_file(args.phenotypes)
+                    cell_phenotypes.drop(columns=["imageid"], inplace=True)
                     phenotypes = PhenotypeMapper.map_nn_to_phenotype(nearest_neighbors=nearest_neighbors_indices,
                                                                      phenotypes=cell_phenotypes,
                                                                      neighbor_count=neighbor_count)
@@ -229,11 +242,20 @@ if __name__ == '__main__':
                         imputed_cells["Origin"] = f"{run_option} {neighbor_count}"
                         combined_imputed_data.append(imputed_cells)
 
+                        replaced_test_data_cells["Origin"] = f"{run_option} {neighbor_count}"
+                        combined_replaced_cell_data.append(replaced_test_data_cells)
+
+                        euclidean_distances_per_cell["Origin"] = f"{run_option} {neighbor_count}"
+                        combined_euclidean_distances_data.append(euclidean_distances_per_cell)
+
             combined_r2_scores = pd.concat([scores for scores in combined_r2_score_data])
             combined_nearest_neighbors = pd.concat(
                 [nearest_neighbors for nearest_neighbors in combined_nearest_neighbor_indices_data])
             combined_mapped_phenotypes = pd.concat([phenotype for phenotype in combined_mapped_phenotype_data])
             combined_imputed_cells = pd.concat([imputed_data for imputed_data in combined_imputed_data])
+            combined_replaced_data = pd.concat([replaced_cells for replaced_cells in combined_replaced_cell_data])
+            combined_euclidean_distances = pd.concat(
+                [euclidian_distances for euclidian_distances in combined_euclidean_distances_data])
 
             Reporter.upload_csv(data=combined_r2_scores, file_name="combined_r2_scores", save_path=base_path)
             Reporter.upload_csv(data=combined_nearest_neighbors, file_name="combined_nearest_neighbors",
@@ -242,7 +264,9 @@ if __name__ == '__main__':
                                 save_path=base_path)
             Reporter.upload_csv(data=combined_imputed_cells, file_name="combined_imputed_data",
                                 save_path=base_path)
-
+            Reporter.upload_csv(data=combined_replaced_data, file_name="combined_replaced_data", save_path=base_path)
+            Reporter.upload_csv(data=combined_euclidean_distances, file_name="combined_euclidean_distances",
+                                save_path=base_path)
 
     except BaseException as ex:
         raise

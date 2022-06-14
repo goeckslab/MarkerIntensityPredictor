@@ -72,6 +72,12 @@ if __name__ == '__main__':
 
         run_name: str = f"KNN Distance Based Data Imputation Percentage {args.percentage}"
 
+        cells, features = DataLoader.load_single_cell_data(file_name=args.file)
+
+        # Create replacements
+        index_replacements = Replacer.select_index_and_features_to_replace(features=features,
+                                                                           length_of_data=cells.shape[0],
+                                                                           percentage=args.percentage)
         # Load phenotypes
         phenotypes_per_cell: pd.DataFrame = DataLoader.load_file(load_path=args.phenotypes)
 
@@ -100,9 +106,8 @@ if __name__ == '__main__':
 
             # Replace values and return indices
             print("Replacing values...")
-            replaced_test_data_cells, index_replacements = Replacer.replace_values_by_cell(data=test_data,
-                                                                                           features=features,
-                                                                                           percentage=args.percentage)
+            replaced_test_data_cells = Replacer.replace_values_by_cell(data=test_data,
+                                                                       index_replacements=index_replacements)
 
             # Calculate distance matrix
             print("Calculating distance matrix...")

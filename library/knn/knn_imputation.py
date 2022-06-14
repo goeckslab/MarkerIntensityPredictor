@@ -45,7 +45,7 @@ class KNNImputation:
                     cell_indexes_to_compare.append(key)
 
             score_data.append({
-                "Marker": feature,
+                "Feature": feature,
                 "Score": r2_score(test_data[feature].iloc[cell_indexes_to_compare],
                                   imputed_data[feature].iloc[cell_indexes_to_compare])
             })
