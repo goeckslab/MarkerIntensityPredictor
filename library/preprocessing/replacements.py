@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from typing import Tuple
+from typing import Tuple, List, Dict
 import random
 import copy
 
@@ -32,25 +32,36 @@ class Replacer:
             return data, indexes
 
     @staticmethod
-    def replace_values_by_cell(data: pd.DataFrame, features: list, percentage: float) -> (pd.DataFrame, dict):
-        df = data.copy()
-        replaced_feature_per_index: dict = {}
-
+    def select_index_and_features_to_replace(features: List, length_of_data: int, percentage: float) -> Dict:
+        """
+        Based on the available features and the length of the data, features will be selected for each row
+        @param features:
+        @param length_of_data:
+        @param percentage:
+        @return: A dict containing the index and the features which should be replaced
+        """
         available_features = copy.deepcopy(features)
-        # Remove x and y from features
 
         if "Y_centroid" in available_features:
             available_features.remove("Y_centroid")
         if "X_centroid" in available_features:
             available_features.remove("X_centroid")
 
-        for index, row in df.iterrows():
-            amount_to_replace = 1 if int(len(available_features) * percentage) == 0 else int(
-                len(available_features) * percentage)
+        replaced_feature_per_index: dict = {}
+        amount_to_replace = 1 if int(len(available_features) * percentage) == 0 else int(
+            len(available_features) * percentage)
 
+        for index in range(length_of_data):
             features_to_replace: list = random.sample(available_features, amount_to_replace)
             replaced_feature_per_index[index] = features_to_replace
-            for feature_to_replace in features_to_replace:
-                df.at[index, feature_to_replace] = 0
 
-        return df, replaced_feature_per_index
+        return replaced_feature_per_index
+
+    @staticmethod
+    def replace_values_by_cell(data: pd.DataFrame, index_replacements: Dict) -> pd.DataFrame:
+        df = data.copy()
+
+        for key, values in index_replacements.items():
+            df.at[key, values] = 0
+
+        return df
