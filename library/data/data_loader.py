@@ -2,7 +2,7 @@ import pandas as pd
 from pathlib import Path
 import re
 import os
-from typing import Tuple, Optional, Union, Dict
+from typing import Tuple, Optional, Union, Dict, List
 from tqdm import tqdm
 
 
@@ -23,12 +23,19 @@ class DataLoader:
         path = Path(file_name)
         cells = pd.read_csv(path, header=0)
 
-        columns_to_keep: list = cells.copy().filter(regex="nucleiMasks$", axis=1).filter(regex="^(?!(DAPI|AF))",
-                                                                                         axis=1).columns.tolist()
-        columns_to_keep.remove('ERK1_2_nucleiMasks')
+        if "goat-anti-rabbit" in cells.columns:
+            columns_to_keep: List = ["pERK", "Rad51", "CCND1", "Vimentin", "aSMA", "Ecad", "ER", "PR", "EGFR", "pRB",
+                                     "CD45", "Ki67", "CK19", "p21", "CK14", "AR", "cPARP", "CK17", "CK7", "HER2"]
+
+        else:
+            columns_to_keep: list = cells.copy().filter(regex="nucleiMasks$", axis=1).filter(regex="^(?!(DAPI|AF))",
+                                                                                             axis=1).columns.tolist()
+
+        if 'ERK1_2_nucleiMasks' in columns_to_keep:
+            columns_to_keep.remove('ERK1_2_nucleiMasks')
 
         if keep_morph:
-            columns_to_keep.extend(["Area", "MajorAxisLength", "MinorAxisLength", "Solidity", "Extent"])
+            columns_to_keep.extend(["Area", "MajorAxisLength", "MinorAxisLength", "Solidity", "Extent", "Eccentricity"])
 
         if keep_spatial:
             columns_to_keep.extend(["X_centroid", "Y_centroid"])
