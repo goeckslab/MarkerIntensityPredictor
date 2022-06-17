@@ -58,10 +58,10 @@ class Replacer:
         return replaced_feature_per_index
 
     @staticmethod
-    def replace_values_by_cell(data: pd.DataFrame, index_replacements: Dict) -> pd.DataFrame:
+    def replace_values_by_cell(data: pd.DataFrame, index_replacements: Dict, value_to_replace=np.nan) -> pd.DataFrame:
         df = data.copy()
 
         for key, values in index_replacements.items():
-            df.at[key, values] = 0
+            df.at[key, values] = value_to_replace
 
         return df

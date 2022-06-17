@@ -10,12 +10,13 @@ class DataLoader:
 
     @staticmethod
     def load_single_cell_data(file_name: str, keep_morph: bool = True, keep_spatial: bool = False,
-                              return_df: bool = False):
+                              return_df: bool = False, return_marker_columns: bool = False):
         """
         Loads the marker data, given the provided information
         @param file_name: The file name to load from the os
         @param keep_morph: Keep morphological features or sort them out? Default to true
         @param keep_spatial: Keep spatial features or sort them out? Default to false
+        @param return_df: Returns a dataframe instead of a tuple
         @return:
         """
         columns_to_remove = ["CellID", "ERK1_2_nucleiMasks", "Orientation"]
@@ -24,12 +25,14 @@ class DataLoader:
         cells = pd.read_csv(path, header=0)
 
         if "goat-anti-rabbit" in cells.columns:
-            columns_to_keep: List = ["pERK", "Rad51", "CCND1", "Vimentin", "aSMA", "Ecad", "ER", "PR", "EGFR", "pRB",
-                                     "CD45", "Ki67", "CK19", "p21", "CK14", "AR", "cPARP", "CK17", "CK7", "HER2"]
+            marker_columns = ["pERK", "Rad51", "CCND1", "Vimentin", "aSMA", "Ecad", "ER", "PR", "EGFR", "pRB",
+                              "CD45", "Ki67", "CK19", "p21", "CK14", "AR", "cPARP", "CK17", "CK7", "HER2"]
+            columns_to_keep: List = marker_columns.copy()
 
         else:
             columns_to_keep: list = cells.copy().filter(regex="nucleiMasks$", axis=1).filter(regex="^(?!(DAPI|AF))",
                                                                                              axis=1).columns.tolist()
+            marker_columns = columns_to_keep.copy()
 
         if 'ERK1_2_nucleiMasks' in columns_to_keep:
             columns_to_keep.remove('ERK1_2_nucleiMasks')
@@ -63,8 +66,13 @@ class DataLoader:
             column = re.sub("_nucleiMasks", "", column)
             assert f"{column}" not in features, f"{column} should not be in features"
 
-        if return_df:
+        if return_df and return_marker_columns:
+            return pd.DataFrame(data=new_cells, columns=features), marker_columns
+        elif return_df and not return_marker_columns:
             return pd.DataFrame(data=new_cells, columns=features)
+
+        elif not return_df and return_marker_columns:
+            return new_cells.iloc[:, :], features, marker_columns
         else:
             # return cells, markers
             return new_cells.iloc[:, :], features
@@ -172,11 +180,13 @@ class DataLoader:
         return combined_weights
 
     @staticmethod
-    def load_files_in_folder(folder: str, file_to_exclude: str, keep_spatial: bool = False) -> Tuple:
+    def load_files_in_folder(folder: str, file_to_exclude: str, keep_spatial: bool = False,
+                             attach_phenotypes: bool = False) -> Tuple:
         """
         Loads all files in a folder, but excluding the file to exclude
         @param folder:
         @param file_to_exclude:
+        @param keep_spatial:
         @return: Returns a tuple. First is the dataset, second are the features, third is a list of all files used
         """
         files_used: list = []
@@ -196,6 +206,10 @@ class DataLoader:
                 continue
 
             cells, features = DataLoader.load_single_cell_data(file_name=str(path), keep_spatial=keep_spatial)
+
+            if attach_phenotypes:
+                cells["Phenotype"] = DataLoader.load_phenotypes(path)["phenotype"].values
+
             frames.append(cells)
             files_used.append(path.stem)
 
@@ -209,3 +223,9 @@ class DataLoader:
         data_set.columns = features
 
         return data_set, features, files_used
+
+    @staticmethod
+    def load_phenotypes(file_path: Path) -> pd.DataFrame:
+        file_path: str = file_path.stem
+
+        return pd.read_csv(f"{Path(__file__).parent.parent.parent}/phenotypes/{file_path}_phenotypes.csv")

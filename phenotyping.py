@@ -16,8 +16,8 @@ def get_args():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--file", "-f", action="store", required=True, type=str, help="The file to phenotype")
-    parser.add_argument("--imageId", "-iid", action="store", required=True, type=str,
-                        help="The image id being processed")
+    # parser.add_argument("--imageId", "-iid", action="store", required=True, type=str,
+    #                    help="The image id being processed")
 
     return parser.parse_args()
 
@@ -69,9 +69,9 @@ conditions: List = [
 phenotype_workflow = pd.DataFrame(columns=columns).from_records(conditions)
 
 adata = ad.AnnData(cells)
-adata.obs['imageid'] = args.imageId
-adata = sm.pp.rescale(adata)
 file_name: str = Path(args.file).stem
+adata.obs['imageid'] = file_name.split('_')[-1]
+adata = sm.pp.rescale(adata)
 
 phenotype = pd.read_csv("/Users/kirchgae/Downloads/tumor_phenotypes.csv", sep=',')
 adata = sm.tl.phenotype_cells(adata, phenotype=phenotype, label="phenotype")

@@ -6,12 +6,15 @@ from typing import List, Dict
 import pandas as pd
 import time
 from tqdm import tqdm
+from sklearn.impute import KNNImputer
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import argparse
 from library import DataLoader, FolderManagement, ExperimentHandler, RunHandler, Replacer, Reporter, Preprocessing, \
-    KNNImputation
-from sklearn.metrics import nan_euclidean_distances, r2_score
+    KNNImputation, FeatureEngineer
+from sklearn.metrics import euclidean_distances, r2_score
+from sklearn.neighbors import BallTree
+from sklearn.preprocessing import LabelEncoder
 
 results_folder = Path("knn_distance_imputation")
 
@@ -51,6 +54,10 @@ def map_indexes_to_phenotype(x, phenotypes: pd.DataFrame):
     return phenotypes
 
 
+def most_frequent(cell_neighbor_hood: List):
+    return max(set(cell_neighbor_hood), key=cell_neighbor_hood.count)
+
+
 if __name__ == '__main__':
     args = get_args()
 
@@ -59,146 +66,112 @@ if __name__ == '__main__':
     if len(args.distance) < 2 or len(args.distance) > 2:
         raise ValueError("Please specify only a maximum and minimum distance")
 
+    experiment_handler: ExperimentHandler = ExperimentHandler(tracking_url=args.tracking_url)
+    run_handler: RunHandler = RunHandler(tracking_url=args.tracking_url)
+
+    experiment_name = args.experiment
+    # The id of the associated
+    associated_experiment_id = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name,
+                                                                            create_experiment=True)
+
+    mlflow.set_experiment(experiment_id=associated_experiment_id)
+
     FolderManagement.create_directory(path=results_folder)
 
     try:
         min_distance: float = float(args.distance[0])
         max_distance: float = float(args.distance[1])
 
-        distance_grid = np.linspace(min_distance, max_distance, 10)
-        print(distance_grid)
-
-        run_options: List = ["spatial", "no_spatial"]
+        radius_grid = [30, 45, 60, 75, 100]
 
         run_name: str = f"KNN Distance Based Data Imputation Percentage {args.percentage}"
 
-        cells, features = DataLoader.load_single_cell_data(file_name=args.file)
-
+        run_handler.delete_runs_and_child_runs(experiment_id=associated_experiment_id, run_name=run_name)
+        
+        cells = DataLoader.load_single_cell_data(file_name=args.file, keep_spatial=True, return_df=True)
         # Create replacements
-        index_replacements = Replacer.select_index_and_features_to_replace(features=features,
+        index_replacements = Replacer.select_index_and_features_to_replace(features=list(cells.columns),
                                                                            length_of_data=cells.shape[0],
                                                                            percentage=args.percentage)
-        # Load phenotypes
-        phenotypes_per_cell: pd.DataFrame = DataLoader.load_file(load_path=args.phenotypes)
 
-        knn_imputer_instances: Dict = {}
+        imputed_cell_data: List = []
+        replaced_cells_data: List = []
+        test_cell_data: List = []
 
-        # The run data
-        r2_score_data: List = []
-        for run_option in run_options:
-            use_spatial_information: bool = True if run_option == "spatial" else False
+        bulk_engineer: FeatureEngineer = FeatureEngineer(folder=args.folder, file_to_exclude=args.file,
+                                                         radius=0)
 
-            # Load the train dataset
-            train_data, features = DataLoader.load_files_in_folder(folder=args.folder, file_to_exclude=args.file,
-                                                                   keep_spatial=use_spatial_information)
+        test_data_engineer = FeatureEngineer = FeatureEngineer(file=args.file, radius=0)
 
-            # Normalize train data set
-            train_data: pd.DataFrame = Preprocessing.normalize(data=train_data, columns=features,
-                                                               create_dataframe=True)
+        with mlflow.start_run(experiment_id=associated_experiment_id, run_name=run_name) as run:
+            for radius in radius_grid:
+                folder_name: str = f"radius_{radius}"
 
-            # Load the test dataset
-            test_cells, _ = DataLoader.load_single_cell_data(file_name=args.file,
-                                                             keep_spatial=use_spatial_information)
+                bulk_engineer.radius = radius
+                print(f"Radius {bulk_engineer.radius}")
+                bulk_engineer.start_processing()
 
-            # Normalize test data set
-            test_data: pd.DataFrame = Preprocessing.normalize(data=test_cells.copy(), columns=features,
-                                                              create_dataframe=True)
+                # Report to mlflow
+                for key, data in bulk_engineer.results.items():
+                    Reporter.upload_csv(data=data, save_path=results_folder, file_name=f"engineered_{key}",
+                                        mlflow_folder=folder_name)
 
-            # Replace values and return indices
-            print("Replacing values...")
-            replaced_test_data_cells = Replacer.replace_values_by_cell(data=test_data,
-                                                                       index_replacements=index_replacements)
+                train_data = pd.concat(list(bulk_engineer.results.values()))
 
-            # Calculate distance matrix
-            print("Calculating distance matrix...")
-            euclidean_distances = pd.DataFrame(data=nan_euclidean_distances(replaced_test_data_cells,
-                                                                            replaced_test_data_cells,
-                                                                            missing_values=0))  # distance between rows of X
+                test_data_engineer.radius = 30
+                test_data_engineer.start_processing()
 
-            # Train knn imputer
+                test_data = list(test_data_engineer.results.values())[0]
+                # Report to mlflow
+                Reporter.upload_csv(data=test_data, save_path=results_folder, file_name=f"test_data_engineered",
+                                    mlflow_folder=folder_name)
 
-            for distance in distance_grid:
-                print(f"Finding nearest neighbors for distance {distance}")
+                replaced_test_data = Replacer.replace_values_by_cell(data=test_data,
+                                                                     index_replacements=index_replacements)
 
-                distance_mask = euclidean_distances[euclidean_distances <= distance].notnull()
+                # Report to mlflow
+                Reporter.upload_csv(data=replaced_test_data, file_name="replaced_test_data", mlflow_folder=folder_name,
+                                    save_path=results_folder)
 
-                print("Retrieving indexes...")
-                nearest_cell_indexes: pd.DataFrame = distance_mask.apply(get_indexes, axis=1)
+                columns_to_select = list(set(replaced_test_data.columns) - {"X_centroid", "Y_centroid", "Phenotype",
+                                                                            "Cell Neighborhood"})
+                print("Imputing data")
+                imputer = KNNImputer(n_neighbors=2)
+                imputed_cells = KNNImputation.impute(train_data=train_data[columns_to_select],
+                                                     test_data=replaced_test_data[columns_to_select],
+                                                     missing_values=np.nan)
 
-                if nearest_cell_indexes.apply(lambda x: len(x) == 0).any():
-                    print(f"Found empty cells for distance {distance}. Skipping...")
-                    continue
+                print(imputed_cells)
+                Reporter.upload_csv(data=imputed_cells, file_name="imputed_cells", mlflow_folder=folder_name,
+                                    save_path=results_folder)
 
-                # Save for later processing
-                # Reporter.upload_csv(data=cell_cluster_information,
-                #                    file_name=f"{run_option}_{distance}_cell_cluster_information",
-                #                    save_path=results_folder)
+                imputed_cells["Radius"] = radius
+                imputed_cell_data.append(imputed_cells)
 
-                print("Started imputation...")
-                imputed_cells: List = []
-                for origin_cell_data in tqdm(nearest_cell_indexes.iteritems()):
+                replaced_test_data["Radius"] = radius
+                replaced_cells_data.append(replaced_test_data)
 
-                    origin_cell = origin_cell_data[0]
-                    neighbor_cell_indexes = origin_cell_data[1]
+                test_data["Radius"] = radius
+                test_cell_data.append(test_data)
 
-                    # Origin cell is a first position
-                    neighbor_cell_indexes.insert(0, origin_cell)
+            combined_imputed_cells = pd.concat([data for data in imputed_cell_data])
+            combined_replaced_cells = pd.concat([data for data in replaced_cells_data])
+            combined_test_cells = pd.concat([data for data in test_cell_data])
 
-                    # Select the cell environment for the specific distance
-                    cell_micro_environment_with_origin: pd.DataFrame = replaced_test_data_cells.iloc[
-                        neighbor_cell_indexes]
+            Reporter.upload_csv(data=combined_imputed_cells, file_name="combined_imputed_cells",
+                                save_path=results_folder)
 
-                    # Select only cells which are not origin cell
-                    prepared_cell_micro_environment = cell_micro_environment_with_origin[1:]
+            Reporter.upload_csv(data=combined_replaced_cells, file_name="combined_replaced_cells",
+                                save_path=results_folder)
 
-                    # Get train imputer instance
-
-                    neighbor_count: int = prepared_cell_micro_environment.shape[0]
-                    knn_imputer = knn_imputer_instances.get(f"{distance}_{run_option}_{neighbor_count}")
-
-                    # Train new imputer
-                    if knn_imputer is None:
-                        print(f"Fitting new imputer for neighbor count {neighbor_count}")
-                        knn_imputer = KNNImputation.fit_imputer(train_data=train_data, missing_values=0,
-                                                                n_neighbors=neighbor_count)
-                        knn_imputer_instances[f"{distance}_{run_option}_{neighbor_count}"] = knn_imputer
-
-                    # Imputed data for the cell
-                    print("Imputing data...")
-                    cell_imputed_data = knn_imputer.transform(X=cell_micro_environment_with_origin)
-                    imputed_cells.append(cell_imputed_data[0, :])
-
-                imputed_data: pd.DataFrame = pd.concat(imputed_cells)
-
-                for feature in features:
-                    if "X_centroid" in feature or "Y_centroid" in feature:
-                        continue
-
-                    # Store all cell indexes, to be able to select the correct cells later for r2 comparison
-                    cell_indexes_to_compare: list = []
-                    for key, replaced_features in index_replacements.items():
-                        if feature in replaced_features:
-                            cell_indexes_to_compare.append(key)
-
-                    r2_score_data.append({
-                        "Marker": feature,
-                        "Score": r2_score(test_data[feature].iloc[cell_indexes_to_compare],
-                                          imputed_data[feature].iloc[cell_indexes_to_compare]),
-                        "Distance": distance,
-                        "Spatial": "Y" if run_option == "spatial" else "N",
-                    })
-
-        # Create dataframe
-        imputed_r2_scores: pd.DataFrame = pd.DataFrame().from_records(r2_score_data)
-
-        # Upload dataframe
-        Reporter.report_r2_scores(r2_scores=imputed_r2_scores, prefix="imputed", save_path=results_folder,
-                                  use_mlflow=False)
+            Reporter.upload_csv(data=combined_test_cells, file_name="combined_test_cells",
+                                save_path=results_folder)
 
 
-    except:
+
+
+    except BaseException as ex:
         raise
 
     finally:
-        # FolderManagement.delete_directory(path=results_folder)
-        pass
+        FolderManagement.delete_directory(path=results_folder)
