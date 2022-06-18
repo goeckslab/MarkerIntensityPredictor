@@ -18,6 +18,7 @@ class FeatureEngineer:
             self._path_list: List = list(Path(self._folder).glob('**/*.csv'))
         self._file: str = file
         self._results: Dict = {}
+        self._phenotypes: Dict = {}
 
         if file_to_exclude is None and file is None:
             raise ValueError(
@@ -35,9 +36,14 @@ class FeatureEngineer:
     def radius(self, value):
         self._radius = value
 
+    @property
+    def phenotypes(self):
+        return self._phenotypes
+
     def start_processing(self):
         # Reset results
         self._results = {}
+        self._phenotypes = {}
 
         if self._file is not None:
             self.__prepare_data(self._file)
@@ -69,6 +75,7 @@ class FeatureEngineer:
         print("Creating new features...")
         data = self.__create_new_features(data=data, marker_columns=marker_columns)
         self._results[path.stem] = data
+        self._phenotypes[path.stem] = data["Phenotype"]
 
     def __create_new_features(self, data: pd.DataFrame, marker_columns: List) -> pd.DataFrame:
         tree = BallTree(data[["X_centroid", "Y_centroid"]], leaf_size=2)
