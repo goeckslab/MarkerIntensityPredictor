@@ -39,6 +39,8 @@ def get_args():
                         default=0.2, required=False, type=float)
     parser.add_argument("--morph", action="store_true", help="Include morphological data", default=True)
     parser.add_argument("--phenotypes", "-ph", action="store", required=False, help="The phenotype association")
+    parser.add_argument("--index_replacements", "-ir", action="store", required=False,
+                        help="The index replacements with markers to replicate experiments")
 
     return parser.parse_args()
 
@@ -88,13 +90,22 @@ if __name__ == '__main__':
             amount_of_neighbors = np.arange(min_neighbors, max_neighbors)
 
             # Load the dataset for data information collection
-            test_cells, features = DataLoader.load_single_cell_data(file_name=args.file,
-                                                                    keep_spatial=True)
+            cells, features = DataLoader.load_single_cell_data(file_name=args.file,
+                                                               keep_spatial=True)
 
-            # Create index replacements
-            index_replacements: Dict = Replacer.select_index_and_features_to_replace(features=features,
-                                                                                     length_of_data=test_cells.shape[0],
-                                                                                     percentage=args.percentage)
+            if args.index_replacements is None:
+                # Create replacements
+                index_replacements: Dict = Replacer.select_index_and_features_to_replace(
+                    features=list(cells.columns),
+                    length_of_data=cells.shape[0],
+                    percentage=args.percentage)
+            else:
+                index_replacements_df: pd.DataFrame = pd.read_csv(args.index_replacements)
+                values: List = index_replacements_df.values.tolist()
+                index_replacements: Dict = {}
+                # Convert dataframe back to expected dictionary
+                for i, value in enumerate(values):
+                    index_replacements[i] = value
 
             # Upload index replacement for data analysis
             Reporter.upload_csv(data=pd.DataFrame.from_dict(index_replacements).T, file_name="index_replacements",
@@ -130,7 +141,8 @@ if __name__ == '__main__':
 
                 # Replace values and return indices
                 replaced_test_data_cells = Replacer.replace_values_by_cell(data=test_data,
-                                                                           index_replacements=index_replacements)
+                                                                           index_replacements=index_replacements,
+                                                                           value_to_replace=0)
 
                 distances = pd.DataFrame(data=nan_euclidean_distances(replaced_test_data_cells,
                                                                       replaced_test_data_cells,

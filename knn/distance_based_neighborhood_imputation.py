@@ -32,13 +32,13 @@ def get_args():
                         default="http://127.0.0.1:5000")
     parser.add_argument("--percentage", "-p", action="store", help="The percentage of data being replaced",
                         default=0.2, required=False, type=float)
-    parser.add_argument("--distance", "-d", nargs='+', action="store", required=True,
-                        help="The max distance from a centroid.")
     parser.add_argument("--phenotypes", "-ph", action="store", required=True, help="The phenotype association")
     parser.add_argument("--file", "-f", action="store", required=True,
                         help="The file to use for imputation. Will be excluded from training")
     parser.add_argument("--folder", action="store", required=True,
                         help="The folder to use for training the KNN")
+    parser.add_argument("--index_replacements", "-ir", action="store", required=False,
+                        help="The index replacements with markers to replicate experiments")
 
     return parser.parse_args()
 
@@ -54,17 +54,10 @@ def map_indexes_to_phenotype(x, phenotypes: pd.DataFrame):
     return phenotypes
 
 
-def most_frequent(cell_neighbor_hood: List):
-    return max(set(cell_neighbor_hood), key=cell_neighbor_hood.count)
-
-
 if __name__ == '__main__':
     args = get_args()
 
     results_folder = Path(f"{results_folder}_{str(int(time.time_ns() / 1000))}")
-
-    if len(args.distance) < 2 or len(args.distance) > 2:
-        raise ValueError("Please specify only a maximum and minimum distance")
 
     experiment_handler: ExperimentHandler = ExperimentHandler(tracking_url=args.tracking_url)
     run_handler: RunHandler = RunHandler(tracking_url=args.tracking_url)
@@ -79,20 +72,27 @@ if __name__ == '__main__':
     FolderManagement.create_directory(path=results_folder)
 
     try:
-        min_distance: float = float(args.distance[0])
-        max_distance: float = float(args.distance[1])
 
-        radius_grid = [30, 45, 60, 75, 100]
+        radius_grid = [50, 150, 300, 450, 600]
 
         run_name: str = f"KNN Distance Based Data Imputation Percentage {args.percentage}"
 
         run_handler.delete_runs_and_child_runs(experiment_id=associated_experiment_id, run_name=run_name)
-        
+
         cells = DataLoader.load_single_cell_data(file_name=args.file, keep_spatial=True, return_df=True)
-        # Create replacements
-        index_replacements = Replacer.select_index_and_features_to_replace(features=list(cells.columns),
-                                                                           length_of_data=cells.shape[0],
-                                                                           percentage=args.percentage)
+
+        if args.index_replacements is None:
+            # Create replacements
+            index_replacements: Dict = Replacer.select_index_and_features_to_replace(features=list(cells.columns),
+                                                                                     length_of_data=cells.shape[0],
+                                                                                     percentage=args.percentage)
+        else:
+            index_replacements_df: pd.DataFrame = pd.read_csv(args.index_replacements)
+            values: List = index_replacements_df.values.tolist()
+            index_replacements: Dict = {}
+            # Convert dataframe back to expected dictionary
+            for i, value in enumerate(values):
+                index_replacements[i] = value
 
         imputed_cell_data: List = []
         replaced_cells_data: List = []
@@ -104,6 +104,11 @@ if __name__ == '__main__':
         test_data_engineer = FeatureEngineer = FeatureEngineer(file=args.file, radius=0)
 
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=run_name) as run:
+
+            # Upload index replacement for data analysis
+            Reporter.upload_csv(data=pd.DataFrame.from_dict(index_replacements).T, file_name="index_replacements",
+                                save_path=results_folder)
+
             for radius in radius_grid:
                 folder_name: str = f"radius_{radius}"
 
@@ -141,7 +146,6 @@ if __name__ == '__main__':
                                                      test_data=replaced_test_data[columns_to_select],
                                                      missing_values=np.nan)
 
-                print(imputed_cells)
                 Reporter.upload_csv(data=imputed_cells, file_name="imputed_cells", mlflow_folder=folder_name,
                                     save_path=results_folder)
 
@@ -167,7 +171,9 @@ if __name__ == '__main__':
             Reporter.upload_csv(data=combined_test_cells, file_name="combined_test_cells",
                                 save_path=results_folder)
 
-
+            Reporter.upload_csv(data=test_data_engineer.phenotypes[Path(args.file).stem],
+                                file_name="test_data_phenotypes",
+                                save_path=results_folder)
 
 
     except BaseException as ex:
