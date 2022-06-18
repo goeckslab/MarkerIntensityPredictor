@@ -9,18 +9,18 @@ from sklearn.preprocessing import LabelEncoder
 
 class FeatureEngineer:
 
-    def __init__(self, radius: int, folder: str = None, file_to_exclude: str = None, file: str = None):
-        self._folder: str = folder
+    def __init__(self, radius: int, folder_name: str = None, file_to_exclude: str = None, file_name: str = None):
+        self._folder_name: str = folder_name
         self._file_to_exclude: str = file_to_exclude
         self._radius: int = radius
 
-        if self._folder is not None:
-            self._path_list: List = list(Path(self._folder).glob('**/*.csv'))
-        self._file: str = file
+        if self._folder_name is not None:
+            self._path_list: List = list(Path(self._folder_name).glob('**/*.csv'))
+        self._file_name: str = file_name
         self._results: Dict = {}
         self._phenotypes: Dict = {}
 
-        if file_to_exclude is None and file is None:
+        if file_to_exclude is None and file_name is None:
             raise ValueError(
                 "Please provide either a file to process or a file to exclude combining with a folder to process")
 
@@ -40,13 +40,21 @@ class FeatureEngineer:
     def phenotypes(self):
         return self._phenotypes
 
+    @property
+    def file_name(self):
+        return self._file_name
+
+    @property
+    def folder_name(self):
+        return self._folder_name
+
     def start_processing(self):
         # Reset results
         self._results = {}
         self._phenotypes = {}
 
-        if self._file is not None:
-            self.__prepare_data(self._file)
+        if self._file_name is not None:
+            self.__prepare_data(self._file_name)
             return
 
         for path in self._path_list:

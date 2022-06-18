@@ -98,10 +98,10 @@ if __name__ == '__main__':
         replaced_cells_data: List = []
         test_cell_data: List = []
 
-        bulk_engineer: FeatureEngineer = FeatureEngineer(folder=args.folder, file_to_exclude=args.file,
+        bulk_engineer: FeatureEngineer = FeatureEngineer(folder_name=args.folder, file_to_exclude=args.file,
                                                          radius=0)
 
-        test_data_engineer = FeatureEngineer = FeatureEngineer(file=args.file, radius=0)
+        test_data_engineer = FeatureEngineer = FeatureEngineer(file_name=args.file, radius=0)
 
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=run_name) as run:
 
