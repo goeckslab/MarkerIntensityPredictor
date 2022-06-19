@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     try:
         # Get source experiment
-        source_run_name: str = f"KNN Neighborhood Data Generation Percentage {args.percentage}"
+        source_run_name: str = f"KNN Neighbor Count Based Data Imputation Percentage {args.percentage}"
         source_experiment_id: str = experiment_handler.get_experiment_id_by_name(experiment_name=experiment_name)
 
         runs_in_source_experiment: Dict = run_handler.get_run_and_child_runs(experiment_id=source_experiment_id,

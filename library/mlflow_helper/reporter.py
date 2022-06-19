@@ -1,5 +1,6 @@
 from pathlib import Path
 import mlflow
+from typing import Union
 import pandas as pd
 
 
@@ -76,7 +77,7 @@ class Reporter:
         mlflow.log_artifact(str(save_path), mlflow_folder)
 
     @staticmethod
-    def upload_csv(data: pd.DataFrame, save_path: Path, file_name: str, mlflow_folder: str = None):
+    def upload_csv(data: Union[pd.DataFrame, pd.Series], save_path: Path, file_name: str, mlflow_folder: str = None):
         save_path = Path(save_path, f"{file_name}.csv")
         data.to_csv(save_path, index=False)
         if mlflow_folder is not None:

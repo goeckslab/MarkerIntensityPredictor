@@ -49,7 +49,7 @@ if __name__ == '__main__':
     args = get_args()
     print("Started knn data generation...")
     base_path = Path(f"{base_path}_{str(int(time.time_ns() / 1000))}")
-    run_name: str = f"KNN Neighborhood Data Generation Percentage {args.percentage}"
+    run_name: str = f"KNN Neighbor Count Based Data Imputation Percentage {args.percentage}"
 
     # Create mlflow tracking client
     client = mlflow.tracking.MlflowClient(tracking_uri=args.tracking_url)

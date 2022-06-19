@@ -5,16 +5,12 @@ import numpy as np
 from typing import List, Dict
 import pandas as pd
 import time
-from tqdm import tqdm
 from sklearn.impute import KNNImputer
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import argparse
-from library import DataLoader, FolderManagement, ExperimentHandler, RunHandler, Replacer, Reporter, Preprocessing, \
-    KNNImputation, FeatureEngineer
-from sklearn.metrics import euclidean_distances, r2_score
-from sklearn.neighbors import BallTree
-from sklearn.preprocessing import LabelEncoder
+from library import DataLoader, FolderManagement, ExperimentHandler, RunHandler, Replacer, Reporter, KNNImputation, \
+    FeatureEngineer
 
 results_folder = Path("knn_distance_imputation")
 
@@ -73,7 +69,7 @@ if __name__ == '__main__':
 
     try:
 
-        radius_grid = [50, 150, 300, 450, 600]
+        radius_grid = [30, 50, 75, 100, 125]
 
         run_name: str = f"KNN Distance Based Data Imputation Percentage {args.percentage}"
 
@@ -123,7 +119,7 @@ if __name__ == '__main__':
 
                 train_data = pd.concat(list(bulk_engineer.results.values()))
 
-                test_data_engineer.radius = 30
+                test_data_engineer.radius = radius
                 test_data_engineer.start_processing()
 
                 test_data = list(test_data_engineer.results.values())[0]
@@ -174,6 +170,8 @@ if __name__ == '__main__':
             Reporter.upload_csv(data=test_data_engineer.phenotypes[Path(args.file).stem],
                                 file_name="test_data_phenotypes",
                                 save_path=results_folder)
+
+            Reporter.upload_csv(data=pd.Series(cells.columns), file_name="features_to_impute", save_path=results_folder)
 
 
     except BaseException as ex:
