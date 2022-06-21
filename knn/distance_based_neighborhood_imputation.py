@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
     try:
 
-        radius_grid = [30, 50, 75, 100, 125]
+        radius_grid = [10, 20, 30, 50, 75, 100]
 
         run_name: str = f"KNN Distance Based Data Imputation Percentage {args.percentage}"
 
@@ -137,7 +137,7 @@ if __name__ == '__main__':
                 columns_to_select = list(set(replaced_test_data.columns) - {"X_centroid", "Y_centroid", "Phenotype",
                                                                             "Cell Neighborhood"})
                 print("Imputing data")
-                imputer = KNNImputer(n_neighbors=2)
+                imputer = KNNImputer(n_neighbors=6)
                 imputed_cells = KNNImputation.impute(train_data=train_data[columns_to_select],
                                                      test_data=replaced_test_data[columns_to_select],
                                                      missing_values=np.nan)
