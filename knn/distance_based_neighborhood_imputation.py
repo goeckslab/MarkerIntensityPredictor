@@ -171,7 +171,16 @@ if __name__ == '__main__':
                                 file_name="test_data_phenotypes",
                                 save_path=results_folder)
 
-            Reporter.upload_csv(data=pd.Series(cells.columns), file_name="features_to_impute", save_path=results_folder)
+            features_to_impute = list(cells.columns)
+
+            if "X_centroid" in features_to_impute:
+                features_to_impute.remove("X_centroid")
+
+            if "Y_centroid" in features_to_impute:
+                features_to_impute.remove("Y_centroid")
+
+            Reporter.upload_csv(data=pd.Series(features_to_impute), file_name="features_to_impute",
+                                save_path=results_folder)
 
 
     except BaseException as ex:
