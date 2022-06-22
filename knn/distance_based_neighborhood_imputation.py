@@ -97,7 +97,7 @@ if __name__ == '__main__':
         bulk_engineer: FeatureEngineer = FeatureEngineer(folder_name=args.folder, file_to_exclude=args.file,
                                                          radius=0)
 
-        test_data_engineer = FeatureEngineer = FeatureEngineer(file_name=args.file, radius=0)
+        test_data_engineer = FeatureEngineer = FeatureEngineer(file_path=args.file, radius=0)
 
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=run_name) as run:
 
@@ -110,19 +110,19 @@ if __name__ == '__main__':
 
                 bulk_engineer.radius = radius
                 print(f"Radius {bulk_engineer.radius}")
-                bulk_engineer.start_processing()
+                bulk_engineer.create_features()
 
                 # Report to mlflow
-                for key, data in bulk_engineer.results.items():
+                for key, data in bulk_engineer.feature_engineered_data.items():
                     Reporter.upload_csv(data=data, save_path=results_folder, file_name=f"engineered_{key}",
                                         mlflow_folder=folder_name)
 
-                train_data = pd.concat(list(bulk_engineer.results.values()))
+                train_data = pd.concat(list(bulk_engineer.feature_engineered_data.values()))
 
                 test_data_engineer.radius = radius
-                test_data_engineer.start_processing()
+                test_data_engineer.create_features()
 
-                test_data = list(test_data_engineer.results.values())[0]
+                test_data = list(test_data_engineer.feature_engineered_data.values())[0]
                 # Report to mlflow
                 Reporter.upload_csv(data=test_data, save_path=results_folder, file_name=f"test_data_engineered",
                                     mlflow_folder=folder_name)

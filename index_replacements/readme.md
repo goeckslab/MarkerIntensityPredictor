@@ -1,1 +1,0 @@
-# Index Replacement files can be stored here

@@ -229,3 +229,14 @@ class DataLoader:
         file_path: str = file_path.stem
 
         return pd.read_csv(f"{Path(__file__).parent.parent.parent}/phenotypes/{file_path}_phenotypes.csv")
+
+    @staticmethod
+    def load_files_based_on_prefix(folder: Union[Path, str], keyword: str) -> pd.DataFrame:
+        path_list = Path(folder).glob('**/*.csv')
+
+        frames: List = []
+        for file in path_list:
+            if keyword in file.stem:
+                frames.append(pd.read_csv(file))
+
+        return pd.concat(frames)

@@ -65,3 +65,14 @@ class Replacer:
             df.at[key, values] = value_to_replace
 
         return df
+
+    @staticmethod
+    def load_index_replacement_file(file_path: str) -> Dict:
+        index_replacements_df: pd.DataFrame = pd.read_csv(file_path)
+        values: List = index_replacements_df.values.tolist()
+        index_replacements: Dict = {}
+        # Convert dataframe back to expected dictionary
+        for i, value in enumerate(values):
+            index_replacements[i] = value
+
+        return index_replacements
