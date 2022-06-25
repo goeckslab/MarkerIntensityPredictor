@@ -12,7 +12,7 @@ import argparse
 from library import DataLoader, FolderManagement, ExperimentHandler, RunHandler, Replacer, Reporter, KNNImputation, \
     FeatureEngineer
 
-results_folder = Path("knn_distance_imputation")
+results_folder = Path("knn_distance_enhanced_imputation")
 
 
 def get_args():
@@ -68,14 +68,14 @@ if __name__ == '__main__':
     FolderManagement.create_directory(path=results_folder)
 
     try:
-        n_neighbors: int = 6
+
         radius_grid = [10, 20, 30, 50, 75, 100]
 
-        run_name: str = f"KNN Distance Based Data Imputation Percentage {args.percentage}"
+        run_name: str = f"KNN Distance Based Enhanced Data Imputation Percentage {args.percentage}"
 
         run_handler.delete_runs_and_child_runs(experiment_id=associated_experiment_id, run_name=run_name)
 
-        cells, marker_columns = DataLoader.load_single_cell_data(file_name=args.file, keep_spatial=True, return_df=True, return_marker_columns=True)
+        cells = DataLoader.load_single_cell_data(file_name=args.file, keep_spatial=True, return_df=True)
 
         if args.index_replacements is None:
             # Create replacements
@@ -100,7 +100,7 @@ if __name__ == '__main__':
         test_data_engineer = FeatureEngineer = FeatureEngineer(file_path=args.file, radius=0)
 
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=run_name) as run:
-            mlflow.log_param("n Neighbors", n_neighbors)
+
             # Upload index replacement for data analysis
             Reporter.upload_csv(data=pd.DataFrame.from_dict(index_replacements).T, file_name="index_replacements",
                                 save_path=results_folder)
@@ -110,9 +110,7 @@ if __name__ == '__main__':
 
                 bulk_engineer.radius = radius
                 print(f"Radius {bulk_engineer.radius}")
-                bulk_engineer.create_features()
-
-                mlflow.log_param("Marker Count", len(bulk_engineer.marker_columns))
+                bulk_engineer.create_features(add_enhanced_features=True)
 
                 # Report to mlflow
                 for key, data in bulk_engineer.feature_engineered_data.items():
@@ -122,7 +120,7 @@ if __name__ == '__main__':
                 train_data = pd.concat(list(bulk_engineer.feature_engineered_data.values()))
 
                 test_data_engineer.radius = radius
-                test_data_engineer.create_features()
+                test_data_engineer.create_features(add_enhanced_features=True)
 
                 test_data = list(test_data_engineer.feature_engineered_data.values())[0]
                 # Report to mlflow
@@ -130,8 +128,7 @@ if __name__ == '__main__':
                                     mlflow_folder=folder_name)
 
                 replaced_test_data = Replacer.replace_values_by_cell(data=test_data,
-                                                                     index_replacements=index_replacements,
-                                                                     value_to_replace=np.nan)
+                                                                     index_replacements=index_replacements)
 
                 # Report to mlflow
                 Reporter.upload_csv(data=replaced_test_data, file_name="replaced_test_data", mlflow_folder=folder_name,
@@ -140,7 +137,7 @@ if __name__ == '__main__':
                 columns_to_select = list(set(replaced_test_data.columns) - {"X_centroid", "Y_centroid", "Phenotype",
                                                                             "Cell Neighborhood"})
                 print("Imputing data")
-                imputer = KNNImputer(n_neighbors=n_neighbors)
+                imputer = KNNImputer(n_neighbors=6)
                 imputed_cells = KNNImputation.impute(train_data=train_data[columns_to_select],
                                                      test_data=replaced_test_data[columns_to_select],
                                                      missing_values=np.nan)

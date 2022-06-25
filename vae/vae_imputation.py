@@ -56,8 +56,6 @@ if __name__ == '__main__':
     test_cell_data: List = []
 
     try:
-        radius_grid = [10, 20, 30, 50, 75, 100]
-
         run_name: str = f"VAE Data Imputation Percentage {args.percentage}"
 
         run_handler.delete_runs_and_child_runs(experiment_id=associated_experiment_id, run_name=run_name)
@@ -70,9 +68,13 @@ if __name__ == '__main__':
         index_replacements: Dict = Replacer.load_index_replacement_file(
             file_path=f"{download_directory}/index_replacements.csv")
 
-        features_to_impute = pd.read_csv(f"{download_directory}/features_to_impute.csv")
+        features_to_impute = pd.read_csv(f"{download_directory}/features_to_impute.csv")["0"]
 
         with mlflow.start_run(experiment_id=associated_experiment_id, run_name=run_name):
+
+            Reporter.upload_csv(data=features_to_impute, file_name="features_to_impute",
+                                save_path=results_folder)
+
             files_per_radius: Dict = {}
 
             for subdir, dirs, files in os.walk(download_directory):
@@ -95,15 +97,20 @@ if __name__ == '__main__':
                                                                      index_replacements=index_replacements,
                                                                      value_to_replace=0)
 
+                columns_to_select = list(set(replaced_test_data.columns) - {"X_centroid", "Y_centroid", "Phenotype",
+                                                                            "Cell Neighborhood"})
+
                 vae, encoder, decoder, history = MarkerPredictionVAE.build_5_layer_variational_auto_encoder(
-                    training_data=train_data,
-                    validation_data=val_data,
-                    input_dimensions=train_data.shape[1],
+                    training_data=train_data[columns_to_select],
+                    validation_data=val_data[columns_to_select],
+                    input_dimensions=train_data[columns_to_select].shape[1],
                     embedding_dimension=10)
 
                 vae_imputer: VAEImputer = VAEImputer(model=vae, index_replacements=index_replacements,
-                                                     replaced_data=replaced_test_data, iterations=args.iterations,
+                                                     replaced_data=replaced_test_data[columns_to_select],
+                                                     iterations=args.iterations,
                                                      features_to_impute=features_to_impute)
+                vae_imputer.impute()
 
                 imputed_cells = vae_imputer.imputed_data
                 Reporter.upload_csv(data=imputed_cells, file_name="imputed_cells", mlflow_folder=folder_name,
@@ -132,6 +139,8 @@ if __name__ == '__main__':
 
             Reporter.upload_csv(data=combined_test_cells, file_name="combined_test_cells",
                                 save_path=results_folder)
+
+
 
 
     except:

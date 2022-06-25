@@ -10,6 +10,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(len(feature_engineer.feature_engineered_data), 1)
         self.assertGreaterEqual(len(feature_engineer.feature_engineered_data[0].columns), 50)
         self.assertIs("# of Immune Cells", feature_engineer.feature_engineered_data[0].columns)
+        self.assertEqual(len(feature_engineer.marker_columns), 20)
 
 
 if __name__ == '__main__':

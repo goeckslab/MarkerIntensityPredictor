@@ -20,6 +20,7 @@ class FeatureEngineer:
         self._feature_engineered_data: Dict = {}
         self._phenotypes: Dict = {}
         self._prepared_data: Dict = {}
+        self._marker_columns: List = []
 
         if file_to_exclude is None and file_path is None:
             raise ValueError(
@@ -53,10 +54,15 @@ class FeatureEngineer:
     def excluded_file(self):
         return self._file_to_exclude
 
-    def create_features(self):
+    @property
+    def marker_columns(self):
+        return self._marker_columns
+
+    def create_features(self, add_enhanced_features: bool = False):
         # Reset results
         self._feature_engineered_data = {}
         self._phenotypes = {}
+        self._marker_columns = []
 
         if self._file_path is not None:
             self.__prepare_data(self._file_path)
@@ -72,12 +78,12 @@ class FeatureEngineer:
                 continue
 
             self.__prepare_data(str(path))
-            self.__engineer_new_features(path)
+            self.__engineer_new_features(path, add_enhanced_features=add_enhanced_features)
 
     def __prepare_data(self, file_name: str):
         path = Path(file_name)
-        data, marker_columns = DataLoader.load_single_cell_data(str(file_name), keep_spatial=True, return_df=True,
-                                                                return_marker_columns=True)
+        data, self._marker_columns = DataLoader.load_single_cell_data(str(file_name), keep_spatial=True, return_df=True,
+                                                                      return_marker_columns=True)
 
         coords = data[["X_centroid", "Y_centroid"]].copy()
         data = Preprocessing.normalize(data=data, columns=data.columns)
@@ -90,7 +96,7 @@ class FeatureEngineer:
         self._prepared_data[path.stem] = data
         self._phenotypes[path.stem] = data["Phenotype"]
 
-    def __engineer_new_features(self, file_path: Path, add_additional_features: bool = False):
+    def __engineer_new_features(self, file_path: Path, add_enhanced_features: bool = False):
         """
         New features are created here
         @param file_path:
@@ -105,13 +111,9 @@ class FeatureEngineer:
                                                return_distance=True, sort_results=True)
 
         indexes = [index for index in indexes if len(index) > 1]
-        marker_columns = list(data.columns)
-
-        if "Phenotype" in marker_columns:
-            marker_columns.remove("Phenotype")
 
         # Extend dataframe
-        mean_marker_columns = [f"Mean Neighbor Intensity {marker}" for marker in marker_columns]
+        mean_marker_columns = [f"Mean Neighbor Intensity {marker}" for marker in self._marker_columns]
         mean_marker_columns.extend(data.columns)
         mean_marker_columns.append("# of Immune Cells")
         mean_marker_columns.append("# of Neoplastic Epithelial Cells")
@@ -119,16 +121,16 @@ class FeatureEngineer:
 
         data = data.reindex(columns=mean_marker_columns, fill_value=0)
 
-        if add_additional_features:
-            max_marker_columns = [f"Max Neighbor Intensity {marker}" for marker in marker_columns]
+        if add_enhanced_features:
+            max_marker_columns = [f"Max Neighbor Intensity {marker}" for marker in self._marker_columns]
             max_marker_columns.extend(data.columns)
             data = data.reindex(columns=max_marker_columns, fill_value=0)
 
-            min_marker_columns = [f"Min Neighbor Intensity {marker}" for marker in marker_columns]
+            min_marker_columns = [f"Min Neighbor Intensity {marker}" for marker in self._marker_columns]
             min_marker_columns.extend(data.columns)
             data = data.reindex(columns=min_marker_columns, fill_value=0)
 
-            median_marker_columns = [f"Median Neighbor Intensity {marker}" for marker in marker_columns]
+            median_marker_columns = [f"Median Neighbor Intensity {marker}" for marker in self._marker_columns]
             median_marker_columns.extend(data.columns)
             data = data.reindex(columns=median_marker_columns, fill_value=0)
 
@@ -157,11 +159,11 @@ class FeatureEngineer:
                 'Stroma (aSMA+)'] if "Stroma (aSMA+)" in phenotype_counts else 0
 
             # Update value for new column
-            for marker in marker_columns:
+            for marker in self._marker_columns:
                 data.at[base_cell.index[0], f"Mean Neighbor Intensity {marker}"] = neighbor_cells[
                     marker].mean()
 
-                if add_additional_features:
+                if add_enhanced_features:
                     data.at[base_cell.index[0], f"Max Neighbor Intensity {marker}"] = neighbor_cells[
                         marker].max()
 

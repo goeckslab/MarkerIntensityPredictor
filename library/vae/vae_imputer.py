@@ -16,6 +16,8 @@ class VAEImputer:
 
     @property
     def imputed_data(self):
+        if self._imputed_data.empty:
+            print("Imputed data is empty. Please call impute() to create data.")
         return self._imputed_data
 
     @property
@@ -23,6 +25,7 @@ class VAEImputer:
         return self._index_replacements
 
     def impute(self):
+        print("Imputing data...")
         self._imputed_data = self._replaced_data.copy()
 
         # Iterate to impute
