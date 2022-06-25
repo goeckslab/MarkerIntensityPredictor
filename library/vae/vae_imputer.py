@@ -1,12 +1,13 @@
 import pandas as pd
 from tensorflow.keras.models import Model
-from typing import Dict
+from typing import Dict, List
+
 
 
 class VAEImputer:
 
     def __init__(self, model: Model, index_replacements: Dict, replaced_data: pd.DataFrame, iterations: int,
-                 features_to_impute: str):
+                 features_to_impute: List):
         self._model = model
         self._iterations = iterations
         self._features_to_impute = features_to_impute
