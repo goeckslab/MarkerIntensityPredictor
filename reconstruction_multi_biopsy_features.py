@@ -311,7 +311,7 @@ def start_me_vae_experiment(args, experiment_id: str, results_folder: Path) -> p
         model, encoder, decoder, history = MEMarkerPredictionVAE.build_me_variational_auto_encoder(
             training_data=(marker_train_data, morph_train_data),
             validation_data=validation_data,
-            input_dimensions=
+            output_dimensions=
             train_data.shape[1],
             embedding_dimension=5,
             learning_rate=learning_rate,
@@ -337,7 +337,7 @@ def start_me_vae_experiment(args, experiment_id: str, results_folder: Path) -> p
         vae_plotting.plot_model_architecture(model=decoder, file_name="VAE Decoder", mlflow_folder="Evaluation")
         vae_plotting.plot_model_performance(model.history, "Evaluation", "Model Performance")
         vae_plotting.plot_reconstructed_markers(test_data=test_data, reconstructed_data=reconstructed_data,
-                                                markers=features, mlflow_directory="Evaluation",
+                                                features=features, mlflow_directory="Evaluation",
                                                 file_name="Initial vs. Reconstructed markers")
         vae_plotting.plot_scores(scores={"ME VAE": me_vae_r2_scores}, mlflow_directory="Evaluation", file_name="R2 Scores")
         vae_plotting.plot_feature_intensities(train_data=train_data, test_data=test_data,

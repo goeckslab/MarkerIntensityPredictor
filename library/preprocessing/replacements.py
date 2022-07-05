@@ -42,6 +42,8 @@ class Replacer:
         """
         available_features = copy.deepcopy(features)
 
+        available_features = list(available_features)
+
         if "Y_centroid" in available_features:
             available_features.remove("Y_centroid")
         if "X_centroid" in available_features:
@@ -52,7 +54,7 @@ class Replacer:
             len(available_features) * percentage)
 
         for index in range(length_of_data):
-            features_to_replace: list = random.sample(available_features, amount_to_replace)
+            features_to_replace: list = random.sample(list(available_features), amount_to_replace)
             replaced_feature_per_index[index] = features_to_replace
 
         return replaced_feature_per_index

@@ -10,7 +10,7 @@ from sklearn.impute import KNNImputer
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import argparse
 from library import DataLoader, FolderManagement, ExperimentHandler, RunHandler, Replacer, Reporter, KNNImputation, \
-    FeatureEngineer
+    FeatureEngineer, Preprocessing
 
 results_folder = Path("knn_distance_enhanced_imputation")
 
@@ -118,11 +118,15 @@ if __name__ == '__main__':
                                         mlflow_folder=folder_name)
 
                 train_data = pd.concat(list(bulk_engineer.feature_engineered_data.values()))
+                train_data, std_scaler = Preprocessing.normalize_feature_engineered_data(data=train_data)
 
                 test_data_engineer.radius = radius
                 test_data_engineer.create_features(add_enhanced_features=True)
 
                 test_data = list(test_data_engineer.feature_engineered_data.values())[0]
+                test_data, _ = Preprocessing.normalize_feature_engineered_data(data=test_data,
+                                                                               standard_scaler=std_scaler)
+
                 # Report to mlflow
                 Reporter.upload_csv(data=test_data, save_path=results_folder, file_name=f"test_data_engineered",
                                     mlflow_folder=folder_name)

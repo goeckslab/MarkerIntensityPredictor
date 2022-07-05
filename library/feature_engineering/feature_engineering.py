@@ -4,7 +4,7 @@ from sklearn.neighbors import BallTree
 from pathlib import Path
 from typing import Dict, List
 from library import DataLoader, Preprocessing
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OneHotEncoder
 
 
 class FeatureEngineer:
@@ -24,7 +24,7 @@ class FeatureEngineer:
 
         if file_to_exclude is None and file_path is None:
             raise ValueError(
-                "Please provide either a file to process or a file to exclude combining with a folder to process")
+                "Please provide either a file to process or a file to exclude combining with a folder to process or a dataset")
 
     @property
     def feature_engineered_data(self):
@@ -82,11 +82,11 @@ class FeatureEngineer:
 
     def __prepare_data(self, file_name: str):
         path = Path(file_name)
-        data, self._marker_columns = DataLoader.load_single_cell_data(str(file_name), keep_spatial=True, return_df=True,
+        data, self._marker_columns = DataLoader.load_single_cell_data(str(file_name), keep_spatial=True,
+                                                                      return_df=True,
                                                                       return_marker_columns=True)
-
         coords = data[["X_centroid", "Y_centroid"]].copy()
-        data = Preprocessing.normalize(data=data, columns=data.columns)
+        # data = Preprocessing.normalize(data=data, columns=data.columns)
         data["X_centroid"] = coords["X_centroid"].values
         data["Y_centroid"] = coords["Y_centroid"].values
 
@@ -103,7 +103,7 @@ class FeatureEngineer:
         @return:
         """
         file_name: str = file_path.stem
-        data = self._prepared_data.get(file_name)
+        data = self._prepared_data.get(file_name).copy()
 
         print("Creating new features")
         tree = BallTree(data[["X_centroid", "Y_centroid"]], leaf_size=2)
@@ -175,9 +175,23 @@ class FeatureEngineer:
 
         data["Cell Neighborhood"].fillna("Unknown", inplace=True)
 
-        le = LabelEncoder()
-        data["Cell Neighborhood Encoded"] = le.fit_transform(
-            data["Cell Neighborhood"])
+        # One Hot Encoding of nominal cell neighborhood
+        enc = OneHotEncoder(handle_unknown='ignore')
+        one_hot_encoded = enc.fit_transform(data[['Cell Neighborhood']]).toarray()
+        enc_df = pd.DataFrame(data=one_hot_encoded,
+                              columns=[f"{feature_name.split('_')[-1]} Cell Neighborhood" for feature_name in
+                                       enc.get_feature_names_out()])
+        data = data.join(enc_df)
+
+        # One Hot Encoding of nominal phenotype
+        one_hot_encoded = enc.fit_transform(data[['Phenotype']]).toarray()
+        enc_df = pd.DataFrame(data=one_hot_encoded,
+                              columns=[f"{feature_name.split('_')[-1]} Phenotype" for feature_name in
+                                       enc.get_feature_names_out()])
+        data = data.join(enc_df)
+
+        # Drop not required data such as phenotype etc
+        data.drop(columns=["Phenotype", "Cell Neighborhood"], inplace=True)
 
         self._feature_engineered_data[file_name] = data
 

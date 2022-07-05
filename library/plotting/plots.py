@@ -54,7 +54,7 @@ class Plotting:
         ax2.set_title("Reconstructed X Test")
         fig.tight_layout()
 
-        save_path = Path(self.__base_path, f"{file_name}.png")
+        save_path = Path(self._base_path, f"{file_name}.png")
         plt.savefig(save_path)
         mlflow.log_artifact(str(save_path), mlflow_directory)
         plt.close()

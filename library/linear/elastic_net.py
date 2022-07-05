@@ -1,6 +1,7 @@
 import pandas as pd
 from sklearn.linear_model import ElasticNetCV
 import mlflow
+from typing import List, Dict
 
 
 class ElasticNet:
@@ -39,3 +40,36 @@ class ElasticNet:
         scores.reset_index(drop=True, inplace=True)
 
         return scores
+
+    @staticmethod
+    def impute(train_data: pd.DataFrame, test_data: pd.DataFrame, features: list, random_state: int,
+               tolerance: float) -> pd.DataFrame:
+        # Enable auto log
+        mlflow.sklearn.autolog()
+
+        predicted_values: Dict = {}
+        coeffs: dict = {}
+
+        for feature in features:
+            model = ElasticNetCV(cv=5, random_state=random_state, tol=tolerance, max_iter=2000)
+
+            # Create y and X
+            train_copy = pd.DataFrame(data=train_data.copy(), columns=features)
+
+            y_train = train_copy[f"{feature}"]
+            del train_copy[f"{feature}"]
+            X_train = train_copy
+
+            test_copy = pd.DataFrame(data=test_data.copy(), columns=features)
+            y_test = test_copy[f"{feature}"]
+            del test_copy[f"{feature}"]
+            X_test = test_copy
+
+            model.fit(X_train, y_train)
+            predicted_data = model.predict(X_test)
+
+            predicted_values[feature] = predicted_data
+
+        imputed_data = pd.DataFrame.from_dict(predicted_values, orient='index').T
+        imputed_data.columns = features
+        return imputed_data
