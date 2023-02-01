@@ -9,6 +9,7 @@ the common columns among all dataframes. The final result is a list of the commo
 import os
 import pandas as pd
 
+
 def find_common_columns(directory):
     csv_files = [f for f in os.listdir(directory) if f.endswith('.csv')]
     dfs = [pd.read_csv(os.path.join(directory, f)) for f in csv_files]
@@ -17,5 +18,6 @@ def find_common_columns(directory):
         common_columns &= set(df.columns)
     return list(common_columns)
 
+
 directory = '../data/Tumor/'
-print (','.join(find_common_columns(directory)))
+print(','.join(find_common_columns(directory)))

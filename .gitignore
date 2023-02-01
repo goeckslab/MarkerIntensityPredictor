@@ -1,4 +1,9 @@
 phenotyping
+data/af_tracker/*
+data/restore/*
+Jupyter/**
+ludwig/9_2_1*
+ludwig/9_2_2*
 new_me_vae/checkpoints
 *.c
 *.so
@@ -144,3 +149,4 @@ tumor_cycif.csv
 data/tumor_cycif_v2.csv
 *.csv
 .vscode/settings.json
+mlruns.zip

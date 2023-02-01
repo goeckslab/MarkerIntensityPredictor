@@ -1,9 +1,9 @@
 DATA_DIRECTORY = ../data
-SAMPLE = 9_2_1
+SAMPLE = 9_2_2
 PREPROCESSED_DATASET = $(SAMPLE)_preprocessed_dataset.tsv
-TEST_ID = 9_15_2
+TEST_ID = 9_2_1
 MARKER = CK19
-OUTPUT_DIRECTORY = $(SAMPLE)-$(MARKER)
+OUTPUT_DIRECTORY = $(SAMPLE)_$(MARKER)
 
 # Create preprocessed dataset.
 $(PREPROCESSED_DATASET):
@@ -20,6 +20,9 @@ ludwig-experiment: $(SAMPLE)_final_config.yaml $(PREPROCESSED_DATASET)
 ludwig-evaluate:
 	python prepare_data.py "$(DATA_DIRECTORY)/Tumor/$(TEST_ID).csv" $(TEST_ID)_preprocessed_dataset.tsv
 	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig evaluate --dataset ../$(TEST_ID)_preprocessed_dataset.tsv --model_path ./results/experiment_run/model --output_directory evaluate/$(TEST_ID)
+
+ludwig-plots:
+	python create_plots.py --truth "$(TEST_ID)_preprocessed_dataset.tsv" --predicted "$(OUTPUT_DIRECTORY)/evaluate/$(TEST_ID)/${MARKER}_predictions.csv" --marker "${MARKER}" --output "$(OUTPUT_DIRECTORY)/evaluate/$(TEST_ID)/"
 
 clean:
 	rm $(SAMPLE)_final_config.yaml $(PREPROCESSED_DATASET)
