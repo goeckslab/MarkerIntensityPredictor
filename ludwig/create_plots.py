@@ -13,12 +13,15 @@ if __name__ == '__main__':
     args = parser.parse_args()
     marker = args.marker
 
-    truth = pd.read_csv(args.truth, delimiter="\t", header=0, index_col=0)
+    truth = pd.read_csv(args.truth, delimiter="\t", header=0)
     predicted = pd.read_csv(args.predicted, delimiter=",", header=None)
     predicted.rename(columns={0: marker}, inplace=True)
 
-    print(truth.shape)
-    print(predicted.shape)
+    #print(truth.shape)
+    #print(predicted.shape)
+    #print(truth)
+    #print(predicted)
+    #print(marker)
 
     fig = plt.figure(figsize=(5, 3), dpi=200)
     plt.scatter(truth[[marker]], predicted[[marker]], alpha=0.5, label=marker)
