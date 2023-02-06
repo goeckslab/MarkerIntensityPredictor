@@ -1,0 +1,20 @@
+model_type: gbm
+training:
+  early_stop: 10
+
+
+hyperopt:
+  goal: minimize
+  metric: mean_absolute_error
+  sampler: random
+  parameters:
+    combiner.num_fc_layers:
+      space: randint
+      lower: 1
+      upper: 5
+    trainer.learning_rate:
+      values: [0.01, 0.003, 0.001]
+
+  executor:
+    type: ray
+    num_samples: 12

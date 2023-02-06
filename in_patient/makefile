@@ -26,5 +26,5 @@ ludwig-plots:
 	python create_plots.py --truth "$(DATA_DIRECTORY_PREPROCESSED)/$(TEST_ID)_preprocessed_dataset.tsv" --predicted "$(OUTPUT_DIRECTORY)/evaluate/$(TEST_ID)/${MARKER}_predictions.csv" --marker "${MARKER}" --output "$(OUTPUT_DIRECTORY)/evaluate/$(TEST_ID)/"
 
 clean:
-	rm "$(SAMPLE)_final_config.yaml" "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" "$(SAMPLE)_input_features.yaml"
+	rm "$(SAMPLE)_final_config.yaml" "$(SAMPLE)_input_features.yaml"
 
