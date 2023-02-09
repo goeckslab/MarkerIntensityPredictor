@@ -5,6 +5,8 @@ ludwig/9_15_2*
 data/af_tracker/*
 data/restore/*
 Jupyter/**
+*_in_patient*
+*_out_patient*
 in_patient/9_2_1*
 in_patient/9_2_2*
 in_patient/9_3_1*

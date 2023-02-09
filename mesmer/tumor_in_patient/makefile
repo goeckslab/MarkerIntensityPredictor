@@ -1,13 +1,16 @@
-DATA_DIRECTORY = ../data/Tumor
-DATA_DIRECTORY_PREPROCESSED = ../data/Tumor/preprocessed
+DATA_DIRECTORY = ../../data/mesmer
+DATA_DIRECTORY_PREPROCESSED = ../../data/mesmer/preprocessed
 SAMPLE=$(sample_id)
 PREPROCESSED_DATASET = $(SAMPLE)_preprocessed_dataset.tsv
 TEST_ID=$(test_id)
 MARKER=$(marker)
 OUTPUT_DIRECTORY = $(SAMPLE)/$(MARKER)
 
+convert_h5ad_to_csv:	
+	python ../convert_h5ad_to_csv.py $(DATA_DIRECTORY)/$(SAMPLE).h5ad $(DATA_DIRECTORY)/$(SAMPLE).csv
+
 # Create preprocessed dataset.
-"$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)":
+"$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)": convert_h5ad_to_csv	
 	mkdir -p "$(DATA_DIRECTORY_PREPROCESSED)" && python prepare_data.py "$(DATA_DIRECTORY)/$(SAMPLE).csv" "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)"
 
 # Create final configuration file.
@@ -19,6 +22,7 @@ ludwig-experiment: "$(SAMPLE)_final_config.yaml" "$(DATA_DIRECTORY_PREPROCESSED)
 	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" --config "../../$(SAMPLE)_final_config.yaml" -rs 456
 
 ludwig-evaluate:
+	python ../convert_h5ad_to_csv.py $(DATA_DIRECTORY)/$(TEST_ID).h5ad $(DATA_DIRECTORY)/$(TEST_ID).csv
 	python prepare_data.py "$(DATA_DIRECTORY)/$(TEST_ID).csv" "$(DATA_DIRECTORY_PREPROCESSED)/$(TEST_ID)_preprocessed_dataset.tsv"
 	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig evaluate --dataset "../../$(DATA_DIRECTORY_PREPROCESSED)/$(TEST_ID)_preprocessed_dataset.tsv" --model_path ./results/experiment_run/model --output_directory evaluate/$(TEST_ID)
 
