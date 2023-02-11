@@ -6,6 +6,11 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 
+save_folder = Path("ip_plots")
+
+if not save_folder.exists():
+    save_folder.mkdir(parents=True, exist_ok=True)
+
 
 def truncate_decimals(target_allocation, two_decimal_places) -> float:
     decimal_exponent = 10.0 ** two_decimal_places
@@ -30,10 +35,10 @@ def rule(row, decimal_precision=4):
     return number
 
 
-def create_heatmap_df(data):
+def create_heatmap_df(data, decimal_precision=4):
     heatmap_df = data.copy()
     heatmap_df["Biopsy"] = [biopsy.replace('_', ' ') for biopsy in list(heatmap_df["Biopsy"].values)]
-    heatmap_df["Score"] = heatmap_df.apply(rule, axis=1)
+    heatmap_df["Score"] = heatmap_df.apply(rule, axis=1, args=(decimal_precision,))
 
     return heatmap_df
 
@@ -59,9 +64,9 @@ if __name__ == '__main__':
     ip = mae_scores[mae_scores["Type"] == "IP"].copy()
     ip.drop(columns=["Type", "Panel"], inplace=True)
     plt.figure(figsize=(20, 10))
-    sns.barplot(data=ip, x="Marker", y="Score", hue="Segmentation")
+    sns.barplot(data=ip, x="Marker", y="Score", hue="Segmentation", errorbar="sd")
     plt.title("MAE scores for IP biopsies\nComparison of different segmentation methods")
-    plt.savefig("ip_mae_scores.png")
+    plt.savefig(f"{save_folder}/ip_mae_scores.png")
 
     data = ip[ip["Segmentation"] == "Unmicst + S3"].copy().reset_index(drop=True)
     data.drop(columns=["Segmentation"], inplace=True)
@@ -77,7 +82,7 @@ if __name__ == '__main__':
     plt.suptitle("In Patient MAE Scores\nUnMICST + S3 Segmenter", x=0.45, fontsize=16)
     plt.title("Lower values indicate lower errors", x=0.5, fontsize=12)
     plt.tight_layout()
-    plt.savefig("ip_unmicst_s3_mae_scores_heatmap.png")
+    plt.savefig(f"{save_folder}/ip_unmicst_s3_mae_scores_heatmap.png")
 
     data = ip[ip["Segmentation"] == "Mesmer"].copy().reset_index(drop=True)
     data.drop(columns=["Segmentation"], inplace=True)
@@ -93,7 +98,7 @@ if __name__ == '__main__':
     plt.suptitle("In Patient MAE Scores\nMesmer", x=0.45, fontsize=16)
     plt.title("Lower values indicate lower errors", x=0.5, fontsize=12)
     plt.tight_layout()
-    plt.savefig("ip_mesmer_mae_scores_heatmap.png")
+    plt.savefig(f"{save_folder}/ip_mesmer_mae_scores_heatmap.png")
 
     # calculate difference between mesmer and unmicst separation
     s3 = ip[ip["Segmentation"] == "Unmicst + S3"].copy().reset_index(drop=True)
@@ -108,35 +113,63 @@ if __name__ == '__main__':
     data.drop(columns=["Segmentation_s3", "Score_s3", "Score_mesmer", "Segmentation_mesmer"],
               inplace=True)
     data.rename(columns={"Difference": "Score"}, inplace=True)
-    data = create_heatmap_df(data)
+    data = create_heatmap_df(data, decimal_precision=3)
     data = data.pivot(index="Biopsy", columns="Marker", values="Score")
     data = data.loc[[f"{biopsy}" for biopsy in biopsies]]
     fig = plt.figure(figsize=(10, 5), dpi=200)
-    sns.heatmap(data=data, vmin=0, vmax=0.5, annot=True)
+    sns.heatmap(data=data, vmin=-0.2, vmax=0.3, annot=True)
     for ax in fig.axes:
         for tick in ax.get_yticklabels():
             tick.set_rotation(0)
     plt.xlabel('Feature')
     plt.suptitle("In Patient Performance Difference\nMesmer vs. UnMicst + S3", x=0.45, fontsize=16)
-    plt.title("Lower values indicate lower difference", x=0.5, fontsize=12)
+    plt.title(
+        "Negative values indicate better performance using UnMICST + S3\nHigher values indicate better performance using Mesmer",
+        x=0.5, fontsize=12)
     plt.tight_layout()
-    plt.savefig("ip_difference_mesmer_s3.png")
+    plt.savefig(f"{save_folder}/ip_difference_mesmer_s3.png")
 
     tmp = ip.copy()
     tmp.sort_values(by=["Biopsy", "Marker"], inplace=True)
     tmp["Biopsy"] = tmp["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
-    fig = plt.figure(figsize=(10, 5), dpi=200)
+    fig = plt.figure(figsize=(13, 5), dpi=200)
     sns.violinplot(data=tmp, x="Marker", y="Score", hue="Segmentation")
     plt.title("In Patient Performance Difference\nSpread between biopsies\nMesmer vs. UnMicst + S3")
     plt.legend(bbox_to_anchor=(1.25, 1), loc='upper right')
     plt.tight_layout()
-    plt.savefig("ip_difference_mesmer_s3_violin_plot.png")
+    plt.savefig(f"{save_folder}/ip_difference_mesmer_s3_violin_plot.png")
     plt.close('all')
 
-    fig = plt.figure(figsize=(10, 5), dpi=200)
+    fig = plt.figure(figsize=(13, 5), dpi=200)
     sns.lineplot(data=tmp, x="Marker", y="Score", hue="Biopsy", style="Segmentation")
     plt.title("In Patient Performance Difference\nMesmer vs. UnMicst + S3")
     plt.legend(bbox_to_anchor=(1.25, 1), loc='upper right')
     plt.tight_layout()
-    plt.savefig("ip_difference_mesmer_s3_lineplot.png")
+    plt.savefig(f"{save_folder}/ip_difference_mesmer_s3_lineplot.png")
+    plt.close('all')
+
+    # Prepare data for s3 segmentation
+    data = s3.copy()
+    data["Biopsy"] = data["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
+    data.sort_values(by=["Biopsy", "Marker"], inplace=True)
+    data = data.pivot(index="Marker", columns="Biopsy", values="Score")
+
+    fig = plt.figure(figsize=(13, 5), dpi=200)
+    sns.clustermap(data=data, vmin=0, vmax=0.5)
+    plt.suptitle("In Patient UnMICST + S3 Segmenter \nBiopsy vs. Feature")
+    plt.tight_layout()
+    plt.savefig(f"{save_folder}/ip_cluster_map_unmicst_s3.png")
+    plt.close('all')
+
+    # Prepare data for mesmer segmentation
+    data = mesmer.copy()
+    data["Biopsy"] = data["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
+    data.sort_values(by=["Biopsy", "Marker"], inplace=True)
+    data = data.pivot(index="Marker", columns="Biopsy", values="Score")
+
+    fig = plt.figure(figsize=(13, 5), dpi=200)
+    sns.clustermap(data=data, vmin=0, vmax=0.5)
+    plt.suptitle("In Patient Mesmer Segmentation \nBiopsy vs. Feature")
+    plt.tight_layout()
+    plt.savefig(f"{save_folder}/ip_cluster_map_mesmer.png")
     plt.close('all')

@@ -7,6 +7,8 @@ data/restore/*
 Jupyter/**
 *_in_patient*
 *_out_patient*
+data/tumor_mesmer/*
+data/**/*
 in_patient/9_2_1*
 in_patient/9_2_2*
 in_patient/9_3_1*
