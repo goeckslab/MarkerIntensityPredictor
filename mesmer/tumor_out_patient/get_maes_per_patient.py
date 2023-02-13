@@ -32,6 +32,7 @@ if __name__ == '__main__':
                 "Panel": "Tumor",
                 "Type": "IP",
                 "Segmentation": "Mesmer",
+                "AF Corrected": 1
             }
         )
 
