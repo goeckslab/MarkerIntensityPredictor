@@ -108,12 +108,12 @@ if __name__ == '__main__':
             if Path(name).suffix == ".csv" and "_mae_scores" in name:
                 mae_scores.append(pd.read_csv(os.path.join(root, name), sep=",", header=0))
 
-    for root, dirs, files in os.walk("unmicst_s3_non_af"):
+    for root, dirs, files in os.walk("unmicst_s3_non_snr"):
         for name in files:
             if Path(name).suffix == ".csv" and "_mae_scores" in name:
                 mae_scores.append(pd.read_csv(os.path.join(root, name), sep=",", header=0))
 
-    for root, dirs, files in os.walk("unmicst_s3_af"):
+    for root, dirs, files in os.walk("unmicst_s3_snr"):
         for name in files:
             if Path(name).suffix == ".csv" and "_mae_scores" in name:
                 mae_scores.append(pd.read_csv(os.path.join(root, name), sep=",", header=0))
@@ -125,10 +125,10 @@ if __name__ == '__main__':
     ip.drop(columns=["Type", "Panel"], inplace=True)
 
     data = ip.copy()
-    # create new columns data origin, which indicates whether the data is from mesmer or unmicst and af corrected or not
+    # create new columns data origin, which indicates whether the data is from mesmer or unmicst and snr corrected or not
     data["Origin"] = data.apply(lambda x: "Mesmer" if "Mesmer" in x["Segmentation"] else "UnMICST + S3 AF Corrected",
                                 axis=1)
-    # rename origin to unmicst + s3 Non AF Corrected if not af corrected
+    # rename origin to unmicst + s3 Non AF Corrected if not snr corrected
     data.loc[data["AF Corrected"] == 0, "Origin"] = "UnMICST + S3 Non AF Corrected"
 
     plt.figure(figsize=(20, 10))
@@ -148,13 +148,13 @@ if __name__ == '__main__':
         for tick in ax.get_yticklabels():
             tick.set_rotation(0)
     plt.xlabel('Feature')
-    plt.suptitle("In Patient MAE Scores\nUnMICST + S3 Segmenter\nNon AF corrected", x=0.45, fontsize=16)
+    plt.suptitle("In Patient MAE Scores\nUnMICST + S3 Segmenter\nSNR corrected", x=0.45, fontsize=16)
     plt.title("Lower values indicate lower errors", x=0.5, fontsize=12)
     plt.tight_layout()
-    plt.savefig(f"{save_folder}/ip_unmicst_s3_non_af_mae_scores_heatmap.png")
+    plt.savefig(f"{save_folder}/ip_unmicst_s3_non_snr_mae_scores_heatmap.png")
 
     # Create heatmap for corrected unmicst  + s3
-    data = ip[(ip["Segmentation"] == "Unmicst + S3") & (ip["AF Corrected"] == 1)].copy().reset_index(drop=True)
+    data = ip[(ip["Segmentation"] == "Unmicst + S3") & (ip["SNR"] == 1)].copy().reset_index(drop=True)
     data.drop(columns=["Segmentation"], inplace=True)
     data = create_heatmap_df(data)
     data = data.pivot(index="Biopsy", columns="Marker", values="Score")
@@ -165,10 +165,10 @@ if __name__ == '__main__':
         for tick in ax.get_yticklabels():
             tick.set_rotation(0)
     plt.xlabel('Feature')
-    plt.suptitle("In Patient MAE Scores\nUnMICST + S3 Segmenter\n AF corrected", x=0.45, fontsize=16)
+    plt.suptitle("In Patient MAE Scores\nUnMICST + S3 Segmenter\n SNR", x=0.45, fontsize=16)
     plt.title("Lower values indicate lower errors", x=0.5, fontsize=12)
     plt.tight_layout()
-    plt.savefig(f"{save_folder}/ip_unmicst_s3_af_mae_scores_heatmap.png")
+    plt.savefig(f"{save_folder}/ip_unmicst_s3_snr_mae_scores_heatmap.png")
 
     data = ip[ip["Segmentation"] == "Mesmer"].copy().reset_index(drop=True)
     data.drop(columns=["Segmentation"], inplace=True)
@@ -187,86 +187,86 @@ if __name__ == '__main__':
     plt.savefig(f"{save_folder}/ip_mesmer_mae_scores_heatmap.png")
 
     # calculate difference between mesmer and unmicst separation
-    s3_af = ip[(ip["Segmentation"] == "Unmicst + S3") & (ip["AF Corrected"] == 1)].copy().reset_index(drop=True)
-    s3_non_af = ip[(ip["Segmentation"] == "Unmicst + S3") & (ip["AF Corrected"] == 0)].copy().reset_index(drop=True)
+    s3_snr = ip[(ip["Segmentation"] == "Unmicst + S3") & (ip["SNR"] == 1)].copy().reset_index(drop=True)
+    s3_non_snr = ip[(ip["Segmentation"] == "Unmicst + S3") & (ip["SNR"] == 0)].copy().reset_index(drop=True)
     mesmer = ip[ip["Segmentation"] == "Mesmer"].copy().reset_index(drop=True)
 
-    # merge s3_af sf3_non_af
-    s3_af_vs_s3_non_af = pd.merge(s3_non_af, s3_af, on=["Biopsy", "Marker"], suffixes=("_s3_non_af", "_s3_af"))
-    s3_af_vs_s3_non_af["Difference"] = s3_af_vs_s3_non_af["Score_s3_non_af"].values - s3_af_vs_s3_non_af[
-        "Score_s3_af"].values
+    # merge s3_snr sf3_non_snr
+    s3_snr_vs_s3_non_snr = pd.merge(s3_non_snr, s3_snr, on=["Biopsy", "Marker"], suffixes=("_s3_non_snr", "_s3_snr"))
+    s3_snr_vs_s3_non_snr["Difference"] = s3_snr_vs_s3_non_snr["Score_s3_non_snr"].values - s3_snr_vs_s3_non_snr[
+        "Score_s3_snr"].values
 
-    # merge s3_af and mesmer
-    s3_af_vs_mesmer = pd.merge(s3_af, mesmer, on=["Biopsy", "Marker"], suffixes=("_s3_af", "_mesmer"))
+    # merge s3_snr and mesmer
+    s3_snr_vs_mesmer = pd.merge(s3_snr, mesmer, on=["Biopsy", "Marker"], suffixes=("_s3_snr", "_mesmer"))
     # calculate difference between s3 and mesmer
-    s3_af_vs_mesmer["Difference"] = s3_af_vs_mesmer["Score_s3_af"].values - s3_af_vs_mesmer["Score_mesmer"].values
+    s3_snr_vs_mesmer["Difference"] = s3_snr_vs_mesmer["Score_s3_snr"].values - s3_snr_vs_mesmer["Score_mesmer"].values
 
-    # merge s3_non_af and mesmer
-    s3_non_af_vs_mesmer = pd.merge(s3_non_af, mesmer, on=["Biopsy", "Marker"], suffixes=("_s3_non_af", "_mesmer"))
+    # merge s3_non_snr and mesmer
+    s3_non_snr_vs_mesmer = pd.merge(s3_non_snr, mesmer, on=["Biopsy", "Marker"], suffixes=("_s3_non_snr", "_mesmer"))
     # calculate difference between s3 and mesmer
-    s3_non_af_vs_mesmer["Difference"] = s3_non_af_vs_mesmer["Score_s3_non_af"].values - s3_non_af_vs_mesmer[
+    s3_non_snr_vs_mesmer["Difference"] = s3_non_snr_vs_mesmer["Score_s3_non_snr"].values - s3_non_snr_vs_mesmer[
         "Score_mesmer"].values
 
-    data = s3_af_vs_mesmer.copy()
+    data = s3_snr_vs_mesmer.copy()
     plot_difference_heatmap(data=data,
-                            columns=["Segmentation_s3_af", "Score_s3_af", "Score_mesmer", "Segmentation_mesmer"],
-                            suptitle="In Patient Performance Difference\nMesmer vs. UnMicst + S3 (AF corrected)",
+                            columns=["Segmentation_s3_snr", "Score_s3_snr", "Score_mesmer", "Segmentation_mesmer"],
+                            suptitle="In Patient Performance Difference\nMesmer vs. UnMicst + S3 (SNR)",
                             title="Negative values indicate better performance using UnMICST + S3\nPositive values indicate better performance using Mesmer",
-                            file_name="ip_difference_mesmer_s3_af")
+                            file_name="ip_difference_mesmer_s3_snr")
 
-    data = s3_non_af_vs_mesmer.copy()
+    data = s3_non_snr_vs_mesmer.copy()
     plot_difference_heatmap(data=data,
-                            columns=["Segmentation_s3_non_af", "Score_s3_non_af", "Score_mesmer",
+                            columns=["Segmentation_s3_non_snr", "Score_s3_non_snr", "Score_mesmer",
                                      "Segmentation_mesmer"],
-                            suptitle="In Patient Performance Difference\nMesmer vs. UnMicst + S3 (Non AF corrected)",
+                            suptitle="In Patient Performance Difference\nMesmer vs. UnMicst + S3 (Non SNR)",
                             title="Negative values indicate better performance using UnMICST + S3\nPositive values indicate better performance using Mesmer",
-                            file_name="ip_difference_mesmer_s3_non_af")
+                            file_name="ip_difference_mesmer_s3_non_snr")
 
-    data = s3_af_vs_s3_non_af.copy()
+    data = s3_snr_vs_s3_non_snr.copy()
     plot_difference_heatmap(data=data,
-                            columns=["Segmentation_s3_non_af", "Score_s3_non_af", "Segmentation_s3_af", "Score_s3_af"],
-                            suptitle="In Patient Performance Difference\nUnMicst + S3 (AF corrected) vs. UnMicst + S3 (Non AF corrected)",
-                            title="Negative values indicate better performance using UnMICST + S3 (Non AF corrected)\nPositive values indicate better performance using UnMicst + S3 (AF corrected)",
-                            file_name="ip_s3_af_vs_s3_non_af")
+                            columns=["Segmentation_s3_non_snr", "Score_s3_non_snr", "Segmentation_s3_snr", "Score_s3_snr"],
+                            suptitle="In Patient Performance Difference\nUnMicst + S3 (SNR) vs. UnMicst + S3 (Non SNR)",
+                            title="Negative values indicate better performance using UnMICST + S3 (Non SNR)\nPositive values indicate better performance using UnMicst + S3 (SNR)",
+                            file_name="ip_s3_snr_vs_s3_non_snr")
 
-    #  Select s3 + unmicst af corrected and mesmer
+    #  Select s3 + unmicst snr corrected and mesmer
     data = ip.copy()
     data.sort_values(by=["Biopsy", "Marker"], inplace=True)
-    data = data[data["AF Corrected"] == 1]
+    data = data[data["SNR"] == 1]
 
-    # rename UnMICST + S3 to UnMICST + S3 (AF corrected)
-    data.loc[data["Segmentation"] == "Unmicst + S3", "Segmentation"] = "Unmicst + S3 (AF corrected)"
+    # rename UnMICST + S3 to UnMICST + S3 (SNR)
+    data.loc[data["Segmentation"] == "Unmicst + S3", "Segmentation"] = "Unmicst + S3 (SNR)"
     plot_difference_violin_plot(data=data,
-                                title="In Patient Performance Difference\nSpread between biopsies\nMesmer vs. UnMicst + S3 (AF corrected)",
-                                file_name="ip_difference_mesmer_s3_af_violin_plot")
+                                title="In Patient Performance Difference\nSpread between biopsies\nMesmer vs. UnMicst + S3 (SNR)",
+                                file_name="ip_difference_mesmer_s3_snr_violin_plot")
     plot_difference_line_plot(data=data,
-                              title="In Patient Performance Difference\nMesmer vs. UnMicst + S3 (AF corrected)",
-                              file_name="ip_difference_mesmer_vs_s3_non_af_line_plot")
+                              title="In Patient Performance Difference\nMesmer vs. UnMicst + S3 (SNR)",
+                              file_name="ip_difference_mesmer_vs_s3_non_snr_line_plot")
 
-    # Select s3 + unmicst non af corrected and mesmer
+    # Select s3 + unmicst non snr corrected and mesmer
     data = ip.copy()
     data.sort_values(by=["Biopsy", "Marker"], inplace=True)
     data = data[
-        (data["Segmentation"] == "Unmicst + S3") & (data["AF Corrected"] == 0) | (data["Segmentation"] == "Mesmer")]
+        (data["Segmentation"] == "Unmicst + S3") & (data["SNR"] == 0) | (data["Segmentation"] == "Mesmer")]
 
-    # rename UnMICST + S3 to UnMICST + S3 (AF corrected)
-    data.loc[data["Segmentation"] == "Unmicst + S3", "Segmentation"] = "Unmicst + S3 (Non AF corrected)"
+    # rename UnMICST + S3 to UnMICST + S3 (SNR)
+    data.loc[data["Segmentation"] == "Unmicst + S3", "Segmentation"] = "Unmicst + S3 (Non SNR)"
     plot_difference_violin_plot(data=data,
-                                title="In Patient Performance Difference\nSpread between biopsies\nMesmer vs. UnMicst + S3 (Non AF corrected)",
-                                file_name="ip_difference_mesmer_s3_non_af_violin_plot")
+                                title="In Patient Performance Difference\nSpread between biopsies\nMesmer vs. UnMicst + S3 (Non SNR)",
+                                file_name="ip_difference_mesmer_s3_non_snr_violin_plot")
     plot_difference_line_plot(data=data,
-                              title="In Patient Performance Difference\nMesmer vs. UnMicst + S3 (Non AF corrected)",
-                              file_name="ip_difference_mesmer_s3_non_af_line_plot")
+                              title="In Patient Performance Difference\nMesmer vs. UnMicst + S3 (Non SNR)",
+                              file_name="ip_difference_mesmer_s3_non_snr_line_plot")
 
-    # s3_af clustermap
-    data = s3_af.copy()
-    create_clustermap(data=data, title="In Patient UnMICST + S3 Segmenter (AF corrected) \nBiopsy vs. Feature",
-                      file_name="ip_cluster_map_unmicst_s3_af")
+    # s3_snr clustermap
+    data = s3_snr.copy()
+    create_clustermap(data=data, title="In Patient UnMICST + S3 Segmenter (SNR) \nBiopsy vs. Feature",
+                      file_name="ip_cluster_map_unmicst_s3_snr")
 
-    # s3_non_af clustermap
-    data = s3_non_af.copy()
-    create_clustermap(data=data, title="In Patient UnMICST + S3 Segmenter (Non AF corrected) \nBiopsy vs. Feature",
-                      file_name="ip_cluster_map_unmicst_s3_non_af")
+    # s3_non_snr clustermap
+    data = s3_non_snr.copy()
+    create_clustermap(data=data, title="In Patient UnMICST + S3 Segmenter (Non SNR) \nBiopsy vs. Feature",
+                      file_name="ip_cluster_map_unmicst_s3_non_snr")
 
     # mesmer clustermap
     data = mesmer.copy()

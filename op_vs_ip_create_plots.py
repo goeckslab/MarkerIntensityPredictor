@@ -53,12 +53,17 @@ if __name__ == '__main__':
             if Path(name).suffix == ".csv" and "_mae_scores" in name:
                 mae_scores.append(pd.read_csv(os.path.join(root, name), sep=",", header=0))
 
-    for root, dirs, files in os.walk("unmicst_s3"):
+    for root, dirs, files in os.walk("unmicst_s3_snr"):
         for name in files:
             if Path(name).suffix == ".csv" and "_mae_scores" in name:
                 mae_scores.append(pd.read_csv(os.path.join(root, name), sep=",", header=0))
 
-    assert len(mae_scores) == 32, "There should be 32 mae scores files"
+    for root, dirs, files in os.walk("unmicst_s3_non_snr"):
+        for name in files:
+            if Path(name).suffix == ".csv" and "_mae_scores" in name:
+                mae_scores.append(pd.read_csv(os.path.join(root, name), sep=",", header=0))
+
+    assert len(mae_scores) == 48, "There should be 48 mae scores files"
     mae_scores = pd.concat(mae_scores, axis=0).reset_index(drop=True)
 
     op_full = mae_scores[mae_scores["Type"] == "OP"].copy()
@@ -68,57 +73,47 @@ if __name__ == '__main__':
     op_unmicst_s3 = op_full[op_full["Segmentation"] == "Unmicst + S3"].copy()
 
     ip_mesmer = ip_full[ip_full["Segmentation"] == "Mesmer"].copy()
-    ip_unmicst_s3 = ip_full[ip_full["Segmentation"] == "Unmicst + S3"].copy()
-
-    # combine s3 and mesmer datasets
-    op_mesmer_vs_s3 = pd.merge(op_mesmer, ip_unmicst_s3, on=["Biopsy", "Marker"], suffixes=("_s3", "_mesmer"))
-    # calculate difference between s3 and mesmer
-    op_mesmer_vs_s3["Difference"] = op_mesmer_vs_s3["Score_s3"].values - op_mesmer_vs_s3["Score_mesmer"].values
-
-    # create a new dataframe with the difference between s3 and mesmer from ip
-    ip_mesmer_vs_s3 = pd.merge(ip_mesmer, ip_unmicst_s3, on=["Biopsy", "Marker"], suffixes=("_s3", "_mesmer"))
-    ip_mesmer_vs_s3["Difference"] = ip_mesmer_vs_s3["Score_s3"].values - ip_mesmer_vs_s3["Score_mesmer"].values
+    ip_unmicst_s3_snr = ip_full[(ip_full["Segmentation"] == "Unmicst + S3") & (ip_full["SNR"] == 1)].copy()
+    ip_unmicst_s3_non_snr = ip_full[(ip_full["Segmentation"] == "Unmicst + S3") & (ip_full["SNR"] == 0)].copy()
 
     mae_scores["Type"] = [type.replace("OP", "Out Patient") for type in list(mae_scores["Type"].values)]
     mae_scores["Type"] = [type.replace("IP", "In Patient") for type in list(mae_scores["Type"].values)]
 
     # Select only mesmer segmentation
     ip_vs_op_mesmer = mae_scores[mae_scores["Segmentation"] == "Mesmer"].copy()
-    # Select only unmicst + s3 segmentation
-    ip_vs_op_unmicst_s3 = mae_scores[mae_scores["Segmentation"] == "Unmicst + S3"].copy()
+
+    # Select only unmicst + s3 segmentation snr corrected
+    ip_vs_op_unmicst_s3_snr = mae_scores[
+        (mae_scores["Segmentation"] == "Unmicst + S3") & (mae_scores["SNR"] == 1)].copy()
+
+    # Select only unmicst + s3 segmentation non snr corrected
+    ip_vs_op_unmicst_s3_non_snr = mae_scores[
+        (mae_scores["Segmentation"] == "Unmicst + S3") & (mae_scores["SNR"] == 0)].copy()
 
     fig = plt.figure(figsize=(15, 5), dpi=200)
     sns.violinplot(data=ip_vs_op_mesmer, x="Marker", y="Score", hue="Type", split=False, inner="point", palette="Set2")
     plt.title("Mesmer Segmentation\nOut Patient vs In Patient\nDistribution of biopsy performance")
-    plt.legend(bbox_to_anchor=(1.15, 1), loc='upper right')
+    plt.legend(loc='upper left')
     plt.tight_layout()
     plt.savefig(f"{save_folder}/mesmer_ip_vs_op_performance.png")
     plt.close('all')
 
     fig = plt.figure(figsize=(15, 5), dpi=200)
-    sns.violinplot(data=ip_vs_op_unmicst_s3, x="Marker", y="Score", hue="Type", split=False, inner="point",
+    sns.violinplot(data=ip_vs_op_unmicst_s3_snr, x="Marker", y="Score", hue="Type", split=False, inner="point",
                    palette="Set2")
-    plt.title("UnMICST + S3 Segmentation\nOut Patient vs In Patient\nDistribution of biopsy performance")
-    plt.legend(bbox_to_anchor=(1.15, 1), loc='upper right')
+    plt.title("UnMICST + S3 Segmentation SNR corrected\nOut Patient vs In Patient\nDistribution of biopsy performance")
+    #plt.legend(bbox_to_anchor=(1.10, 1), loc='upper right')
+    plt.legend(loc='upper left')
     plt.tight_layout()
-    plt.savefig(f"{save_folder}/unmisct_s3_ip_vs_op_performance.png")
+    plt.savefig(f"{save_folder}/unmisct_s3_snr_ip_vs_op_performance.png")
     plt.close('all')
 
-
-    # Heatmap
-
-    data = op[op["Segmentation"] == "Unmicst + S3"].copy().reset_index(drop=True)
-    data.drop(columns=["Segmentation"], inplace=True)
-    data = create_heatmap_df(data)
-    data = data.pivot(index="Biopsy", columns="Marker", values="Score")
-    data = data.loc[[f"{biopsy}" for biopsy in biopsies]]
-    fig = plt.figure(figsize=(10, 5), dpi=200)
-    sns.heatmap(data=data, vmin=0, vmax=0.5, annot=True)
-    for ax in fig.axes:
-        for tick in ax.get_yticklabels():
-            tick.set_rotation(0)
-    plt.xlabel('Feature')
-    plt.suptitle("Out Patient MAE Scores\nUnMICST + S3 Segmenter", x=0.45, fontsize=16)
-    plt.title("Lower values indicate lower errors", x=0.5, fontsize=12)
+    fig = plt.figure(figsize=(15, 5), dpi=200)
+    sns.violinplot(data=ip_vs_op_unmicst_s3_non_snr, x="Marker", y="Score", hue="Type", split=False, inner="point",
+                   palette="Set2")
+    plt.title(
+        "UnMICST + S3 Segmentation Non SNR corrected\nOut Patient vs In Patient\nDistribution of biopsy performance")
+    plt.legend(loc='upper left')
     plt.tight_layout()
-    plt.savefig(f"{save_folder}/op_unmicst_s3_mae_scores_heatmap.png")
+    plt.savefig(f"{save_folder}/unmisct_s3_non_snr_ip_vs_op_performance.png")
+    plt.close('all')

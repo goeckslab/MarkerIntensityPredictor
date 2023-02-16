@@ -32,7 +32,7 @@ if __name__ == '__main__':
                 "Panel": "Tumor",
                 "Type": "IP",
                 "Segmentation": "Unmicst + S3",
-                "AF Corrected": 1
+                "SNR": 1
             }
         )
 

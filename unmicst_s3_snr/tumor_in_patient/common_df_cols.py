@@ -19,5 +19,5 @@ def find_common_columns(directory):
     return list(common_columns)
 
 
-directory = '../data/tumor_s3_non_af/'
+directory = '../data/tumor_s3_snr/'
 print(','.join(find_common_columns(directory)))

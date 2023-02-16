@@ -1,10 +1,10 @@
 TEST_ID=$(test_id)
 MARKER=$(marker)
 OUTPUT_DIRECTORY = $(TEST_ID)/$(MARKER)
-DATA_DIRECTORY = ../../data/tumor_s3_af
-DATA_DIRECTORY_COMBINED = ../../data/tumor_s3_af/combined
-DATA_DIRECTORY_COMBINED_PREPROCESSED = ../../data/tumor_s3_af/combined/preprocessed
-DATA_DIRECTORY_PREPROCESSED = ../../data/tumor_s3_af/preprocessed
+DATA_DIRECTORY = ../../data/tumor_s3_non_snr
+DATA_DIRECTORY_COMBINED = ../../data/tumor_s3_non_snr/combined
+DATA_DIRECTORY_COMBINED_PREPROCESSED = ../../data/tumor_s3_non_snr/combined/preprocessed
+DATA_DIRECTORY_PREPROCESSED = ../../data/tumor_s3_non_snr/preprocessed
 PREPROCESSED_DATASET = $(TEST_ID)_excluded_dataset.tsv
 COMBINED_DATASET = $(TEST_ID)_excluded_dataset.csv
 

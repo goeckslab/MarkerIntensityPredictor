@@ -24,7 +24,7 @@ if __name__ == '__main__':
                 "Panel": "Tumor",
                 "Type": "OP",
                 "Segmentation": "Mesmer",
-                "AF Corrected": 1
+                "SNR": 1
             }
         )
 
