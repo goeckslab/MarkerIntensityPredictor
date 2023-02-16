@@ -1,5 +1,5 @@
-DATA_DIRECTORY = ../../data/mesmer
-DATA_DIRECTORY_PREPROCESSED = ../../data/mesmer/preprocessed
+DATA_DIRECTORY = ../../data/tumor_mesmer
+DATA_DIRECTORY_PREPROCESSED = ../../data/tumor_mesmer/preprocessed
 SAMPLE=$(sample_id)
 PREPROCESSED_DATASET = $(SAMPLE)_preprocessed_dataset.tsv
 TEST_ID=$(test_id)

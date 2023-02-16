@@ -8,6 +8,9 @@ unmicst_s3_af/tumor_in_patient/9_*
 unmicst_s3_af/tumor_out_patient/9_*
 unmicst_s3_non_af/tumor_in_patient/9_*
 unmicst_s3_non_af/tumor_out_patient/9_*
+mesmer/tumor_in_patient/9_*
+mesmer/tumor_out_patient/9_*
+data/tumor_mesmer/*
 new_me_vae/checkpoints
 *.c
 *.so

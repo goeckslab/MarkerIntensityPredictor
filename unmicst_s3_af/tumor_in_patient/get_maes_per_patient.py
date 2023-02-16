@@ -9,10 +9,10 @@ markers = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-tb", "--train_biopsy", help="The biopsy")
+    parser.add_argument("-b", "--biopsy", help="The biopsy")
     args = parser.parse_args()
 
-    train_biopsy = args.train_biopsy
+    train_biopsy = args.biopsy
     # replace last number with 1 if last number is 2
     if train_biopsy[-1] == "2":
         test_biopsy = train_biopsy[:-1] + "1"

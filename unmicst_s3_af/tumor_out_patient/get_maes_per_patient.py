@@ -9,7 +9,7 @@ markers = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--biopsy", help="The biopsy", required=True)
+    parser.add_argument("-b","--biopsy", help="The biopsy", required=True)
     args = parser.parse_args()
     mae_scores = []
     for marker in markers:
