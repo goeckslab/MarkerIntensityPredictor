@@ -43,6 +43,38 @@ def create_heatmap_df(data):
     return heatmap_df
 
 
+def create_violin_plots_for_markers(df):
+    # data = df[df["Segmentation"] == segmentation]
+    # if snr:
+    #    data = data[data["SNR"] == 1]
+    #    data[data["Segmentation"] == "Unmicst + S3"] = "Unmicst + S3 (SNR)"
+    # else:
+    #    data = data[data["SNR"] == 0]
+    #    data[data["Segmentation"] == "Unmicst + S3 (SNR)"] = "Unmicst + S3"
+
+    df.sort_values(by=["Biopsy", "Marker"], inplace=True)
+    df["Biopsy"] = [biopsy.replace('_', ' ') for biopsy in list(df["Biopsy"].values)]
+    # Rename score to MAE score
+    df.rename(columns={"Score": "MAE Score"}, inplace=True)
+
+    for snr in [0, 1]:
+        for marker in df["Marker"].unique():
+            temp = df[df["Marker"] == marker]
+            temp = temp[(temp["SNR"] == snr) | (temp["Segmentation"] == "Mesmer")]
+            fig, ax = plt.subplots(figsize=(10, 6), dpi=200)
+            sns.barplot(data=temp, x="Biopsy", y="MAE Score", hue="Segmentation")
+            if snr == 1:
+                ax.set_title(f"Performance of {marker} (SNR)\nLower scores are better")
+            else:
+                ax.set_title(f"Performance of {marker}\nLower scores are better")
+
+            ax.set_ylim(0, 1)
+            plt.tight_layout()
+
+            plt.savefig(f"{save_folder}/{marker}_mesmer_vs_s3{'_snr' if snr else ''}.png")
+            plt.close('all')
+
+
 if __name__ == '__main__':
     biopsies = ["9 2 1", "9 2 2", "9 3 1", "9 3 2", "9 14 1", "9 14 2", "9 15 1", "9 15 2"]
     # load mesmer mae scores from data mesmer folder and all subfolders
@@ -69,6 +101,9 @@ if __name__ == '__main__':
     op_full = mae_scores[mae_scores["Type"] == "OP"].copy()
     ip_full = mae_scores[mae_scores["Type"] == "IP"].copy()
 
+    create_violin_plots_for_markers(op_full)
+    create_violin_plots_for_markers(ip_full)
+
     op_mesmer = op_full[op_full["Segmentation"] == "Mesmer"].copy()
     op_unmicst_s3 = op_full[op_full["Segmentation"] == "Unmicst + S3"].copy()
 
@@ -94,6 +129,7 @@ if __name__ == '__main__':
     sns.violinplot(data=ip_vs_op_mesmer, x="Marker", y="Score", hue="Type", split=False, inner="point", palette="Set2")
     plt.title("Mesmer Segmentation\nOut Patient vs In Patient\nDistribution of biopsy performance")
     plt.legend(loc='upper left')
+    plt.ylim(-0.4, 1.1)
     plt.tight_layout()
     plt.savefig(f"{save_folder}/mesmer_ip_vs_op_performance.png")
     plt.close('all')
@@ -102,8 +138,9 @@ if __name__ == '__main__':
     sns.violinplot(data=ip_vs_op_unmicst_s3_snr, x="Marker", y="Score", hue="Type", split=False, inner="point",
                    palette="Set2")
     plt.title("UnMICST + S3 Segmentation SNR corrected\nOut Patient vs In Patient\nDistribution of biopsy performance")
-    #plt.legend(bbox_to_anchor=(1.10, 1), loc='upper right')
+    # plt.legend(bbox_to_anchor=(1.10, 1), loc='upper right')
     plt.legend(loc='upper left')
+    plt.ylim(-0.4, 1.1)
     plt.tight_layout()
     plt.savefig(f"{save_folder}/unmisct_s3_snr_ip_vs_op_performance.png")
     plt.close('all')
@@ -114,6 +151,7 @@ if __name__ == '__main__':
     plt.title(
         "UnMICST + S3 Segmentation Non SNR corrected\nOut Patient vs In Patient\nDistribution of biopsy performance")
     plt.legend(loc='upper left')
+    plt.ylim(-0.4, 1.1)
     plt.tight_layout()
     plt.savefig(f"{save_folder}/unmisct_s3_non_snr_ip_vs_op_performance.png")
     plt.close('all')

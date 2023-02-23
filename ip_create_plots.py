@@ -126,10 +126,10 @@ if __name__ == '__main__':
 
     data = ip.copy()
     # create new columns data origin, which indicates whether the data is from mesmer or unmicst and snr corrected or not
-    data["Origin"] = data.apply(lambda x: "Mesmer" if "Mesmer" in x["Segmentation"] else "UnMICST + S3 AF Corrected",
+    data["Origin"] = data.apply(lambda x: "Mesmer" if "Mesmer" in x["Segmentation"] else "UnMICST + S3 SNR Corrected",
                                 axis=1)
-    # rename origin to unmicst + s3 Non AF Corrected if not snr corrected
-    data.loc[data["AF Corrected"] == 0, "Origin"] = "UnMICST + S3 Non AF Corrected"
+    # rename origin to unmicst + s3 Non SNR if not snr corrected
+    data.loc[data["SNR"] == 0, "Origin"] = "UnMICST + S3 Non SNR Corrected"
 
     plt.figure(figsize=(20, 10))
     sns.barplot(data=data, x="Marker", y="Score", hue="Origin", errorbar="sd")
@@ -137,7 +137,7 @@ if __name__ == '__main__':
     plt.savefig(f"{save_folder}/ip_mae_scores.png")
 
     # Create heatmap for uncorrected unmicst  + s3
-    data = ip[(ip["Segmentation"] == "Unmicst + S3") & (ip["AF Corrected"] == 0)].copy().reset_index(drop=True)
+    data = ip[(ip["Segmentation"] == "Unmicst + S3") & (ip["SNR"] == 0)].copy().reset_index(drop=True)
     data.drop(columns=["Segmentation"], inplace=True)
     data = create_heatmap_df(data)
     data = data.pivot(index="Biopsy", columns="Marker", values="Score")

@@ -1,5 +1,5 @@
-DATA_DIRECTORY = ../../data/Tumor
-DATA_DIRECTORY_PREPROCESSED = ../../data/Tumor/preprocessed
+DATA_DIRECTORY = ../../data/tumor_s3_non_snr
+DATA_DIRECTORY_PREPROCESSED = ../../data/tumor_s3_non_snr/preprocessed
 SAMPLE=$(sample_id)
 PREPROCESSED_DATASET = $(SAMPLE)_preprocessed_dataset.tsv
 TEST_ID=$(test_id)
@@ -14,8 +14,14 @@ OUTPUT_DIRECTORY = $(SAMPLE)/$(MARKER)
 "$(SAMPLE)_final_config.yaml": create_input_features.py base_config.yaml "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)"
 	python create_input_features.py "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" "$(MARKER)" "$(SAMPLE)_input_features.yaml"; cat "$(SAMPLE)_input_features.yaml" base_config.yaml > "$(SAMPLE)_final_config.yaml"
 
-ludwig-hyperopt: "$(SAMPLE)_final_config.yaml" "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)"
-	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig hyperopt --dataset "../../$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" --config "../../$(SAMPLE)_final_config.yaml" -rs 456
+# Create the hyperopt file.
+"$(SAMPLE)_hyperopt_config.yaml": 
+	python create_input_features.py "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" "$(MARKER)" "$(SAMPLE)_input_features.yaml"
+	python create_hyperopt.py "$(MARKER)" "$(SAMPLE)_hyperopt.yaml"; cat "$(SAMPLE)_input_features.yaml" "$(SAMPLE)_hyperopt.yaml" > "$(SAMPLE)_hyperopt_config.yaml"
+
+
+ludwig-hyperopt: "$(SAMPLE)_hyperopt_config.yaml" "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)"
+	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig hyperopt --dataset "../../$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" --config "../../$(SAMPLE)_hyperopt_config.yaml"
 
 # Run a ludwig experiment using the preprocessed dataset. Results are placed into the $(SAMPLE) directory.
 ludwig-experiment: "$(SAMPLE)_final_config.yaml" "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)"
@@ -29,5 +35,5 @@ ludwig-plots:
 	python create_plots.py --truth "$(DATA_DIRECTORY_PREPROCESSED)/$(TEST_ID)_preprocessed_dataset.tsv" --predicted "$(OUTPUT_DIRECTORY)/evaluate/$(TEST_ID)/${MARKER}_predictions.csv" --marker "${MARKER}" --output "$(OUTPUT_DIRECTORY)/evaluate/$(TEST_ID)/"
 
 clean:
-	rm "$(SAMPLE)_final_config.yaml" "$(SAMPLE)_input_features.yaml"
+	rm "$(SAMPLE)_hyperopt.yaml" "$(SAMPLE)_final_config.yaml" "$(SAMPLE)_input_features.yaml"
 
