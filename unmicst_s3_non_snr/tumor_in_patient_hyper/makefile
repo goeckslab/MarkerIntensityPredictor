@@ -11,8 +11,10 @@ OUTPUT_DIRECTORY = $(SAMPLE)/$(MARKER)
 	mkdir -p "$(DATA_DIRECTORY_PREPROCESSED)" && python prepare_data.py "$(DATA_DIRECTORY)/$(SAMPLE).csv" "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)"
 
 # Create final configuration file.
-"$(SAMPLE)_final_config.yaml": create_input_features.py base_config.yaml "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)"
-	python create_input_features.py "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" "$(MARKER)" "$(SAMPLE)_input_features.yaml"; cat "$(SAMPLE)_input_features.yaml" base_config.yaml > "$(SAMPLE)_final_config.yaml"
+"$(SAMPLE)_final_config.yaml":
+	python create_input_features.py "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" "$(MARKER)" "$(SAMPLE)_input_features.yaml"; 
+	python create_experiment_config.py "$(SAMPLE)" "$(MARKER)" "base_config.yaml";
+	cat "$(SAMPLE)_input_features.yaml" base_config.yaml > "$(SAMPLE)_final_config.yaml"
 
 # Create the hyperopt file.
 "$(SAMPLE)_hyperopt_config.yaml": 
@@ -35,5 +37,6 @@ ludwig-plots:
 	python create_plots.py --truth "$(DATA_DIRECTORY_PREPROCESSED)/$(TEST_ID)_preprocessed_dataset.tsv" --predicted "$(OUTPUT_DIRECTORY)/evaluate/$(TEST_ID)/${MARKER}_predictions.csv" --marker "${MARKER}" --output "$(OUTPUT_DIRECTORY)/evaluate/$(TEST_ID)/"
 
 clean:
-	rm "$(SAMPLE)_hyperopt.yaml" "$(SAMPLE)_final_config.yaml" "$(SAMPLE)_input_features.yaml"
+	rm -rf "$(SAMPLE)/$(MARKER)/results/hyperopt"
+	rm "$(SAMPLE)_hyperopt.yaml" "$(SAMPLE)_hyperopt_config.yaml"  "$(SAMPLE)_final_config.yaml" "$(SAMPLE)_input_features.yaml" "base_config.yaml";
 

@@ -10,10 +10,6 @@ if __name__ == '__main__':
 
     # create yaml dictionary for the following:
     config = {
-        "combiner": {
-            "type": "concat",
-            "num_fc_layers": 1
-        },
         "training": {
             "learning_rate": 0.001,
             "optimizer": {

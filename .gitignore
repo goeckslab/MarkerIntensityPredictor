@@ -5,6 +5,7 @@ data/af_tracker/*
 data/tumor_s3_snr/*
 data/tumor_s3_non_snr/*
 unmicst_s3_non_snr/tumor_in_patient_hyper/*
+unmicst_s3_non_snr/tumor_out_patient_hyper/*
 unmicst_s3_snr/tumor_in_patient/9_*
 unmicst_s3_snr/tumor_out_patient/9_*
 unmicst_s3_non_snr/tumor_in_patient/9_*
