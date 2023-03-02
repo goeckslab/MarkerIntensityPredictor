@@ -7,16 +7,16 @@ DATA_DIRECTORY_COMBINED_PREPROCESSED = ../../data/tumor_s3_non_snr/combined/prep
 DATA_DIRECTORY_PREPROCESSED = ../../data/tumor_s3_non_snr/preprocessed
 PREPROCESSED_DATASET = $(TEST_ID)_preprocessed_dataset.tsv
 COMBINED_DATASET = $(TEST_ID)_excluded_dataset.csv
-
-
+COMBINED_PREPROCESSED_DATA = $(TEST_ID)_excluded_dataset.tsv
 
 # Create preprocessed dataset for combined data
-"$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)":
-	mkdir -p "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)" && python prepare_data.py "$(DATA_DIRECTORY_COMBINED)/$(COMBINED_DATASET)" "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)"
+"$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_DATASET)":
+	mkdir -p "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)" && python prepare_data.py "$(DATA_DIRECTORY_COMBINED)/$(COMBINED_DATASET)" "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_PREPROCESSED_DATA)"
 
 # Create preprocessed dataset for single data
 "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)":
 	mkdir -p "$(DATA_DIRECTORY_PREPROCESSED)" && python prepare_data.py "$(DATA_DIRECTORY)/$(TEST_ID).csv" "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)"
+
 
 # Create combined train set
 "$(DATA_DIRECTORY_COMBINED)/combined":
@@ -34,11 +34,11 @@ COMBINED_DATASET = $(TEST_ID)_excluded_dataset.csv
 	python create_hyperopt.py "$(MARKER)" "$(TEST_ID)_hyperopt.yaml"; cat "$(TEST_ID)_input_features.yaml" "$(TEST_ID)_hyperopt.yaml" > "$(TEST_ID)_hyperopt_config.yaml"
 
 ludwig-hyperopt: "$(DATA_DIRECTORY_COMBINED)/combined" "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" "$(TEST_ID)_hyperopt_config.yaml" 
-	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig hyperopt --dataset "../../$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_DATASET)" --config "../../$(TEST_ID)_hyperopt_config.yaml"
+	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig hyperopt --dataset "../../$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_PREPROCESSED_DATA)" --config "../../$(TEST_ID)_hyperopt_config.yaml"
 
 # Run a ludwig experiment using the preprocessed dataset. Results are placed into the $(TEST_ID) directory.
 ludwig-experiment: "$(TEST_ID)_final_config.yaml"
-	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_DATASET)" --config "../../$(TEST_ID)_final_config.yaml" -rs 456
+	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_PREPROCESSED_DATA)" --config "../../$(TEST_ID)_final_config.yaml" -rs 456
 
 ludwig-evaluate:
 	python prepare_data.py "$(DATA_DIRECTORY)/$(TEST_ID).csv" "$(DATA_DIRECTORY_PREPROCESSED)/$(TEST_ID)_preprocessed_dataset.tsv"
