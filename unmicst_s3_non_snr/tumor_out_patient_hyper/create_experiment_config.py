@@ -16,14 +16,13 @@ if __name__ == '__main__':
     path = Path(biopsy, f"{marker}", "results", "hyperopt", "hyperopt_statistics.json")
     f = open(path)
     data = json.load(f)
-    # print(data["hyperopt_results"][0]["parameters"])
-    # print(data["hyperopt_results"][0]["parameters"]["combiner.num_fc_layers"])
+
     early_stop: 10
     # create yaml dictionary for the following:
     config = {
         "model_type": "gbm",
         "combiner": {
-            "type": "concat",
+            "type": data["hyperopt_results"][0]["parameters"]["combiner.type"],
             "num_fc_layers": data["hyperopt_results"][0]["parameters"]["combiner.num_fc_layers"]
         },
         "training": {
