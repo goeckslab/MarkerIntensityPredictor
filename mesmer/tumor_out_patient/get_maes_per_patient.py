@@ -9,17 +9,19 @@ markers = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-b","--biopsy", help="The biopsy", required=True)
+    parser.add_argument("-b", "--biopsy", help="The biopsy", required=True)
     args = parser.parse_args()
-    mae_scores = []
+    scores = []
     for marker in markers:
         path = Path(args.biopsy, f"{marker}", "evaluate", args.biopsy, "test_statistics.json")
         f = open(path)
         data = json.load(f)
-        mae_scores.append(
+        scores.append(
             {
                 "Marker": marker,
-                "Score": data[marker]['mean_absolute_error'],
+                "MAE": data[marker]['mean_absolute_error'],
+                "MSE": data[marker]['mean_squared_error'],
+                "RMSE": data[marker]['root_mean_squared_error'],
                 "Biopsy": args.biopsy,
                 "Panel": "Tumor",
                 "Type": "OP",
@@ -28,6 +30,6 @@ if __name__ == '__main__':
             }
         )
 
-    mae_scores = pd.DataFrame.from_records(mae_scores)
+    scores = pd.DataFrame.from_records(scores)
 
-    mae_scores.to_csv(Path(args.biopsy, f"{args.biopsy}_mae_scores.csv"), index=False)
+    scores.to_csv(Path(args.biopsy, f"{args.biopsy}_scores.csv"), index=False)

@@ -19,15 +19,17 @@ if __name__ == '__main__':
     else:
         test_biopsy = train_biopsy[:-1] + "2"
 
-    mae_scores = []
+    scores = []
     for marker in markers:
         path = Path(train_biopsy, f"{marker}", "evaluate", test_biopsy, "test_statistics.json")
         f = open(path)
         data = json.load(f)
-        mae_scores.append(
+        scores.append(
             {
                 "Marker": marker,
-                "Score": data[marker]['mean_absolute_error'],
+                "MAE": data[marker]['mean_absolute_error'],
+                "MSE": data[marker]['mean_squared_error'],
+                "RMSE": data[marker]['root_mean_squared_error'],
                 "Biopsy": test_biopsy,
                 "Panel": "Tumor",
                 "Type": "IP",
@@ -36,6 +38,6 @@ if __name__ == '__main__':
             }
         )
 
-    mae_scores = pd.DataFrame.from_records(mae_scores)
+    scores = pd.DataFrame.from_records(scores)
 
-    mae_scores.to_csv(Path(train_biopsy, f"{test_biopsy}_mae_scores.csv"), index=False)
+    scores.to_csv(Path(train_biopsy, f"{test_biopsy}_scores.csv"), index=False)
