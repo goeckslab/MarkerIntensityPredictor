@@ -27,9 +27,9 @@ if __name__ == '__main__':
         scores.append(
             {
                 "Marker": marker,
-                "MAE": data[marker]['mean_absolute_error'],
-                "MSE": data[marker]['mean_squared_error'],
-                "RMSE": data[marker]['root_mean_squared_error'],
+                "MAE": data['mean_absolute_error'],
+                "MSE": data['mean_squared_error'],
+                "RMSE": data['root_mean_squared_error'],
                 "Biopsy": test_biopsy,
                 "Panel": "Tumor",
                 "Type": "IP",
