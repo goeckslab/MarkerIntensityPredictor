@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     scores = []
     for marker in markers:
-        path = Path(train_biopsy, f"{marker}", "evaluate", test_biopsy, "test_statistics.json")
+        path = Path(train_biopsy, f"{marker}", "evaluation.json")
         f = open(path)
         data = json.load(f)
         scores.append(
