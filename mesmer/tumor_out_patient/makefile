@@ -24,12 +24,12 @@ COMBINED_DATASET = $(TEST_ID)_excluded_dataset.csv
 
 # Create final configuration file.
 "$(TEST_ID)_final_config.yaml": create_input_features.py base_config.yaml "$(DATA_DIRECTORY_COMBINED)/combined" "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)"
-	python create_input_features.py "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)" "$(MARKER)" "$(TEST_ID)_input_features.yaml"; cat "$(TEST_ID)_input_features.yaml" base_config.yaml > "$(TEST_ID)_final_config.yaml"
+	python create_input_features.py "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)" "$(MARKER)" "$(TEST_ID)_$(MARKER)_input_features.yaml"; cat "$(TEST_ID)_$(MARKER)_input_features.yaml" base_config.yaml > "$(TEST_ID)_$(MARKER)_final_config.yaml"
 
 
 # Run a ludwig experiment using the preprocessed dataset. Results are placed into the $(TEST_ID) directory.
-ludwig-experiment: "$(TEST_ID)_final_config.yaml"
-	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)" --config "../../$(TEST_ID)_final_config.yaml" -rs 456
+ludwig-experiment: "$(TEST_ID)_$(MARKER)_final_config.yaml"
+	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)" --config "../../$(TEST_ID)_($MARKER)_final_config.yaml" -rs 456
 
 ludwig-evaluate:
 	python prepare_data.py "$(DATA_DIRECTORY)/$(TEST_ID).csv" "$(DATA_DIRECTORY_PREPROCESSED)/$(TEST_ID)_preprocessed_dataset.tsv"
@@ -39,5 +39,5 @@ ludwig-plots:
 	python create_plots.py --truth "$(DATA_DIRECTORY_PREPROCESSED)/$(TEST_ID)_preprocessed_dataset.tsv" --predicted "$(OUTPUT_DIRECTORY)/evaluate/$(TEST_ID)/${MARKER}_predictions.csv" --marker "${MARKER}" --output "$(OUTPUT_DIRECTORY)/evaluate/$(TEST_ID)/"
 
 clean:
-	rm "$(TEST_ID)_final_config.yaml" "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)" "$(TEST_ID)_input_features.yaml"
+	rm "$(TEST_ID)_$(MARKER)_final_config.yaml" "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)" "$(TEST_ID)_$(MARKER)_input_features.yaml"
 
