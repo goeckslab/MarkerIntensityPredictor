@@ -29,7 +29,7 @@ COMBINED_DATASET = $(TEST_ID)_excluded_dataset.csv
 
 # Run a ludwig experiment using the preprocessed dataset. Results are placed into the $(TEST_ID) directory.
 ludwig-experiment: "$(TEST_ID)_$(MARKER)_final_config.yaml"
-	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)" --config "../../$(TEST_ID)_($MARKER)_final_config.yaml" -rs 456
+	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)" --config "../../$(TEST_ID)_$(MARKER)_final_config.yaml" -rs 456
 
 ludwig-evaluate:
 	python prepare_data.py "$(DATA_DIRECTORY)/$(TEST_ID).csv" "$(DATA_DIRECTORY_PREPROCESSED)/$(TEST_ID)_preprocessed_dataset.tsv"
