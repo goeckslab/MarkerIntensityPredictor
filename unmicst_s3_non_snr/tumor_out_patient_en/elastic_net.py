@@ -36,10 +36,10 @@ if __name__ == '__main__':
         "patient": " ".join(Path(args.test).stem.split("_")[0:3]),
         "mean_squared_error": mean_squared_error(y_test, y_hat),
         "mean_absolute_error": mean_absolute_error(y_test, y_hat),
+        "root_mean_squared_error": mean_squared_error(y_test, y_hat, squared=False),
         "mape": mean_absolute_percentage_error(y_test, y_hat),
         "marker": args.marker,
         "model": "elastic_net",
-        "root_mean_squared_error": mean_squared_error(y_test, y_hat, squared=False),
         # "rmspe": np.sqrt(np.mean(np.square(((y_test - y_hat_df[args.marker]) / y_test)), axis=0))
     }
 
