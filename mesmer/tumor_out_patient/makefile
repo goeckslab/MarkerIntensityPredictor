@@ -5,8 +5,9 @@ DATA_DIRECTORY = ../../data/tumor_mesmer
 DATA_DIRECTORY_COMBINED = ../../data/tumor_mesmer/combined
 DATA_DIRECTORY_COMBINED_PREPROCESSED = ../../data/tumor_mesmer/combined/preprocessed
 DATA_DIRECTORY_PREPROCESSED = ../../data/tumor_mesmer/preprocessed
-PREPROCESSED_DATASET = $(TEST_ID)_excluded_dataset.tsv
+PREPROCESSED_DATASET = $(TEST_ID)_preprocessed_dataset.tsv
 COMBINED_DATASET = $(TEST_ID)_excluded_dataset.csv
+COMBINED_PREPROCESSED_DATA = $(TEST_ID)_excluded_dataset.tsv
 
 
 
@@ -15,8 +16,8 @@ COMBINED_DATASET = $(TEST_ID)_excluded_dataset.csv
 	mkdir -p "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)" && python prepare_data.py "$(DATA_DIRECTORY_COMBINED)/$(COMBINED_DATASET)" "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)"
 
 # Create preprocessed dataset for single data
-"$(DATA_DIRECTORY_PREPROCESSED)/$(TEST_ID)_preprocessed_dataset.tsv":
-	mkdir -p "$(DATA_DIRECTORY_PREPROCESSED)" && python prepare_data.py "$(DATA_DIRECTORY)/$(SAMPLE).csv" "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)"
+"$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)":
+	mkdir -p "$(DATA_DIRECTORY_PREPROCESSED)" && python prepare_data.py "$(DATA_DIRECTORY)/$(TEST_ID).csv" "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)"
 
 # Create combined train set
 "$(DATA_DIRECTORY_COMBINED)/combined":
@@ -28,7 +29,7 @@ COMBINED_DATASET = $(TEST_ID)_excluded_dataset.csv
 
 
 # Run a ludwig experiment using the preprocessed dataset. Results are placed into the $(TEST_ID) directory.
-ludwig-experiment: "$(TEST_ID)_$(MARKER)_final_config.yaml"
+ludwig-experiment: "$(TEST_ID)_$(MARKER)_final_config.yaml" "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)"
 	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)" --config "../../$(TEST_ID)_$(MARKER)_final_config.yaml" -rs 456
 
 ludwig-evaluate:

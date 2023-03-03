@@ -11,6 +11,10 @@ if __name__ == '__main__':
     target = args.target  # The target biopsy which should be excluded
     directory = args.dir
 
+    if Path(f"{args.output_dir}/{target}_excluded_dataset.csv").exists():
+        print("File already exists. Skipping...")
+        exit(0)
+
     train = []
     for root, dirs, files in os.walk(directory):
         for name in files:
