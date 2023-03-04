@@ -1,17 +1,10 @@
 #!/bin/bash
 
-#SBATCH --nodes=1
-#SBATCH --job-name=expressionprediction.sh
-#SBATCH --time=0-24:00:00
-#SBATCH --partition=exacloud
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
-#SBATCH --output=./output_reports/slurm.%N.%j.out
-#SBATCH --error=./error_reports/slurm.%N.%j.err
-#SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=kirchgae@ohsu.edu
-
 test_id=$1
+
+
+
+
 
 markers=('pRB' 'CD45' 'CK19' 'Ki67' 'aSMA' 'Ecad' 'PR' 'CK14' 'HER2' 'AR' 'CK17' 'p21' 'Vimentin' 'pERK' 'EGFR' 'ER')
 #markers=('pRB')
