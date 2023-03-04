@@ -1,8 +1,4 @@
 #!/bin/bash
-
-test_id=$1
-marker=$2
-
 #SBATCH --nodes=1
 #SBATCH --job-name=mesmer_out_patient
 #SBATCH --time=0-24:00:00
@@ -13,6 +9,12 @@ marker=$2
 #SBATCH --error=./error_reports/slurm.%N.%j.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=kirchgae@ohsu.edu
+
+
+test_id=$1
+marker=$2
+
+
 
 
 make -f makefile ludwig-experiment test_id="${test_id}" marker="${marker}" &&
