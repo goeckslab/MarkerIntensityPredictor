@@ -4,7 +4,7 @@ test_id=$1
 marker=$2
 
 #SBATCH --nodes=1
-#SBATCH --job-name=${test_id}_${marker}
+#SBATCH --job-name=${test_id}${marker}
 #SBATCH --time=0-24:00:00
 #SBATCH --partition=exacloud
 #SBATCH --ntasks=1
