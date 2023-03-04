@@ -2,10 +2,6 @@
 
 test_id=$1
 
-
-
-
-
 markers=('pRB' 'CD45' 'CK19' 'Ki67' 'aSMA' 'Ecad' 'PR' 'CK14' 'HER2' 'AR' 'CK17' 'p21' 'Vimentin' 'pERK' 'EGFR' 'ER')
 #markers=('pRB')
 for marker in "${markers[@]}"; do

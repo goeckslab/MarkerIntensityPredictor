@@ -24,7 +24,7 @@ COMBINED_PREPROCESSED_DATA = $(TEST_ID)_excluded_dataset.tsv
 	mkdir -p "$(DATA_DIRECTORY_COMBINED)" && python combine_datasets.py --dir "$(DATA_DIRECTORY)" --target "$(TEST_ID)" --output_dir "$(DATA_DIRECTORY_COMBINED)"
 
 # Create final configuration file.
-"$(TEST_ID)_$(MARKER)_final_config.yaml": create_input_features.py base_config.yaml "$(DATA_DIRECTORY_COMBINED)/combined" "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)"
+"$(TEST_ID)_$(MARKER)_final_config.yaml":
 	python create_input_features.py "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)" "$(MARKER)" "$(TEST_ID)_$(MARKER)_input_features.yaml"; cat "$(TEST_ID)_$(MARKER)_input_features.yaml" base_config.yaml > "$(TEST_ID)_$(MARKER)_final_config.yaml"
 
 
