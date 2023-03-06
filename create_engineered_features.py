@@ -9,6 +9,9 @@ NON_MARKERS = ['CellID', 'Area', 'MajorAxisLength', 'MinorAxisLength', 'Eccentri
                'Solidity', 'Extent', 'Orientation']
 SPATIAL_COORDS = ['X_centroid', 'Y_centroid']
 
+TO_REMOVE = ["DNA1", "DNA2", "DNA3", "DNA4", "DNA5", "DNA6", "DNA7", "DNA8", "DNA9", "DNA10", "DNA11", "DNA12", "DNA13",
+             "pERK-555", "goat-anti-rabbit", "A555", "donkey-anti-mouse"]
+
 
 def get_args():
     """
@@ -18,17 +21,17 @@ def get_args():
 
     parser.add_argument("--file", "-f", action="store", required=True,
                         help="The file to use for imputation. Will be excluded from training only if folder arg is provided.")
-    parser.add_argument("--sub", action="store", required=False, default=None,
-                        help="Select a given subset range of cells")
 
-    parser.add_argument("--mode", "-m", action="store", required=True, choices=["sp", "bio", "biomorph"],
+    parser.add_argument("--mode", "-m", action="store", required=True, choices=["sp", "bio"],
                         help="The mode of finding the nearest neighbors")
 
     parser.add_argument("--neighbors", "-n", action="store", required=False, default=6, type=int,
                         help="The amount of neighbors")
 
     parser.add_argument("--radius", "-r", action="store", required=False, default=46, type=int,
-                        help="The radius around the cell in px")
+                        help="The radius around the cell in px")  # 2 cells
+
+    parser.add_argument("--output", "-o", action="store", required=True)
 
     return parser.parse_args()
 
@@ -42,13 +45,17 @@ if __name__ == '__main__':
     args = get_args()
 
     neighbor_count = args.neighbors
+    mode = args.mode
     radius = args.radius
 
-    if args.sub is not None:
-        sub_count = int(args.sub)
+    results_folder = args.output
+    if mode == "sp":
+        results_folder = Path(f"{results_folder}_sp_{str(radius)}")
+    else:
+        results_folder = Path(f"{results_folder}_bio_{str(neighbor_count)}")
 
-    mode = args.mode
-    results_folder = Path("data/feature_engineered")
+    if not results_folder.exists():
+        results_folder.mkdir(parents=True, exist_ok=True)
 
     file_name: str = Path(args.file).stem
 
@@ -57,47 +64,30 @@ if __name__ == '__main__':
     print(f"Processing file: {file_name}")
     print(f"Mode: {mode}")
 
+    for column in TO_REMOVE:
+        if column in biopsy.columns:
+            biopsy.drop(columns=[column], inplace=True)
+
     if mode == "sp":
-        biopsy = biopsy.drop(columns=[NON_MARKERS], inplace=True)
         kdt = KDTree(biopsy[SPATIAL_COORDS], leaf_size=30, metric='euclidean')
         neighbors = kdt.query_radius(biopsy[['X_centroid', 'Y_centroid']], r=radius, return_distance=False)
-        results_folder = Path(results_folder, "sp")
     elif mode == "biomorph":
         sub_df = biopsy.drop(columns=[SPATIAL_COORDS], inplace=True)
         sub_df = sub_df.drop(columns=['CellID'], inplace=True)
         kdt = KDTree(sub_df, leaf_size=30, metric='euclidean')
         neighbors = kdt.query(sub_df, k=neighbor_count, return_distance=False)
-        results_folder = Path(results_folder, "biomorph")
     else:
-        sub_df = biopsy.drop(columns=[NON_MARKERS])
-        sub_df = sub_df.drop(columns=[SPATIAL_COORDS])
+        sub_df = biopsy[SHARED_MARKERS].copy()
         kdt = KDTree(sub_df, leaf_size=30, metric='euclidean')
         neighbors = kdt.query(sub_df, k=neighbor_count, return_distance=False)
-        results_folder = Path(results_folder, "bio")
 
-    excluded_features = NON_MARKERS + SPATIAL_COORDS
-
-    for feature in biopsy.features:
-        if feature in excluded_features:
-            continue
-
-        biopsy.features[f"{feature}_mean"] = biopsy.features.apply(
-            lambda row: calc_mean(biopsy.features, feature, neighbors, row.name), axis=1)
-
-    df = biopsy.features.copy()
-    df = df.join(pd.DataFrame(biopsy.cells_ids))
-    df.rename(columns={0: "CellID"}, inplace=True)
-
-    if args.sub is not None:
-        results_folder = Path(results_folder, args.sub)
-
-    if mode == "sp":
-        results_folder = Path(results_folder, str(radius))
-    else:
-        results_folder = Path(results_folder, str(neighbor_count))
+    biopsy = biopsy[SHARED_MARKERS].copy()
+    for feature in biopsy.columns:
+        biopsy[f"{feature}_mean"] = biopsy.apply(
+            lambda row: calc_mean(biopsy, feature, neighbors, row.name), axis=1)
 
     # Create results path
     results_folder.mkdir(parents=True, exist_ok=True)
 
-    df.fillna(0, inplace=True)
-    df.to_csv(Path(results_folder, f"{file_name}.csv"), index=False)
+    biopsy.fillna(0, inplace=True)
+    biopsy.to_csv(Path(results_folder, f"{file_name}.csv"), index=False)
