@@ -8,7 +8,9 @@ import argparse
 from sklearn.preprocessing import MinMaxScaler
 
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
-                  'pERK', 'EGFR', 'ER']
+                  'pERK', 'EGFR', 'ER',
+                  "pRB_mean", "CD45_mean", "CK19_mean", "Ki67_mean", "aSMA_mean", "Ecad_mean", "PR_mean", "CK14_mean",
+                  "HER2_mean", "AR_mean", "CK17_mean", "p21_mean", "Vimentin_mean", "pERK_mean", "EGFR_mean", "ER_mean"]
 NON_MARKERS = ['CellID', 'X_centroid', 'Y_centroid', 'Area', 'MajorAxisLength', 'MinorAxisLength', 'Eccentricity',
                'Solidity', 'Extent', 'Orientation']
 
