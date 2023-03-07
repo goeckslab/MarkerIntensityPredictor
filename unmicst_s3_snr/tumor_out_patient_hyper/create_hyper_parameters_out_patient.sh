@@ -6,4 +6,5 @@ for marker in "${markers[@]}"; do
   echo "${marker}"
   echo  test_id="${test_id}" marker="${marker}"
   make -f makefile ludwig-hyperopt  test_id="${test_id}" marker="${marker}"
+  make -f makefile clean-hyper  test_id="${test_id}" marker="${marker}"
 done

@@ -14,7 +14,7 @@ if __name__ == '__main__':
     parser.add_argument("-b", "--biopsy", help="The biopsy", required=True)
     args = parser.parse_args()
 
-    train_biopsy = Path(args.biopsy).stem
+    train_biopsy = args.biopsy
     data_path = Path(args.biopsy).parent
 
     if not scores_directory.exists():
