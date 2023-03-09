@@ -15,6 +15,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     train_biopsy = args.biopsy
+    train_biopsy_name = Path(args.biopsy).stem
     data_path = Path(args.biopsy).parent
 
     if not scores_directory.exists():
@@ -24,10 +25,10 @@ if __name__ == '__main__':
 
     if in_or_out == "in_patient":
         # replace last number with 1 if last number is 2
-        if train_biopsy[-1] == "2":
-            test_biopsy = train_biopsy[:-1] + "1"
+        if train_biopsy_name[-1] == "2":
+            test_biopsy = train_biopsy_name[:-1] + "1"
         else:
-            test_biopsy = train_biopsy[:-1] + "2"
+            test_biopsy = train_biopsy_name[:-1] + "2"
 
     else:
         test_biopsy = Path(args.biopsy).stem
@@ -64,7 +65,7 @@ if __name__ == '__main__':
                     'mean_squared_error'],
                 "RMSE": data[marker]['root_mean_squared_error'] if "_en" not in str(data_path) else data[
                     'root_mean_squared_error'],
-                "Biopsy": Path(args.biopsy).stem,
+                "Biopsy": test_biopsy,
                 "Panel": "Tumor",
                 "Type": type,
                 "Segmentation": segmentation,
