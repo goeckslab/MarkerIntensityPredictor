@@ -9,8 +9,6 @@ PREPROCESSED_DATASET = $(TEST_ID)_preprocessed_dataset.tsv
 COMBINED_DATASET = $(TEST_ID)_excluded_dataset.csv
 COMBINED_PREPROCESSED_DATA = $(TEST_ID)_excluded_dataset.tsv
 
-
-
 # Create preprocessed dataset for combined data
 "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)":
 	mkdir -p "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)" && python prepare_data.py "$(DATA_DIRECTORY_COMBINED)/$(COMBINED_DATASET)" "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)"
@@ -24,8 +22,11 @@ COMBINED_PREPROCESSED_DATA = $(TEST_ID)_excluded_dataset.tsv
 	mkdir -p "$(DATA_DIRECTORY_COMBINED)" && python combine_datasets.py --dir "$(DATA_DIRECTORY)" --target "$(TEST_ID)" --output_dir "$(DATA_DIRECTORY_COMBINED)"
 
 # Create final configuration file.
-"$(TEST_ID)_final_config.yaml": create_input_features.py base_config.yaml "$(DATA_DIRECTORY_COMBINED)/combined" "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)"
-	python create_input_features.py "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)" "$(MARKER)" "$(TEST_ID)_input_features.yaml"; cat "$(TEST_ID)_input_features.yaml" base_config.yaml > "$(TEST_ID)_final_config.yaml"
+"$(TEST_ID)_final_config.yaml":
+    "$(DATA_DIRECTORY_COMBINED)/combined"
+    "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)"
+	python create_input_features.py "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(PREPROCESSED_DATASET)" "$(MARKER)" "$(TEST_ID)_input_features.yaml";
+	cat "$(TEST_ID)_input_features.yaml" base_config.yaml > "$(TEST_ID)_final_config.yaml"
 
 
 # Run a ludwig experiment using the preprocessed dataset. Results are placed into the $(TEST_ID) directory.

@@ -67,9 +67,6 @@ def SNR(df, mappings):
     for AF_key in mappings:
 
         for marker in mappings[AF_key]:
-            print(marker)
-            print(df[marker])
-            print(np.mean(df[AF_key]))
             df[marker] = df[marker] / np.mean(df[AF_key])
 
     return df

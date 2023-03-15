@@ -37,11 +37,7 @@ ludwig-hyperopt: "$(DATA_DIRECTORY_COMBINED)/combined" "$(DATA_DIRECTORY_PREPROC
 	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig hyperopt --dataset "../../$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_PREPROCESSED_DATA)" --config "../../$(TEST_ID)_$(MARKER)_hyperopt_config.yaml"
 
 # Run a ludwig experiment using the preprocessed dataset. Results are placed into the $(TEST_ID) directory.
-ludwig-experiment: 
-	"$(DATA_DIRECTORY_COMBINED)/combined" 
-	"$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" 
-	"$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_DATASET)" 
-	"$(TEST_ID)_$(MARKER)_final_config.yaml"
+ludwig-experiment: "$(DATA_DIRECTORY_COMBINED)/combined" "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_DATASET)" "$(TEST_ID)_$(MARKER)_final_config.yaml"
 	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_PREPROCESSED_DATA)" --config "../../$(TEST_ID)_$(MARKER)_final_config.yaml" -rs 456
 
 ludwig-evaluate:

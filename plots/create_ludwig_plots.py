@@ -3,11 +3,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os, sys, math
 from pathlib import Path
+import argparse
 
 biopsies = ["9 2 1", "9 2 2", "9 3 1", "9 3 2", "9 14 1", "9 14 2", "9 15 1", "9 15 2"]
 
 ip_folder = Path("ip_plots")
 op_folder = Path("op_plots")
+ip_vs_op_folder = Path("op_vs_ip_plots")
 
 
 def truncate_decimals(target_allocation, two_decimal_places) -> float:
@@ -65,7 +67,22 @@ def plot_performance_heatmap_per_segmentation(data, score: str, folder: Path, fi
     plt.close('all')
 
 
+def create_violin_plot_per_segmentation(data: pd.DataFrame, score: str, title: str, save_folder: Path, file_name: str):
+    data["Biopsy"] = data["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
+    fig = plt.figure(figsize=(13, 5), dpi=200)
+    sns.violinplot(data=data, x="Marker", y=score, hue="Type", split=True)
+    plt.title(title)
+    plt.legend(loc='upper center')
+    plt.ylim(-0.3, 0.9)
+    plt.tight_layout()
+    plt.savefig(f"{save_folder}/{file_name}.png")
+    plt.close('all')
+
+
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--markers", nargs='+')
+    args = parser.parse_args()
 
     # load mesmer mae scores from data mesmer folder and all subfolders
 
@@ -79,6 +96,10 @@ if __name__ == '__main__':
     # print(scores)
 
     scores = pd.concat(scores, axis=0)
+
+    if args.markers:
+        scores = scores[scores["Marker"].isin(args.markers)]
+
     # Create bar plot which compares in patient performance of the different segementations for each biopsy
     # The bar plot should be saved in the plots folder
 
@@ -189,3 +210,27 @@ if __name__ == '__main__':
                                               title="Out Patient RMSE Scores \n UnMicst + S3 (Non SNR)",
                                               folder=op_folder, file_name=
                                               "ludwig_op_s3_non_snr_rmse_heatmap")
+
+    # Violin plots for out & in patient data for each segmentation
+
+    data = pd.concat([ip_mae_scores, op_mae_scores])
+
+    data["Origin"] = data.apply(
+        lambda x: "Mesmer" if "Mesmer" in x["Segmentation"] else "UnMICST + S3 SNR Corrected",
+        axis=1)
+    # rename origin to unmicst + s3 Non SNR if not snr corrected
+    data.loc[data["SNR"] == 0, "Origin"] = "UnMICST + S3 Non SNR Corrected"
+
+    for segmentation in data["Origin"].unique():
+        data_seg = data[data["Origin"] == segmentation].copy()
+
+        data_seg.drop(columns=["SNR", "Segmentation"], inplace=True)
+        create_violin_plot_per_segmentation(data=data_seg, score="MAE",
+                                            title=f"In & Out patient performance for {segmentation}",
+                                            file_name=f"ludwig_{segmentation}_mae_violin_plot",
+                                            save_folder=ip_vs_op_folder)
+
+        create_violin_plot_per_segmentation(data=data_seg, score="RMSE",
+                                            title=f"In & Out patient performance for {segmentation}",
+                                            file_name=f"ludwig_{segmentation}_rmse_violin_plot",
+                                            save_folder=ip_vs_op_folder)

@@ -17,9 +17,8 @@ COMBINED_PREPROCESSED_DATA = $(TEST_ID)_excluded_dataset.tsv
 "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)":
 	mkdir -p "$(DATA_DIRECTORY_PREPROCESSED)" && python ../../shared_scripts/prepare_data.py "$(DATA_DIRECTORY)/$(TEST_ID).csv" "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)"
 
-
 # Create combined train set
-"$(DATA_DIRECTORY_COMBINED)/combined":
+"create-combined-train-data-set":
 	mkdir -p "$(DATA_DIRECTORY_COMBINED)" && python ../../shared_scripts/combine_datasets.py --dir "$(DATA_DIRECTORY)" --target "$(TEST_ID)" --output_dir "$(DATA_DIRECTORY_COMBINED)"
 
 # Create final configuration file.
@@ -37,11 +36,7 @@ ludwig-hyperopt: "$(DATA_DIRECTORY_COMBINED)/combined" "$(DATA_DIRECTORY_PREPROC
 	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig hyperopt --dataset "../../$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_PREPROCESSED_DATA)" --config "../../$(TEST_ID)_$(MARKER)_hyperopt_config.yaml"
 
 # Run a ludwig experiment using the preprocessed dataset. Results are placed into the $(TEST_ID) directory.
-ludwig-experiment: 
-	"$(DATA_DIRECTORY_COMBINED)/combined" 
-	"$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" 
-	"$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_DATASET)" 
-	"$(TEST_ID)_$(MARKER)_final_config.yaml"
+ludwig-experiment: "create-combined-train-data-set" "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_DATASET)" "$(TEST_ID)_$(MARKER)_final_config.yaml"
 	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_PREPROCESSED_DATA)" --config "../../$(TEST_ID)_$(MARKER)_final_config.yaml" -rs 456
 
 ludwig-evaluate:
@@ -53,6 +48,9 @@ ludwig-plots:
 
 clean:
 	rm "$(TEST_ID)_$(MARKER)_hyperopt.yaml" "$(TEST_ID)_$(MARKER)_hyperopt_config.yaml"  "$(TEST_ID)_$(MARKER)_final_config.yaml" "$(TEST_ID)_$(MARKER)_input_features.yaml" "base_config.yaml";
+
+clean_without_hyper:
+	rm  "$(TEST_ID)_$(MARKER)_final_config.yaml" "$(TEST_ID)_$(MARKER)_input_features.yaml" "base_config.yaml";
 
 clean-hyper:
 	rm "$(TEST_ID)_$(MARKER)_hyperopt.yaml" "$(TEST_ID)_$(MARKER)_hyperopt_config.yaml" "$(TEST_ID)_$(MARKER)_input_features.yaml"

@@ -17,7 +17,6 @@ COMBINED_PREPROCESSED_DATA = $(TEST_ID)_excluded_dataset.tsv
 "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)":
 	mkdir -p "$(DATA_DIRECTORY_PREPROCESSED)" && python prepare_data.py "$(DATA_DIRECTORY)/$(TEST_ID).csv" "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)"
 
-
 # Create combined train set
 "$(DATA_DIRECTORY_COMBINED)/combined":
 	mkdir -p "$(DATA_DIRECTORY_COMBINED)" && python combine_datasets.py --dir "$(DATA_DIRECTORY)" --target "$(TEST_ID)" --output_dir "$(DATA_DIRECTORY_COMBINED)"

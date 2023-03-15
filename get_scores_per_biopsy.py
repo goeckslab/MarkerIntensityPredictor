@@ -39,11 +39,9 @@ if __name__ == '__main__':
     mode = "EN" if "_en" in str(data_path) else "Ludwig"
     hyper = 1 if "_hyper" in str(data_path) else 0
 
-    if "bio_" in str(data_path):
+    if "_fe" in str(data_path):
         splits = str(data_path).split("_")
         fe = f"{splits[-2]} {splits[-1]}"
-    elif "sp_" in str(data_path):
-        raise ValueError("Not implemented yet")
     else:
         fe = "None"
 
@@ -79,5 +77,5 @@ if __name__ == '__main__':
     scores = pd.DataFrame.from_records(scores)
 
     scores.to_csv(Path(scores_directory,
-                       f"{Path(args.biopsy).stem}_{type}_{'_'.join(segmentation.split(' '))}_{snr}_{fe}_{mode}_{hyper}_scores.csv"),
+                       f"{test_biopsy}_{type}_{'_'.join(segmentation.split(' '))}_{snr}_{fe}_{mode}_{hyper}_scores.csv"),
                   index=False)

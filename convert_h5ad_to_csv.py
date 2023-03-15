@@ -11,8 +11,11 @@ if __name__ == "__main__":
 
     # load h5ad file and convert to csv
     adata = sc.read_h5ad(args.x_matrix_file)
+
     # extract x from adata file and convert to df
     df = pd.DataFrame(adata.X, columns=adata.var_names)
+    df["X_centroid"] = adata.obs["X_centroid"]
+    df["Y_centroid"] = adata.obs["Y_centroid"]
 
     # Convert E-cdaherin to Ecad
     df = df.rename(columns={"E-cadherin": "Ecad"})
