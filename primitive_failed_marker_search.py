@@ -44,8 +44,12 @@ rounds = {"9_2": {
     }
 }
 
+results_folder = Path("results/expression_by_round")
+
 if __name__ == '__main__':
 
+    if not results_folder.exists():
+        results_folder.mkdir(parents=True)
     # Check whether marker expression is high
 
     parser = argparse.ArgumentParser()
@@ -54,6 +58,20 @@ if __name__ == '__main__':
 
     biopsy = args.biopsy
     biopsy_data = pd.read_csv(biopsy)
+    segmentation = biopsy.split("/")[1]
+
+    if segmentation == "tumor_mesmer":
+        segmentation = "Mesmer"
+        snr = 1
+        ylim_max = 6
+    elif segmentation == "tumor_s3_snr":
+        segmentation = "Unmicst_+_S3"
+        snr = 1
+        ylim_max = 25
+    else:
+        segmentation = "Unmicst_+_S3_NoSNR"
+        snr = 0
+        ylim_max = 10
 
     case = "_".join(Path(biopsy).stem.split("_")[0:2])
     rounds = rounds[case]
@@ -76,13 +94,22 @@ if __name__ == '__main__':
         # set y label of ax
         ax.set_ylabel("Expression")
 
+        # sety lim
+        # ax.set_ylim(0, ylim_max)
+
         if col == 3:
             row += 1
             col = 0
         else:
             col += 1
 
+    if len(rounds) != 8:
+        fig.delaxes(axes[row, col])
+
+
     # set figure wide title
-    fig.suptitle(f"Shared Marker Expression per round\nBiopsy {Path(biopsy).stem.replace('_', ' ')}")
+    fig.suptitle(
+        f"Shared Marker Expression per round\nSegmentation: {segmentation.replace('_', ' ')}\nBiopsy {Path(biopsy).stem.replace('_', ' ')}")
     plt.tight_layout()
-    plt.savefig(f"{Path(biopsy).stem}_shared_marker_expression_per_round.png")
+    plt.savefig(
+        Path(results_folder, f"{Path(biopsy).stem}_{segmentation}_{snr}_shared_marker_expression_per_round.png"))

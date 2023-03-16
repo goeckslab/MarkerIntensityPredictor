@@ -4,6 +4,7 @@ import seaborn as sns
 import os, sys, math
 from pathlib import Path
 import argparse
+from typing import List
 
 biopsies = ["9 2 1", "9 2 2", "9 3 1", "9 3 2", "9 14 1", "9 14 2", "9 15 1", "9 15 2"]
 
@@ -67,13 +68,25 @@ def plot_performance_heatmap_per_segmentation(data, score: str, folder: Path, fi
     plt.close('all')
 
 
-def create_violin_plot_per_segmentation(data: pd.DataFrame, score: str, title: str, save_folder: Path, file_name: str):
+def create_violin_plot_per_segmentation(data: pd.DataFrame, score: str, title: str, save_folder: Path, file_name: str,
+                                        ylim: List):
     data["Biopsy"] = data["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
     fig = plt.figure(figsize=(13, 5), dpi=200)
-    sns.violinplot(data=data, x="Marker", y=score, hue="Type", split=True)
-    plt.title(title)
-    plt.legend(loc='upper center')
-    plt.ylim(-0.3, 0.9)
+    sns.violinplot(data=data, x="Marker", y=score, hue="Type", split=False, cut=0)
+
+    # plt.title(title)
+    # remove y axis label
+    plt.ylabel("")
+    plt.xlabel("")
+    # plt.legend(loc='upper center')
+    plt.ylim(ylim[0], ylim[1])
+
+    # plt.tick_params(top='off', bottom='off', left='off', right='off', labelleft='off', labelbottom='off')
+    plt.box(False)
+    # remove legend from fig
+    plt.legend().set_visible(False)
+    plt.rcParams.update({'font.size': 22})
+
     plt.tight_layout()
     plt.savefig(f"{save_folder}/{file_name}.png")
     plt.close('all')
@@ -223,14 +236,14 @@ if __name__ == '__main__':
 
     for segmentation in data["Origin"].unique():
         data_seg = data[data["Origin"] == segmentation].copy()
-
         data_seg.drop(columns=["SNR", "Segmentation"], inplace=True)
+
         create_violin_plot_per_segmentation(data=data_seg, score="MAE",
-                                            title=f"In & Out patient performance for {segmentation}",
+                                            title=f"In & Out patient performance using Ludwig for {segmentation}",
                                             file_name=f"ludwig_{segmentation}_mae_violin_plot",
-                                            save_folder=ip_vs_op_folder)
+                                            save_folder=ip_vs_op_folder, ylim=[0, 1])
 
         create_violin_plot_per_segmentation(data=data_seg, score="RMSE",
-                                            title=f"In & Out patient performance for {segmentation}",
+                                            title=f"In & Out patient performance using Ludwig for {segmentation}",
                                             file_name=f"ludwig_{segmentation}_rmse_violin_plot",
-                                            save_folder=ip_vs_op_folder)
+                                            save_folder=ip_vs_op_folder, ylim=[0, 1])

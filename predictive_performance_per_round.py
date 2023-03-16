@@ -56,7 +56,7 @@ if __name__ == '__main__':
     parser.add_argument('-b', "--biopsy", help='Input file')
     parser.add_argument("-hyper", "--hyper", action="store_true", default=False)
     parser.add_argument("-f", "--fe", action="store_true", default=False)
-    parser.add_argument("--snr", action="store_true", default=False)
+    parser.add_argument("--snr", action="store_true", default=True)
     args = parser.parse_args()
 
     biopsy = args.biopsy
@@ -125,10 +125,13 @@ if __name__ == '__main__':
         fig.delaxes(axes[row, col])
 
     # set figure wide title
-    fig.suptitle(f"Shared Marker MAE per round\n{segmentation}\nBiopsy {Path(biopsy).stem.replace('_', ' ')}")
+    fig.suptitle(
+        f"Shared Marker MAE per round\n{segmentation.replace('_', ' ')} {'SNR' if snr else ''} \nBiopsy {Path(biopsy).stem.replace('_', ' ')}")
+
     # set bboxes of legend outside of figure
     # use axes legend attributes to create a fig legen
     fig.legend(*ax.get_legend_handles_labels(), loc="lower right", bbox_to_anchor=(1.001, 0.2))
     plt.tight_layout()
 
-    plt.savefig(Path(results_folder, f"{Path(biopsy).stem}_{segmentation}_marker_prediction_per_round.png"))
+    plt.savefig(
+        Path(results_folder, f"{Path(biopsy).stem}_{segmentation}_{snr}_marker_prediction_per_round.png"))

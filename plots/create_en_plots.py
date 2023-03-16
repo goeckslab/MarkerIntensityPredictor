@@ -68,13 +68,23 @@ def plot_performance_heatmap_per_segmentation(data, score: str, segmentation: st
     plt.close('all')
 
 
-def create_violin_plot_per_segmentation(data: pd.DataFrame, score: str, title: str, save_folder: Path, file_name: str):
+def create_violin_plot_per_segmentation(data: pd.DataFrame, score: str, title: str, save_folder: Path, file_name: str,
+                                        ylim: List):
     data["Biopsy"] = data["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
     fig = plt.figure(figsize=(13, 5), dpi=200)
-    sns.violinplot(data=data, x="Marker", y=score, hue="Type", split=True)
-    plt.title(title)
-    plt.legend(loc='upper center')
-    plt.ylim(-0.3, 0.9)
+    sns.violinplot(data=data, x="Marker", y=score, hue="Type", split=False, cut=0)
+
+    #plt.title(title)
+    # remove y axis label
+    plt.ylabel("")
+    plt.xlabel("")
+    #plt.legend(loc='upper center')
+    plt.ylim(ylim[0], ylim[1])
+    plt.rcParams.update({'font.size': 22})
+    #plt.tick_params(top='off', bottom='off', left='off', right='off', labelleft='off', labelbottom='off')
+    plt.box(False)
+    # remove legend from fig
+    plt.legend().set_visible(False)
     plt.tight_layout()
     plt.savefig(f"{save_folder}/{file_name}.png")
     plt.close('all')
@@ -208,11 +218,18 @@ if __name__ == '__main__':
     for segmentation in data["Origin"].unique():
         data_seg = data[data["Origin"] == segmentation].copy()
         data_seg.drop(columns=["SNR", "Segmentation"], inplace=True)
+
+        if segmentation == "UnMICST + S3 Non SNR Corrected":
+            ylim = [0, 2]
+        else:
+            ylim = [0, 1.0]
+
         create_violin_plot_per_segmentation(data=data_seg, score="MAE",
-                                            title=f"In & Out patient performance for {segmentation}",
-                                            file_name=f"en_{segmentation}_mae_violin_plot", save_folder=ip_vs_op_folder)
+                                            title=f"In & Out patient performance using EN for {segmentation}",
+                                            file_name=f"en_{segmentation}_mae_violin_plot", save_folder=ip_vs_op_folder,
+                                            ylim=ylim)
 
         create_violin_plot_per_segmentation(data=data_seg, score="RMSE",
-                                            title=f"In & Out patient performance for {segmentation}",
+                                            title=f"In & Out patient performance using EN for {segmentation}",
                                             file_name=f"en_{segmentation}_rmse_violin_plot",
-                                            save_folder=ip_vs_op_folder)
+                                            save_folder=ip_vs_op_folder, ylim=ylim)
