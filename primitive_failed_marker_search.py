@@ -46,6 +46,14 @@ rounds = {"9_2": {
 
 results_folder = Path("results/expression_by_round")
 
+
+def get_round(marker, rounds):
+    for round, markers in rounds.items():
+        if marker in markers:
+            return round
+    return None
+
+
 if __name__ == '__main__':
 
     if not results_folder.exists():
@@ -106,10 +114,43 @@ if __name__ == '__main__':
     if len(rounds) != 8:
         fig.delaxes(axes[row, col])
 
-
     # set figure wide title
     fig.suptitle(
         f"Shared Marker Expression per round\nSegmentation: {segmentation.replace('_', ' ')}\nBiopsy {Path(biopsy).stem.replace('_', ' ')}")
     plt.tight_layout()
     plt.savefig(
         Path(results_folder, f"{Path(biopsy).stem}_{segmentation}_{snr}_shared_marker_expression_per_round.png"))
+
+    sorted_df = []
+
+    for round in rounds:
+        markers = rounds[round]
+        df = biopsy_data[markers]
+        sorted_df.append(df)
+
+    sorted_df = pd.concat(sorted_df, axis=1)
+    # melt df so that all columns are now one row and values are another row
+    sorted_df = pd.melt(sorted_df)
+
+    # Add a column with the round number
+    sorted_df["round"] = sorted_df["variable"].apply(lambda x: get_round(x, rounds))
+    # rename variable and value to Marker and Expression
+    sorted_df = sorted_df.rename(columns={"variable": "Marker", "value": "Expression"})
+
+    # Create a box plot for sorted_df
+    fig = plt.figure(figsize=(10, 5), dpi=200)
+    ax = sns.boxplot(data=sorted_df, x="Marker", y="Expression", hue="round")
+    # set x label of ax
+    ax.set_xlabel("Markers")
+    # set y label of ax
+    ax.set_ylabel("Expression")
+    # adjust legend
+    ax.legend(loc='upper right', bbox_to_anchor=(1.1, 1))
+    # set legend title
+    ax.legend_.set_title("Round")
+    # set title
+    plt.title(
+        f"Shared Marker Expression sorted by round\nSegmentation: {segmentation.replace('_', ' ')}\nBiopsy: {Path(biopsy).stem.replace('_', ' ')}")
+    plt.tight_layout()
+    plt.savefig(
+        Path(results_folder, f"{Path(biopsy).stem}_{segmentation}_{snr}_shared_marker_expression_sorted_by_round.png"))

@@ -72,7 +72,7 @@ def create_violin_plot_per_segmentation(data: pd.DataFrame, score: str, title: s
                                         ylim: List):
     data["Biopsy"] = data["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
     fig = plt.figure(figsize=(13, 5), dpi=200)
-    sns.violinplot(data=data, x="Marker", y=score, hue="Type", split=False, cut=0)
+    ax = sns.violinplot(data=data, x="Marker", y=score, hue="Type", split=False, cut=0)
 
     # plt.title(title)
     # remove y axis label
@@ -81,12 +81,17 @@ def create_violin_plot_per_segmentation(data: pd.DataFrame, score: str, title: s
     # plt.legend(loc='upper center')
     plt.ylim(ylim[0], ylim[1])
 
-    # plt.tick_params(top='off', bottom='off', left='off', right='off', labelleft='off', labelbottom='off')
     plt.box(False)
     # remove legend from fig
     plt.legend().set_visible(False)
-    plt.rcParams.update({'font.size': 22})
+    # plt.rcParams.update({'font.size': 22})
+    # get y ticks from figu
+    y_ticks = [item.get_text() for item in fig.axes[0].get_yticklabels()]
+    x_ticks = [item.get_text() for item in fig.axes[0].get_xticklabels()]
 
+    # set y ticks of fig
+    ax.set_yticklabels(y_ticks, rotation=0, fontsize=20)
+    ax.set_xticklabels(x_ticks, rotation=0, fontsize=20)
     plt.tight_layout()
     plt.savefig(f"{save_folder}/{file_name}.png")
     plt.close('all')
@@ -237,7 +242,6 @@ if __name__ == '__main__':
     for segmentation in data["Origin"].unique():
         data_seg = data[data["Origin"] == segmentation].copy()
         data_seg.drop(columns=["SNR", "Segmentation"], inplace=True)
-
         create_violin_plot_per_segmentation(data=data_seg, score="MAE",
                                             title=f"In & Out patient performance using Ludwig for {segmentation}",
                                             file_name=f"ludwig_{segmentation}_mae_violin_plot",

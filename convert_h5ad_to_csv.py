@@ -14,8 +14,8 @@ if __name__ == "__main__":
 
     # extract x from adata file and convert to df
     df = pd.DataFrame(adata.X, columns=adata.var_names)
-    df["X_centroid"] = adata.obs["X_centroid"]
-    df["Y_centroid"] = adata.obs["Y_centroid"]
+    df["X_centroid"] = adata.obs["X_centroid"].values
+    df["Y_centroid"] = adata.obs["Y_centroid"].values
 
     # Convert E-cdaherin to Ecad
     df = df.rename(columns={"E-cadherin": "Ecad"})

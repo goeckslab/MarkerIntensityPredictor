@@ -50,7 +50,7 @@ def plot_performance_heatmap_per_segmentation(data, score: str, segmentation: st
     data = data.pivot(index="Biopsy", columns="Marker", values=score)
     data = data.loc[[f"{biopsy}" for biopsy in biopsies]]
 
-    save_folder = Path(f"{folder}/en")
+    save_folder = Path(f"{folder}/ludwig_hyper")
 
     if not save_folder.exists():
         save_folder.mkdir(parents=True)
@@ -105,10 +105,10 @@ if __name__ == '__main__':
     scores = []
     for root, dirs, files in os.walk("data/scores"):
         for name in files:
-            if Path(name).suffix == ".csv" and "_EN_" in name:
+            if Path(name).suffix == ".csv" and "_Ludwig_1_" in name:
                 scores.append(pd.read_csv(os.path.join(root, name), sep=",", header=0))
 
-    assert len(scores) == 48, "Not all biopsies have been processed"
+    assert len(scores) == 16, "Not all biopsies have been processed"
     # print(scores)
 
     scores = pd.concat(scores, axis=0)
@@ -135,34 +135,6 @@ if __name__ == '__main__':
                                               file_name=
                                               "en_ip_mesmer_rmse_heatmap")
 
-    # Plot unmicst snr
-    mae_performance_data_s3_snr = mae_performance_data[
-        (mae_performance_data["Segmentation"] == "Unmicst + S3") & (mae_performance_data["SNR"] == 1)].copy()
-
-    mae_performance_data_s3_snr.drop(columns=["SNR"], inplace=True)
-    plot_performance_heatmap_per_segmentation(mae_performance_data_s3_snr, "MAE", "UnMicst + S3 (SNR)",
-                                              folder=ip_folder, file_name=
-                                              "en_ip_s3_snr_mae_heatmap")
-    plot_performance_heatmap_per_segmentation(mae_performance_data_s3_snr, "MSE", "UnMicst + S3 (SNR)",
-                                              folder=ip_folder, file_name=
-                                              "en_ip_s3_snr_mse_heatmap")
-    plot_performance_heatmap_per_segmentation(mae_performance_data_s3_snr, "RMSE", "UnMicst + S3 (SNR)",
-                                              folder=ip_folder, file_name=
-                                              "en_ip_s3_snr_rmse_heatmap")
-
-    mae_performance_data_s3_non_snr = mae_performance_data[
-        (mae_performance_data["Segmentation"] == "Unmicst + S3") & (mae_performance_data["SNR"] == 0)].copy()
-    mae_performance_data_s3_non_snr.drop(columns=["SNR"], inplace=True)
-    plot_performance_heatmap_per_segmentation(mae_performance_data_s3_non_snr, "MAE", "UnMicst + S3 (Non SNR)",
-                                              folder=ip_folder, file_name=
-                                              "en_ip_s3_non_snr_mae_heatmap")
-    plot_performance_heatmap_per_segmentation(mae_performance_data_s3_non_snr, "MSE", "UnMicst + S3 (Non SNR)",
-                                              folder=ip_folder, file_name=
-                                              "en_ip_s3_non_snr_mse_heatmap")
-    plot_performance_heatmap_per_segmentation(mae_performance_data_s3_non_snr, "RMSE", "UnMicst + S3 (Non SNR)",
-                                              folder=ip_folder, file_name=
-                                              "en_ip_s3_non_snr_rmse_heatmap")
-
     # Out Patient
 
     op_mae_scores = scores[scores["Type"] == "OP"].copy()
@@ -181,59 +153,23 @@ if __name__ == '__main__':
                                               file_name=
                                               "en_op_mesmer_rmse_heatmap")
 
-    # Plot unmicst snr
-    mae_performance_data_s3_snr = mae_performance_data[
-        (mae_performance_data["Segmentation"] == "Unmicst + S3") & (mae_performance_data["SNR"] == 1)].copy()
-
-    mae_performance_data_s3_snr.drop(columns=["SNR"], inplace=True)
-    plot_performance_heatmap_per_segmentation(mae_performance_data_s3_snr, "MAE", "UnMicst + S3 (SNR)",
-                                              folder=op_folder, file_name=
-                                              "en_op_s3_snr_mae_heatmap")
-    plot_performance_heatmap_per_segmentation(mae_performance_data_s3_snr, "MSE", "UnMicst + S3 (SNR)",
-                                              folder=op_folder, file_name=
-                                              "en_op_s3_snr_mse_heatmap")
-    plot_performance_heatmap_per_segmentation(mae_performance_data_s3_snr, "RMSE", "UnMicst + S3 (SNR)",
-                                              folder=op_folder, file_name=
-                                              "en_op_s3_snr_rmse_heatmap")
-
-    mae_performance_data_s3_non_snr = mae_performance_data[
-        (mae_performance_data["Segmentation"] == "Unmicst + S3") & (mae_performance_data["SNR"] == 0)].copy()
-    mae_performance_data_s3_non_snr.drop(columns=["SNR"], inplace=True)
-    plot_performance_heatmap_per_segmentation(mae_performance_data_s3_non_snr, "MAE", "UnMicst + S3 (Non SNR)",
-                                              folder=op_folder, file_name=
-                                              "en_op_s3_non_snr_mae_heatmap")
-    plot_performance_heatmap_per_segmentation(mae_performance_data_s3_non_snr, "MSE", "UnMicst + S3 (Non SNR)",
-                                              folder=op_folder, file_name=
-                                              "en_op_s3_non_snr_mse_heatmap")
-    plot_performance_heatmap_per_segmentation(mae_performance_data_s3_non_snr, "RMSE", "UnMicst + S3 (Non SNR)",
-                                              folder=op_folder, file_name=
-                                              "en_op_s3_non_snr_rmse_heatmap")
-
     # Violin plots for out & in patient data for each segmentation
 
     data = pd.concat([ip_mae_scores, op_mae_scores])
 
-    data["Origin"] = data.apply(
-        lambda x: "Mesmer" if "Mesmer" in x["Segmentation"] else "UnMICST + S3 SNR Corrected",
-        axis=1)
-    # rename origin to unmicst + s3 Non SNR if not snr corrected
-    data.loc[data["SNR"] == 0, "Origin"] = "UnMICST + S3 Non SNR Corrected"
-
-    for segmentation in data["Origin"].unique():
-        data_seg = data[data["Origin"] == segmentation].copy()
+    for segmentation in data["Segmentation"].unique():
+        data_seg = data[data["Segmentation"] == segmentation].copy()
         data_seg.drop(columns=["SNR", "Segmentation"], inplace=True)
+        data_seg["Biopsy"] = data_seg["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
 
-        if segmentation == "UnMICST + S3 Non SNR Corrected":
-            ylim = [0, 2]
-        else:
-            ylim = [0, 1.0]
+        y_lim = [0, 0.6]
 
         create_violin_plot_per_segmentation(data=data_seg, score="MAE",
                                             title=f"In & Out patient performance using EN for {segmentation}",
                                             file_name=f"en_{segmentation}_mae_violin_plot", save_folder=ip_vs_op_folder,
-                                            ylim=ylim)
+                                            ylim=y_lim)
 
         create_violin_plot_per_segmentation(data=data_seg, score="RMSE",
                                             title=f"In & Out patient performance using EN for {segmentation}",
                                             file_name=f"en_{segmentation}_rmse_violin_plot",
-                                            save_folder=ip_vs_op_folder, ylim=ylim)
+                                            save_folder=ip_vs_op_folder, ylim=y_lim)

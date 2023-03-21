@@ -5,6 +5,8 @@ data/af_tracker/*
 data/tumor_s3_snr/*
 data/tumor_s3_non_snr/*
 data/tumor_mesmer/*
+data/tumor_mesmer_sp_46/*
+data/tumor_mesmer_sp_92/*
 
 unmicst_s3_non_snr/tumor_in_patient_hyper/*
 unmicst_s3_non_snr/tumor_out_patient_hyper/*
@@ -29,7 +31,8 @@ mesmer/tumor_in_patient_hyper/9_*
 mesmer/tumor_out_patient/9_*
 mesmer/tumor_out_patient_en/9_*
 mesmer/tumor_out_patient_hyper/9_*
-
+mesmer/tumor_in_patient_sp_46/*
+mesmer/tumor_in_patient_sp_92/*
 
 
 new_me_vae/checkpoints

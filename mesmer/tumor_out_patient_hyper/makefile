@@ -50,5 +50,9 @@ ludwig-plots:
 clean:
 	rm "$(TEST_ID)_$(MARKER)_hyperopt.yaml" "$(TEST_ID)_$(MARKER)_hyperopt_config.yaml"  "$(TEST_ID)_$(MARKER)_final_config.yaml" "$(TEST_ID)_$(MARKER)_input_features.yaml" "base_config.yaml";
 
+
+clean_without_hyper:
+	rm  "$(TEST_ID)_$(MARKER)_final_config.yaml" "$(TEST_ID)_$(MARKER)_input_features.yaml" "base_config.yaml";
+
 clean-hyper:
 	rm "$(TEST_ID)_$(MARKER)_hyperopt.yaml" "$(TEST_ID)_$(MARKER)_hyperopt_config.yaml" "$(TEST_ID)_$(MARKER)_input_features.yaml"
