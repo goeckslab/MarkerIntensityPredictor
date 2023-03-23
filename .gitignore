@@ -7,6 +7,8 @@ data/tumor_s3_non_snr/*
 data/tumor_mesmer/*
 data/tumor_mesmer_sp_46/*
 data/tumor_mesmer_sp_92/*
+data/tumor_mesmer_sp_138/*
+data/tumor_mesmer_sp_184/*
 
 unmicst_s3_non_snr/tumor_in_patient_hyper/*
 unmicst_s3_non_snr/tumor_out_patient_hyper/*
@@ -35,6 +37,10 @@ mesmer/tumor_in_patient_sp_46/*
 mesmer/tumor_in_patient_sp_92/*
 mesmer/tumor_out_patient_sp_46/*
 mesmer/tumor_out_patient_sp_92/*
+mesmer/tumor_out_patient_sp_138/*
+mesmer/tumor_out_patient_sp_184/*
+mesmer/tumor_in_patient_sp_138/*
+mesmer/tumor_in_patient_sp_184/*
 
 new_me_vae/checkpoints
 *.c

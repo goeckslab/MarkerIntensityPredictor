@@ -18,9 +18,6 @@ if __name__ == '__main__':
     train_biopsy_name = Path(args.biopsy).stem
     data_path = Path(args.biopsy).parent
 
-    if not scores_directory.exists():
-        scores_directory.mkdir(parents=True, exist_ok=True)
-
     in_or_out = "in_patient" if "in_patient" in str(data_path) else "out_patient"
 
     if in_or_out == "in_patient":
@@ -44,6 +41,23 @@ if __name__ == '__main__':
         fe = f"{splits[-2]} {splits[-1]}"
     else:
         fe = "None"
+
+    scores_directory = Path(scores_directory, segmentation)
+    scores_directory = Path(scores_directory, "in_patient") if type == "IP" else Path(scores_directory,
+                                                                                      "out_patient")
+    if segmentation != "Mesmer":
+        scores_directory = Path(scores_directory, "snr") if snr else Path(scores_directory, "non_snr")
+
+    if not hyper:
+        scores_directory = Path(scores_directory, mode)
+    else:
+        scores_directory = Path(scores_directory, f"{mode}_Hyper")
+
+    if fe != "None":
+        scores_directory = Path(scores_directory, "fe")
+
+    if not scores_directory.exists():
+        scores_directory.mkdir(parents=True, exist_ok=True)
 
     scores = []
     for marker in markers:

@@ -94,24 +94,32 @@ def create_violin_plot_per_segmentation(data: pd.DataFrame, score: str, title: s
     plt.close('all')
 
 
+def load_scores() -> pd.DataFrame:
+    scores = []
+    for root, dirs, _ in os.walk("data/scores/Mesmer"):
+        for directory in dirs:
+            if directory == "Ludwig_Hyper":
+                # load only files of this folder
+                for sub_root, _, files in os.walk(os.path.join(root, directory)):
+                    for name in files:
+                        if Path(name).suffix == ".csv":
+                            print("Loading file: ", name)
+                            scores.append(pd.read_csv(os.path.join(sub_root, name), sep=",", header=0))
+
+    assert len(scores) == 16, "Not all biopsies have been processed"
+
+    return pd.concat(scores, axis=0).sort_values(by=["Marker"])
+
+
 if __name__ == '__main__':
     # argsparser
     parser = argparse.ArgumentParser()
-    parser.add_argument("--markers", nargs='+')
+    parser.add_argument("-m", "--markers", nargs='+')
     args = parser.parse_args()
 
     # load mesmer mae scores from data mesmer folder and all subfolders
 
-    scores = []
-    for root, dirs, files in os.walk("data/scores"):
-        for name in files:
-            if Path(name).suffix == ".csv" and "_Ludwig_1_" in name:
-                scores.append(pd.read_csv(os.path.join(root, name), sep=",", header=0))
-
-    assert len(scores) == 16, "Not all biopsies have been processed"
-    # print(scores)
-
-    scores = pd.concat(scores, axis=0)
+    scores: pd.DataFrame = load_scores()
 
     if args.markers:
         scores = scores[scores["Marker"].isin(args.markers)]
@@ -128,12 +136,12 @@ if __name__ == '__main__':
     mae_performance_data_mesmer = mae_performance_data[mae_performance_data["Segmentation"] == "Mesmer"].copy()
     mae_performance_data_mesmer.drop(columns=["SNR"], inplace=True)
     plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "MAE", "Mesmer", folder=ip_folder,
-                                              file_name="en_ip_mesmer_mae_heatmap")
+                                              file_name="ludwig_hyper_ip_mesmer_mae_heatmap")
     plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "MSE", "Mesmer", folder=ip_folder,
-                                              file_name="en_ip_mesmer_mse_heatmap")
+                                              file_name="ludwig_hyper_ip_mesmer_mse_heatmap")
     plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "RMSE", "Mesmer", folder=ip_folder,
                                               file_name=
-                                              "en_ip_mesmer_rmse_heatmap")
+                                              "ludwig_hyper_ip_mesmer_rmse_heatmap")
 
     # Out Patient
 
@@ -146,17 +154,18 @@ if __name__ == '__main__':
     mae_performance_data_mesmer = mae_performance_data[mae_performance_data["Segmentation"] == "Mesmer"].copy()
     mae_performance_data_mesmer.drop(columns=["SNR"], inplace=True)
     plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "MAE", "Mesmer", folder=op_folder,
-                                              file_name="en_op_mesmer_mae_heatmap")
+                                              file_name="ludwig_hyper_op_mesmer_mae_heatmap")
     plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "MSE", "Mesmer", folder=op_folder,
-                                              file_name="en_op_mesmer_mse_heatmap")
+                                              file_name="ludwig_hyper_op_mesmer_mse_heatmap")
     plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "RMSE", "Mesmer", folder=op_folder,
                                               file_name=
-                                              "en_op_mesmer_rmse_heatmap")
+                                              "ludwig_hyper_op_mesmer_rmse_heatmap")
 
     # Violin plots for out & in patient data for each segmentation
 
     data = pd.concat([ip_mae_scores, op_mae_scores])
 
+    print(data["Segmentation"].unique())
     for segmentation in data["Segmentation"].unique():
         data_seg = data[data["Segmentation"] == segmentation].copy()
         data_seg.drop(columns=["SNR", "Segmentation"], inplace=True)
@@ -164,12 +173,19 @@ if __name__ == '__main__':
 
         y_lim = [0, 0.6]
 
+        if args.markers:
+            mae_file_name = f"ludwig_hyper_{segmentation}_mae_violin_plot"
+            rmse_file_name = f"ludwig_hyper_{segmentation}_rmse_violin_plot"
+        else:
+            mae_file_name = f"ludwig_hyper_{segmentation}_mae_violin_plot_all_markers"
+            rmse_file_name = f"ludwig_hyper_{segmentation}_rmse_violin_plot"
+
         create_violin_plot_per_segmentation(data=data_seg, score="MAE",
-                                            title=f"In & Out patient performance using EN for {segmentation}",
-                                            file_name=f"en_{segmentation}_mae_violin_plot", save_folder=ip_vs_op_folder,
+                                            title=f"In & Out patient performance using Ludwig + Hyperopt for {segmentation}",
+                                            file_name=mae_file_name, save_folder=ip_vs_op_folder,
                                             ylim=y_lim)
 
         create_violin_plot_per_segmentation(data=data_seg, score="RMSE",
-                                            title=f"In & Out patient performance using EN for {segmentation}",
-                                            file_name=f"en_{segmentation}_rmse_violin_plot",
+                                            title=f"In & Out patient performance using Ludwig + Hyperopt for {segmentation}",
+                                            file_name=rmse_file_name,
                                             save_folder=ip_vs_op_folder, ylim=y_lim)
