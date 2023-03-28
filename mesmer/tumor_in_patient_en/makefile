@@ -5,7 +5,7 @@ PREPROCESSED_TRAIN_DATASET = $(SAMPLE)_preprocessed_dataset.tsv
 TEST=$(test_id)
 PREPROCESSED_TEST_DATASET = $(TEST)_preprocessed_dataset.tsv
 MARKER=$(marker)
-OUTPUT_DIRECTORY = $(SAMPLE)/$(MARKER)
+OUTPUT_DIRECTORY = $(TEST)/$(MARKER)
 
 # Create preprocessed dataset.
 prepare_data:

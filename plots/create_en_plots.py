@@ -71,7 +71,10 @@ def plot_performance_heatmap_per_segmentation(data, score: str, segmentation: st
 def create_violin_plot_per_segmentation(data: pd.DataFrame, score: str, title: str, save_folder: Path, file_name: str,
                                         ylim: List):
     data["Biopsy"] = data["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
-    fig = plt.figure(figsize=(13, 5), dpi=200)
+    if args.markers:
+        fig = plt.figure(figsize=(13, 5), dpi=200)
+    else:
+        fig = plt.figure(figsize=(15, 5), dpi=200)
     ax = sns.violinplot(data=data, x="Marker", y=score, hue="Type", split=False, cut=0)
 
     # plt.title(title)
@@ -84,8 +87,9 @@ def create_violin_plot_per_segmentation(data: pd.DataFrame, score: str, title: s
     y_ticks = [item.get_text() for item in fig.axes[0].get_yticklabels()]
     x_ticks = [item.get_text() for item in fig.axes[0].get_xticklabels()]
     # set y ticks of fig
-    ax.set_yticklabels(y_ticks, rotation=0, fontsize=20)
-    ax.set_xticklabels(x_ticks, rotation=0, fontsize=20)
+    if args.markers:
+        ax.set_yticklabels(y_ticks, rotation=0, fontsize=20)
+        ax.set_xticklabels(x_ticks, rotation=0, fontsize=20)
     plt.box(False)
     # remove legend from fig
     plt.legend().set_visible(False)
@@ -168,14 +172,14 @@ if __name__ == '__main__':
         data_seg.drop(columns=["SNR", "Segmentation"], inplace=True)
         data_seg["Biopsy"] = data_seg["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
 
-        y_lim = [0, 0.6]
+        y_lim = [0, 0.4]
 
         if args.markers:
             mae_file_name = f"en_{segmentation}_mae_violin_plot"
             rmse_file_name = f"en_{segmentation}_rmse_violin_plot"
         else:
             mae_file_name = f"en_{segmentation}_mae_violin_plot_all_markers"
-            rmse_file_name = f"en_{segmentation}_rmse_violin_plot"
+            rmse_file_name = f"en_{segmentation}_rmse_violin_plot_all_markers"
 
         create_violin_plot_per_segmentation(data=data_seg, score="MAE",
                                             title=f"In & Out patient performance using EN for {segmentation}",

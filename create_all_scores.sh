@@ -147,4 +147,76 @@ python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_hyper/9_15_2
 
 # Ludwig w/ hyper + fe
 
-echo "Load FE data"
+echo "Loading FE data"
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_46/9_2_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_46/9_2_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_46/9_3_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_46/9_3_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_46/9_14_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_46/9_14_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_46/9_15_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_46/9_15_2
+
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_92/9_2_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_92/9_2_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_92/9_3_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_92/9_3_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_92/9_14_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_92/9_14_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_92/9_15_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_92/9_15_2
+
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_138/9_2_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_138/9_2_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_138/9_3_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_138/9_3_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_138/9_14_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_138/9_14_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_138/9_15_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_138/9_15_2
+
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_184/9_2_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_184/9_2_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_184/9_3_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_184/9_3_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_184/9_14_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_184/9_14_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_184/9_15_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_in_patient_sp_184/9_15_2
+
+# Out patient fe data
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_46/9_2_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_46/9_2_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_46/9_3_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_46/9_3_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_46/9_14_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_46/9_14_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_46/9_15_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_46/9_15_2
+
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_92/9_2_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_92/9_2_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_92/9_3_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_92/9_3_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_92/9_14_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_92/9_14_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_92/9_15_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_92/9_15_2
+
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_138/9_2_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_138/9_2_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_138/9_3_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_138/9_3_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_138/9_14_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_138/9_14_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_138/9_15_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_138/9_15_2
+
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_184/9_2_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_184/9_2_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_184/9_3_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_184/9_3_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_184/9_14_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_184/9_14_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_184/9_15_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_sp_184/9_15_2

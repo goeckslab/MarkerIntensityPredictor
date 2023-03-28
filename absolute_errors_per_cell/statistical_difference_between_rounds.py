@@ -80,9 +80,6 @@ if __name__ == '__main__':
                     "p_value": stats.pvalue,
                 })
 
-                # print(biopsy[f"{t_round}_{marker}"].ks_2samp(biopsy[f"{int(t_round) - 1}_{previous_marker}"]))
-
     results = pd.DataFrame(results)
     results_path = f"{Path(results_path)}/{str(args.biopsy).split('/')[-2]}/{Path(args.biopsy).stem}_p_values.csv"
-    #print(results_path)
     results.to_csv(results.to_csv(str(results_path), index=False))

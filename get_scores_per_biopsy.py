@@ -36,33 +36,33 @@ if __name__ == '__main__':
     mode = "EN" if "_en" in str(data_path) else "Ludwig"
     hyper = 1 if "_hyper" in str(data_path) else 0
 
-    if "_fe" in str(data_path):
+    if "_sp" in str(data_path):
         splits = str(data_path).split("_")
-        fe = f"{splits[-2]} {splits[-1]}"
+        fe = f"{splits[-2]}_{splits[-1]}"
     else:
         fe = "None"
 
     scores_directory = Path(scores_directory, segmentation)
+
     scores_directory = Path(scores_directory, "in_patient") if type == "IP" else Path(scores_directory,
                                                                                       "out_patient")
     if segmentation != "Mesmer":
         scores_directory = Path(scores_directory, "snr") if snr else Path(scores_directory, "non_snr")
 
-    if not hyper:
+    if not hyper and fe == "None":
         scores_directory = Path(scores_directory, mode)
+    elif not hyper and fe != "None":
+        scores_directory = Path(scores_directory, f"{mode}_{fe}")
     else:
         scores_directory = Path(scores_directory, f"{mode}_Hyper")
 
-    if fe != "None":
-        scores_directory = Path(scores_directory, "fe")
-
+    print(scores_directory)
     if not scores_directory.exists():
         scores_directory.mkdir(parents=True, exist_ok=True)
 
     scores = []
     for marker in markers:
         path = Path(args.biopsy, f"{marker}", "evaluate", test_biopsy, "test_statistics.json")
-
         if not path.exists():
             path = Path(train_biopsy, f"{marker}", "evaluation.json")
 
