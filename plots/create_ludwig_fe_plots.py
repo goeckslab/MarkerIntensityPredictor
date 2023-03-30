@@ -98,11 +98,11 @@ def create_violin_plot_per_segmentation(data: pd.DataFrame, score: str, title: s
     plt.close('all')
 
 
-def load_scores() -> pd.DataFrame:
+def load_scores(spatial_distance: int) -> pd.DataFrame:
     scores = []
     for root, dirs, _ in os.walk("data/scores/Mesmer"):
         for directory in dirs:
-            if directory == "Ludwig":
+            if f"Ludwig_sp_{spatial_distance}" in directory:
                 # load only files of this folder
                 for sub_root, _, files in os.walk(os.path.join(root, directory)):
                     for name in files:
@@ -119,11 +119,12 @@ if __name__ == '__main__':
     # argsparser
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--markers", nargs='+', help="Markers to be plotted", default=None)
+    parser.add_argument("-sp", "--spatial", type=int, help="Spatial distance", default=46)
     args = parser.parse_args()
 
     # load mesmer mae scores from data mesmer folder and all subfolders
-
-    scores: pd.DataFrame = load_scores()
+    spatial_distance = args.spatial
+    scores: pd.DataFrame = load_scores(spatial_distance=args.spatial)
 
     if args.markers:
         scores = scores[scores["Marker"].isin(args.markers)]
@@ -140,12 +141,12 @@ if __name__ == '__main__':
     mae_performance_data_mesmer = mae_performance_data[mae_performance_data["Segmentation"] == "Mesmer"].copy()
     mae_performance_data_mesmer.drop(columns=["SNR"], inplace=True)
     plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "MAE", "Mesmer", folder=ip_folder,
-                                              file_name="ludwig_ip_mesmer_mae_heatmap")
+                                              file_name=f"ludwig_ip_{spatial_distance}_mesmer_mae_heatmap")
     plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "MSE", "Mesmer", folder=ip_folder,
-                                              file_name="ludwig_ip_mesmer_mse_heatmap")
+                                              file_name=f"ludwig_ip_{spatial_distance}_mesmer_mse_heatmap")
     plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "RMSE", "Mesmer", folder=ip_folder,
                                               file_name=
-                                              "ludwig_ip_mesmer_rmse_heatmap")
+                                              f"ludwig_ip_{spatial_distance}_mesmer_rmse_heatmap")
 
     # Out Patient
 
@@ -158,12 +159,12 @@ if __name__ == '__main__':
     mae_performance_data_mesmer = mae_performance_data[mae_performance_data["Segmentation"] == "Mesmer"].copy()
     mae_performance_data_mesmer.drop(columns=["SNR"], inplace=True)
     plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "MAE", "Mesmer", folder=op_folder,
-                                              file_name="ludwig_op_mesmer_mae_heatmap")
+                                              file_name=f"ludwig_op_{spatial_distance}_mesmer_mae_heatmap")
     plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "MSE", "Mesmer", folder=op_folder,
-                                              file_name="ludwig_op_mesmer_mse_heatmap")
+                                              file_name=f"ludwig_op_{spatial_distance}_mesmer_mse_heatmap")
     plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "RMSE", "Mesmer", folder=op_folder,
                                               file_name=
-                                              "ludwig_op_mesmer_rmse_heatmap")
+                                              f"ludwig_op_{spatial_distance}_mesmer_rmse_heatmap")
 
     # Violin plots for out & in patient data for each segmentation
 
@@ -178,18 +179,20 @@ if __name__ == '__main__':
         y_lim = [0, 0.4]
 
         if args.markers:
-            mae_file_name = f"ludwig_{segmentation}_mae_violin_plot"
-            rmse_file_name = f"ludwig_{segmentation}_rmse_violin_plot"
+            mae_file_name = f"ludwig_{segmentation}_{spatial_distance}_mae_violin_plot"
+            rmse_file_name = f"ludwig_{segmentation}_{spatial_distance}_rmse_violin_plot"
         else:
-            mae_file_name = f"ludwig_{segmentation}_mae_violin_plot_all_markers"
-            rmse_file_name = f"ludwig_{segmentation}_rmse_violin_plot_all_markers"
+            mae_file_name = f"ludwig_{segmentation}_{spatial_distance}_mae_violin_plot_all_markers"
+            rmse_file_name = f"ludwig_{segmentation}_{spatial_distance}_rmse_violin_plot_all_markers"
 
         create_violin_plot_per_segmentation(data=data_seg, score="MAE",
-                                            title=f"In & Out patient performance using Ludwig for {segmentation}",
+                                            title=f"In & Out patient performance using spatial feature engineering",
                                             file_name=mae_file_name, save_folder=ip_vs_op_folder,
                                             ylim=y_lim)
 
         create_violin_plot_per_segmentation(data=data_seg, score="RMSE",
-                                            title=f"In & Out patient performance using Ludwig for {segmentation}",
+                                            title=f"In & Out patient performance using spatial feature engineerin",
                                             file_name=rmse_file_name,
                                             save_folder=ip_vs_op_folder, ylim=y_lim)
+
+

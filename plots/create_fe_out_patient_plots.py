@@ -13,7 +13,7 @@ def load_scores() -> pd.DataFrame:
     scores = []
     for root, dirs, _ in os.walk(source_folder):
         for directory in dirs:
-            if "Ludwig_sp_" in directory or directory == "Ludwig" or directory == "EN" or directory == "Ludwig_Hyper":
+            if "Ludwig_sp_" in directory or directory == "Ludwig":
                 print("Loading folder: ", directory)
                 # load only files of this folder
                 for sub_root, _, files in os.walk(os.path.join(root, directory)):
@@ -22,7 +22,7 @@ def load_scores() -> pd.DataFrame:
                             print("Loading file: ", name)
                             scores.append(pd.read_csv(os.path.join(sub_root, name), sep=",", header=0))
 
-    assert len(scores) == 56, "Not all biopsies have been selected"
+    assert len(scores) == 40, "Not all biopsies have been selected"
 
     return pd.concat(scores, axis=0).sort_values(by=["Marker"])
 
@@ -93,7 +93,7 @@ if __name__ == '__main__':
         labels = le.inverse_transform(temp_labels)
 
         points = zip(labels, handles)
-        points = sorted(points)
+        points = sorted(points, key=lambda x: (x[0].isnumeric(), int(x[0]) if x[0].isnumeric() else x[0]))
         labels = [point[0] for point in points]
         handles = [point[1] for point in points]
         # change title of legend
@@ -109,3 +109,41 @@ if __name__ == '__main__':
             plt.savefig(f"{save_path}/mae_scores_{biopsy}_all_markers.png")
 
         plt.close('all')
+
+        # create new df with only the means of each model for each marker
+        # scores = scores.groupby(["Biopsy", "Model", "Marker", "Model Enc"]).mean().reset_index()
+    scores = scores.groupby(["Marker", "Model Enc"]).mean(numeric_only=True).reset_index()
+    # Create line plot separated by spatial resolution using seaborn
+    fig = plt.figure(dpi=200, figsize=(10, 6))
+    # sns.violinplot(x="Marker", y="Score", hue="Model Enc", data=data, palette=palette_dict)
+    ax = sns.lineplot(x="Marker", y="Score", hue="Model Enc", data=scores, palette=palette_dict)
+
+    handles, labels = ax.get_legend_handles_labels()
+
+    # convert labels to int
+    temp_labels = [int(label) for label in labels]
+
+    # convert labels to int
+    labels = le.inverse_transform(temp_labels)
+
+    points = zip(labels, handles)
+    points = sorted(points, key=lambda x: (x[0].isnumeric(), int(x[0]) if x[0].isnumeric() else x[0]))
+    labels = [point[0] for point in points]
+    handles = [point[1] for point in points]
+    # change title of legend
+    plt.legend(title="Model", handles=handles, labels=labels)
+    plt.xlabel("Markers")
+    plt.ylabel("MAE")
+    if args.markers:
+        plt.ylim(0.025, 0.2)
+    else:
+        plt.ylim(0.025, 0.29)
+    plt.title(
+        f"MAE scores\nPerformance difference between base, non-linear and hyper models")
+    plt.tight_layout()
+    if args.markers:
+        plt.savefig(f"{save_path}/mae_scores_mean_en_ludwig_hyper.png")
+    else:
+        plt.savefig(f"{save_path}/mae_scores_mean_en_ludwig_hyper_all_markers.png")
+
+    plt.close('all')

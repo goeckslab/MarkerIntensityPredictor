@@ -30,7 +30,9 @@ def load_scores() -> pd.DataFrame:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--markers", nargs='+')
+    parser.add_argument("-s", "--scores", type=str, default="MAE")
     args = parser.parse_args()
+    metric: str = args.scores
 
     if not save_path.exists():
         save_path.mkdir(parents=True)
@@ -59,7 +61,7 @@ if __name__ == '__main__':
     # melt scores keep markers and spatial resolution
     scores = pd.melt(scores, id_vars=["Biopsy", "Model", "Marker", "Model Enc"], var_name="Metric", value_name="Score")
 
-    scores = scores[scores["Metric"] == "MAE"].copy()
+    scores = scores[scores["Metric"] == metric.upper()].copy()
 
     palette_colors = sns.color_palette('tab10')
     palette_dict = {continent: color for continent, color in zip(scores["Model Enc"].unique(), palette_colors)}
@@ -70,7 +72,7 @@ if __name__ == '__main__':
         # Create line plot separated by spatial resolution using seaborn
         fig = plt.figure(dpi=200, figsize=(10, 6))
         ax = sns.lineplot(x="Marker", y="Score", hue="Model Enc", data=data, palette=palette_dict)
-        plt.title(f"MAE scores for biopsy {biopsy.replace('_', ' ')}")
+        plt.title(f"{metric} scores for biopsy {biopsy.replace('_', ' ')}")
         handles, labels = ax.get_legend_handles_labels()
 
         # convert labels to int
@@ -86,14 +88,47 @@ if __name__ == '__main__':
         # change title of legend
         plt.legend(title="Model", handles=handles, labels=labels)
         plt.xlabel("Markers")
-        plt.ylabel("MAE")
+        plt.ylabel(metric)
         plt.ylim(0, 0.4)
         plt.title(
-            f"MAE scores for biopsy {biopsy.replace('_', ' ')}\nPerformance difference between base, non-linear and hyper models")
+            f"{metric.upper()} scores for biopsy {biopsy.replace('_', ' ')}\nPerformance difference between base, non-linear and hyper models")
         plt.tight_layout()
         if args.markers:
-            plt.savefig(f"{save_path}/mae_scores_{biopsy}_en_ludwig_hyper.png")
+            plt.savefig(f"{save_path}/{metric.lower()}_scores_{biopsy}_en_ludwig_hyper.png")
         else:
-            plt.savefig(f"{save_path}/mae_scores_{biopsy}_en_ludwig_hyper_all_markers.png")
+            plt.savefig(f"{save_path}/{metric.lower()}_scores_{biopsy}_en_ludwig_hyper_all_markers.png")
 
         plt.close('all')
+
+    # create new df with only the means of each model for each marker
+    data = scores.groupby(["Marker", "Model Enc"]).mean(numeric_only=True).reset_index()
+
+    fig = plt.figure(dpi=200, figsize=(10, 6))
+    ax = sns.lineplot(x="Marker", y="Score", hue="Model Enc", data=data, palette=palette_dict)
+    plt.title(f"Mean {metric.upper()} scores")
+    handles, labels = ax.get_legend_handles_labels()
+
+    # convert labels to int
+    temp_labels = [int(label) for label in labels]
+
+    # convert labels to int
+    labels = le.inverse_transform(temp_labels)
+
+    points = zip(labels, handles)
+    points = sorted(points)
+    labels = [point[0] for point in points]
+    handles = [point[1] for point in points]
+    # change title of legend
+    plt.legend(title="Model", handles=handles, labels=labels)
+    plt.xlabel("Markers")
+    plt.ylabel(metric.upper())
+    plt.ylim(0, 0.4)
+    plt.title(
+        f"{metric.upper()} scores \nPerformance difference between base, non-linear and hyper models")
+    plt.tight_layout()
+    if args.markers:
+        plt.savefig(f"{save_path}/{metric.lower()}_scores_mean_en_ludwig_hyper.png")
+    else:
+        plt.savefig(f"{save_path}/{metric.lower()}_scores_mean_en_ludwig_hyper_all_markers.png")
+
+    plt.close('all')

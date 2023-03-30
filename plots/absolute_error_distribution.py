@@ -6,6 +6,9 @@ from pathlib import Path
 import plotly.graph_objects as go
 from matplotlib.cbook import boxplot_stats
 
+ip_path = Path("ip_plots/")
+op_path = Path("op_plots/")
+
 if __name__ == '__main__':
     # argparse
     parser = argparse.ArgumentParser()
@@ -21,12 +24,32 @@ if __name__ == '__main__':
         errors = errors[args.markers]
 
     title = ""
+    in_patient = False
+    biopsy_name = Path(args.errors).stem.replace("_", " ")
+
+    file_name = f"{biopsy_name.replace(' ', '_')}_error_distribution"
     if "in_patient" in str(args.errors):
         title = "In patient"
+        in_patient = True
+        save_path = ip_path
     else:
         title = "Out patient"
+        save_path = op_path
 
-    biopsy_name = Path(args.errors).stem.replace("_", " ")
+    if "_en" in str(args.errors):
+        title += " EN"
+        save_path = Path(save_path / "en")
+    elif "_hyper" in str(args.errors):
+        title += " Ludwig Hyper"
+        save_path = Path(save_path / "ludwig_hyper")
+    elif "_sp_" in str(args.errors):
+        title += " Ludwig Spatial"
+        save_path = Path(save_path / "ludwig_fe")
+        raise ValueError("Spatial resolution not implemented yet")
+        file_name += "_sp_"
+    else:
+        title += " Ludwig"
+        save_path = Path(save_path / "ludwig")
 
     title = f"Biopsy {biopsy_name}\nLudwig {title}\nDistribution of the absolute error per cell"
 
@@ -58,7 +81,8 @@ if __name__ == '__main__':
     labels = ax.get_xticklabels()
 
     labels = [
-        f"{x.get_text()}\n% Outliers: {percent_outliers[percent_outliers['Marker'] == x.get_text()]['Percentage'].values[0]:.2f}%\nTotal Outliers: {percent_outliers[percent_outliers['Marker'] == x.get_text()]['Total Outliers'].values[0]}"
+        f"{x.get_text()}\nOutliers: {percent_outliers[percent_outliers['Marker'] == x.get_text()]['Total Outliers'].values[0]} " \
+        f"({percent_outliers[percent_outliers['Marker'] == x.get_text()]['Percentage'].values[0]:.1f}%)"
         for x in labels]
 
     ax.set_xticklabels(labels)
@@ -66,6 +90,12 @@ if __name__ == '__main__':
     plt.ylabel("Absolute Error")
     plt.xlabel("Marker")
     plt.tight_layout()
-    plt.savefig(f"{Path(args.errors).parent}/{biopsy_name.replace(' ', '_')}.png")
+
+    print(save_path)
+    print(file_name)
+    if in_patient:
+        plt.savefig(f"{save_path}/{file_name}.png")
+    else:
+        plt.savefig(f"{save_path}/{file_name}.png")
 
     print(errors)
