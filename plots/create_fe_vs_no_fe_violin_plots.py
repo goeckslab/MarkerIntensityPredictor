@@ -58,6 +58,12 @@ def create_violin_plot_per_segmentation(data: pd.DataFrame, score: str, title: s
     plt.close('all')
 
 
+def create_line_plot(data: pd.DataFrame, metric: str):
+    fig = plt.figure(dpi=200, figsize=(10, 6))
+    ax = sns.lineplot(x="Marker", y=metric, hue="FE", data=data)
+    plt.show()
+
+
 def load_scores(source_path: str) -> pd.DataFrame:
     scores = []
     for root, dirs, files in os.walk(source_path):
@@ -134,7 +140,6 @@ if __name__ == '__main__':
 
     # Create bar plot which compares in patient performance of the different segementations for each biopsy
     # The bar plot should be saved in the plots folder
-    print(scores)
 
     if args.markers:
         file_name = f"{patient_type}_fe_vs_no_fe_violin_plot"
@@ -146,3 +151,5 @@ if __name__ == '__main__':
     create_violin_plot_per_segmentation(data=scores, score=metric.upper(),
                                         title=f"In & Out patient performance using spatial feature engineering",
                                         file_name=file_name, save_folder=save_path, ylim=y_lim, color_palette=my_pal)
+
+    # create_line_plot(data=scores, metric=metric.upper())
