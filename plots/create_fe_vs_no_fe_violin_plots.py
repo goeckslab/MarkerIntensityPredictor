@@ -6,6 +6,9 @@ from pathlib import Path
 import argparse
 from typing import List
 
+# Create violin plots showing the difference between feature engineering and no feature engineering
+# Specific for a single spatial distance
+
 biopsies = ["9 2 1", "9 2 2", "9 3 1", "9 3 2", "9 14 1", "9 14 2", "9 15 1", "9 15 2"]
 
 ludwig_ip_source_path = Path("data/scores/Mesmer/in_patient/Ludwig")

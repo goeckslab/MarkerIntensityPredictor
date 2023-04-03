@@ -5,11 +5,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import LabelEncoder
 
-source_folder = "data/scores/Mesmer/in_patient"
-save_path = Path("ip_plots/ludwig_fe/")
+ip_source_folder = "data/scores/Mesmer/in_patient"
+op_source_folder = "data/scores/Mesmer/out_patient"
+ip_save_path = Path("ip_plots/ludwig_fe/")
+op_save_path = Path("op_plots/ludwig_fe/")
 
 
-def load_scores() -> pd.DataFrame:
+def load_scores(source_folder: str) -> pd.DataFrame:
     scores = []
     for root, dirs, _ in os.walk(source_folder):
         for directory in dirs:
@@ -31,14 +33,23 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--markers", nargs='+')
     parser.add_argument("-s", "--scores", type=str, default="MAE")
+    parser.add_argument("-t", "--type", choices=["ip", "op"], default="ip")
     args = parser.parse_args()
     metric: str = args.scores
+    patient_type: str = args.type
+
+    if patient_type == "ip":
+        save_path = ip_save_path
+        source_folder = ip_source_folder
+    else:
+        save_path = op_save_path
+        source_folder = op_source_folder
 
     if not save_path.exists():
         save_path.mkdir(parents=True)
 
     # load mesmer mae scores from data mesmer folder and all subfolders
-    scores: pd.DataFrame = load_scores()
+    scores: pd.DataFrame = load_scores(source_folder=source_folder)
     if args.markers:
         scores = scores[scores["Marker"].isin(args.markers)]
 
@@ -102,7 +113,8 @@ if __name__ == '__main__':
         plt.legend(title="Microns", handles=handles, labels=labels)
         plt.xlabel("Markers")
         plt.ylabel(metric.upper())
-        plt.title(f"{metric.upper()} scores for biopsy {biopsy.replace('_', ' ')}\nPerformance difference between spatial features")
+        plt.title(
+            f"{metric.upper()} scores for biopsy {biopsy.replace('_', ' ')}\nPerformance difference between spatial features")
         plt.tight_layout()
         if args.markers:
             plt.savefig(f"{save_path}/{metric.lower()}_scores_{biopsy}.png")
@@ -113,7 +125,7 @@ if __name__ == '__main__':
 
     # create new df with only the means of each model for each marker
     # scores = scores.groupby(["Biopsy", "Model", "Marker", "Model Enc"]).mean().reset_index()
-    #scores = scores.groupby(["Marker", "Model Enc"]).mean(numeric_only=True).reset_index()
+    # scores = scores.groupby(["Marker", "Model Enc"]).mean(numeric_only=True).reset_index()
     # Create line plot separated by spatial resolution using seaborn
     fig = plt.figure(dpi=200, figsize=(10, 6))
     # sns.violinplot(x="Marker", y="Score", hue="Model Enc", data=data, palette=palette_dict)
