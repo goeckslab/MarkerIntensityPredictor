@@ -4,11 +4,13 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-source_folder = "ae/ip"
-save_path = Path("ip_plots/ae/")
+ip_source_folder = "ae/ip"
+op_source_folder = "ae/op"
+ip_save_path = Path("ip_plots/ae/")
+op_save_path = Path("op_plots/ae/")
 
 
-def load_scores() -> pd.DataFrame:
+def load_scores(source_folder: str) -> pd.DataFrame:
     scores = []
     for root, dirs, files in os.walk(source_folder):
         for file in files:
@@ -62,14 +64,23 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--markers", nargs='+')
     parser.add_argument("-s", "--scores", type=str, default="MAE")
+    parser.add_argument("-t", "--type", type=str, choices=["ip", "op"], default="ip")
     args = parser.parse_args()
 
     metric: str = args.scores
+    patient_type: str = args.type
+
+    if patient_type == "ip":
+        source_folder = ip_source_folder
+        save_path = ip_save_path
+    else:
+        source_folder = op_source_folder
+        save_path = op_save_path
 
     if not save_path.exists():
         save_path.mkdir(parents=True)
 
-    scores = load_scores()
+    scores = load_scores(source_folder=source_folder)
     if args.markers:
         scores = scores[scores["Marker"].isin(args.markers)]
 
