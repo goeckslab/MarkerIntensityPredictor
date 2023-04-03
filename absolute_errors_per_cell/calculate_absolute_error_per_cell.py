@@ -17,15 +17,19 @@ if __name__ == "__main__":
 
     ip_patient = True if "in_patient" in str(predictions) else False
     source_biopsy = Path(predictions).stem
-    results_path = Path(results_path, str(predictions).split("/")[-2])
+    results_path = Path(results_path, str([x for x in str(predictions).strip().split("/") if x][-2]))
+
     if ip_patient and "_en" not in predictions:
         # replace last number with 1 if last number is 2
         if source_biopsy[-1] == "2":
             predicted_biopsy = source_biopsy[:-1] + "1"
         else:
             predicted_biopsy = source_biopsy[:-1] + "2"
+            assert predicted_biopsy[-1] == "2"
     else:
         predicted_biopsy = source_biopsy
+        assert predicted_biopsy[-1] == source_biopsy[
+            -1], "predicted biopsy and source biopsy should have the same last number"
 
     source_path = Path(f"data/tumor_mesmer/preprocessed/{predicted_biopsy}_preprocessed_dataset.tsv")
     # load source and predicted marker expressions

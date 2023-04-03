@@ -10,7 +10,7 @@ biopsies = ["9 2 1", "9 2 2", "9 3 1", "9 3 2", "9 14 1", "9 14 2", "9 15 1", "9
 
 ip_folder = Path("ip_plots")
 op_folder = Path("op_plots")
-ip_vs_op_folder = Path("op_vs_ip_plots")
+save_path = Path("op_vs_ip_plots/ludwig_fe/fe_in_vs_op_violin_plots")
 
 
 def truncate_decimals(target_allocation, two_decimal_places) -> float:
@@ -126,6 +126,9 @@ if __name__ == '__main__':
     spatial_distance = args.spatial
     scores: pd.DataFrame = load_scores(spatial_distance=args.spatial)
 
+    if not save_path.exists():
+        save_path.mkdir(parents=True)
+
     if args.markers:
         scores = scores[scores["Marker"].isin(args.markers)]
 
@@ -179,20 +182,16 @@ if __name__ == '__main__':
         y_lim = [0, 0.4]
 
         if args.markers:
-            mae_file_name = f"ludwig_{segmentation}_{spatial_distance}_mae_violin_plot"
-            rmse_file_name = f"ludwig_{segmentation}_{spatial_distance}_rmse_violin_plot"
+            mae_file_name = f"ludwig_{segmentation.lower()}_{spatial_distance}_mae_violin_plot"
+            rmse_file_name = f"ludwig_{segmentation.lower()}_{spatial_distance}_rmse_violin_plot"
         else:
-            mae_file_name = f"ludwig_{segmentation}_{spatial_distance}_mae_violin_plot_all_markers"
-            rmse_file_name = f"ludwig_{segmentation}_{spatial_distance}_rmse_violin_plot_all_markers"
+            mae_file_name = f"ludwig_{segmentation.lower()}_{spatial_distance}_mae_violin_plot_all_markers"
+            rmse_file_name = f"ludwig_{segmentation.lower()}_{spatial_distance}_rmse_violin_plot_all_markers"
 
         create_violin_plot_per_segmentation(data=data_seg, score="MAE",
                                             title=f"In & Out patient performance using spatial feature engineering",
-                                            file_name=mae_file_name, save_folder=ip_vs_op_folder,
-                                            ylim=y_lim)
+                                            file_name=mae_file_name, save_folder=save_path, ylim=y_lim)
 
         create_violin_plot_per_segmentation(data=data_seg, score="RMSE",
-                                            title=f"In & Out patient performance using spatial feature engineerin",
-                                            file_name=rmse_file_name,
-                                            save_folder=ip_vs_op_folder, ylim=y_lim)
-
-
+                                            title=f"In & Out patient performance using spatial feature engineering",
+                                            file_name=rmse_file_name, save_folder=save_path, ylim=y_lim)

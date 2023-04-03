@@ -101,10 +101,10 @@ if __name__ == '__main__':
         plt.close('all')
 
     # create new df with only the means of each model for each marker
-    data = scores.groupby(["Marker", "Model Enc"]).mean(numeric_only=True).reset_index()
+    #data = scores.groupby(["Marker", "Model Enc"]).mean(numeric_only=True).reset_index()
 
     fig = plt.figure(dpi=200, figsize=(10, 6))
-    ax = sns.lineplot(x="Marker", y="Score", hue="Model Enc", data=data, palette=palette_dict)
+    ax = sns.lineplot(x="Marker", y="Score", hue="Model Enc", data=scores, palette=palette_dict)
     plt.title(f"Mean {metric.upper()} scores")
     handles, labels = ax.get_legend_handles_labels()
 
@@ -127,8 +127,8 @@ if __name__ == '__main__':
         f"{metric.upper()} scores \nPerformance difference between base, non-linear and hyper models")
     plt.tight_layout()
     if args.markers:
-        plt.savefig(f"{save_path}/{metric.lower()}_scores_mean_en_ludwig_hyper.png")
+        plt.savefig(f"{save_path}/{metric.lower()}_scores_en_ludwig_hyper_line.png")
     else:
-        plt.savefig(f"{save_path}/{metric.lower()}_scores_mean_en_ludwig_hyper_all_markers.png")
+        plt.savefig(f"{save_path}/{metric.lower()}_scores_en_ludwig_hyper_line_all_markers.png")
 
     plt.close('all')

@@ -14,6 +14,20 @@ TO_REMOVE = ["DNA1", "DNA2", "DNA3", "DNA4", "DNA5", "DNA6", "DNA7", "DNA8", "DN
              "pERK-555", "goat-anti-rabbit", "A555", "donkey-anti-mouse"]
 
 
+def clean_column_names(df: pd.DataFrame):
+    if "ERK-1" in df.columns:
+        # Rename ERK to pERK
+        df = df.rename(columns={"ERK-1": "pERK"})
+
+    if "E-cadherin" in df.columns:
+        df = df.rename(columns={"E-cadherin": "Ecad"})
+
+    if "Rb" in df.columns:
+        df = df.rename(columns={"Rb": "pRB"})
+
+    return df
+
+
 def get_args():
     """
     Load all provided cli args
@@ -52,7 +66,7 @@ if __name__ == '__main__':
     file_name: str = Path(args.file).stem
 
     biopsy: pd.DataFrame = pd.read_csv(args.file, delimiter=",", header=0)
-
+    biopsy = clean_column_names(biopsy)
     print(f"Processing file: {file_name}")
     print(f"Spatial radius is: {radius}")
 
