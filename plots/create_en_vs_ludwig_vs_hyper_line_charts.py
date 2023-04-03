@@ -11,20 +11,33 @@ ip_save_path = Path("ip_plots/en_vs_ludwig_vs_hyper/")
 op_save_path = Path("op_plots/en_vs_ludwig_vs_hyper/")
 
 
-def load_scores(source_folder: str) -> pd.DataFrame:
+def load_scores(source_folder: str, mode: str) -> pd.DataFrame:
     scores = []
     for root, dirs, _ in os.walk(source_folder):
         for directory in dirs:
-            if directory == "Ludwig" or directory == "EN" or directory == "Ludwig_Hyper":
-                print("Loading folder: ", directory)
-                # load only files of this folder
-                for sub_root, _, files in os.walk(os.path.join(root, directory)):
-                    for name in files:
-                        if Path(name).suffix == ".csv":
-                            print("Loading file: ", name)
-                            scores.append(pd.read_csv(os.path.join(sub_root, name), sep=",", header=0))
+            if mode == "en_l":
+                if directory == "Ludwig" or directory == "EN":
+                    print("Loading folder: ", directory)
+                    # load only files of this folder
+                    for sub_root, _, files in os.walk(os.path.join(root, directory)):
+                        for name in files:
+                            if Path(name).suffix == ".csv":
+                                print("Loading file: ", name)
+                                scores.append(pd.read_csv(os.path.join(sub_root, name), sep=",", header=0))
+            else:
+                if directory == "Ludwig" or directory == "EN" or directory == "Ludwig_Hyper":
+                    print("Loading folder: ", directory)
+                    # load only files of this folder
+                    for sub_root, _, files in os.walk(os.path.join(root, directory)):
+                        for name in files:
+                            if Path(name).suffix == ".csv":
+                                print("Loading file: ", name)
+                                scores.append(pd.read_csv(os.path.join(sub_root, name), sep=",", header=0))
 
-    assert len(scores) == 24, "Not all biopsies have been selected"
+    if mode == "en_l":
+        assert len(scores) == 16, f"Loaded {len(scores)} scores, but should be 16"
+    else:
+        assert len(scores) == 24, f"Loaded {len(scores)} scores, but should be 24"
 
     return pd.concat(scores, axis=0).sort_values(by=["Marker"])
 
@@ -34,8 +47,10 @@ if __name__ == '__main__':
     parser.add_argument("-m", "--markers", nargs='+')
     parser.add_argument("-s", "--scores", type=str, default="MAE")
     parser.add_argument("-t", "--type", choices=["ip", "op"], default="ip")
+    parser.add_argument("--mode", choices=["en_l", "all"], default="all")
     args = parser.parse_args()
     metric: str = args.scores
+    mode: str = args.mode
     patient_type: str = args.type
 
     if patient_type == "ip":
@@ -49,7 +64,7 @@ if __name__ == '__main__':
         save_path.mkdir(parents=True)
 
     # load mesmer mae scores from data mesmer folder and all subfolders
-    scores: pd.DataFrame = load_scores(source_folder=source_folder)
+    scores: pd.DataFrame = load_scores(source_folder=source_folder, mode=mode)
     if args.markers:
         scores = scores[scores["Marker"].isin(args.markers)]
 
@@ -101,11 +116,19 @@ if __name__ == '__main__':
         plt.xlabel("Markers")
         plt.ylabel(metric)
         plt.ylim(0, 0.4)
-        plt.title(
-            f"{metric.upper()} scores for biopsy {biopsy.replace('_', ' ')}\nPerformance difference between base, non-linear and hyper models")
+        if mode == "en_l":
+            plt.title(
+                f"{metric.upper()} scores for biopsy {biopsy.replace('_', ' ')}\nPerformance difference between EN and Ludwig")
+        else:
+            plt.title(
+                f"{metric.upper()} scores for biopsy {biopsy.replace('_', ' ')}\nPerformance difference between EN, Ludwig and Ludwig Hyperopt")
         plt.tight_layout()
-        if args.markers:
+        if args.markers and mode == "en_l":
+            plt.savefig(f"{save_path}/{metric.lower()}_scores_{biopsy}_en_ludwig.png")
+        elif args.markers and mode == "all":
             plt.savefig(f"{save_path}/{metric.lower()}_scores_{biopsy}_en_ludwig_hyper.png")
+        elif mode == "en_l":
+            plt.savefig(f"{save_path}/{metric.lower()}_scores_{biopsy}_en_ludwig_all_markers.png")
         else:
             plt.savefig(f"{save_path}/{metric.lower()}_scores_{biopsy}_en_ludwig_hyper_all_markers.png")
 
@@ -134,11 +157,19 @@ if __name__ == '__main__':
     plt.xlabel("Markers")
     plt.ylabel(metric.upper())
     plt.ylim(0, 0.4)
-    plt.title(
-        f"{metric.upper()} scores \nPerformance difference between base, non-linear and hyper models")
+    if mode == "en_l":
+        plt.title(
+            f"{metric.upper()} scores \nPerformance difference between EN and Ludwig")
+    else:
+        plt.title(
+            f"{metric.upper()} scores \nPerformance difference between EN, Ludwig and Ludwig Hyperopt")
     plt.tight_layout()
-    if args.markers:
+    if args.markers and mode == "en_l":
+        plt.savefig(f"{save_path}/{metric.lower()}_scores_en_ludwig_line.png")
+    elif args.markers and mode == "all":
         plt.savefig(f"{save_path}/{metric.lower()}_scores_en_ludwig_hyper_line.png")
+    elif mode == "en_l":
+        plt.savefig(f"{save_path}/{metric.lower()}_scores_en_ludwig_line_all_markers.png")
     else:
         plt.savefig(f"{save_path}/{metric.lower()}_scores_en_ludwig_hyper_line_all_markers.png")
 

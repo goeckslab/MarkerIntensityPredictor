@@ -149,7 +149,7 @@ if __name__ == '__main__':
     plt.xlabel("Markers")
     plt.ylabel(metric.upper())
     if args.markers:
-        plt.ylim(0.025, 0.2)
+        plt.ylim(0, 0.3)
     else:
         plt.ylim(0.025, 0.29)
     plt.title(
