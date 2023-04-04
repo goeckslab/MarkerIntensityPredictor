@@ -14,21 +14,19 @@ ip_save_path = Path("ip_plots/ae/")
 op_save_path = Path("op_plots/ae/")
 
 
-# Create line & violin plot for either hyper or non hyper data.
+# Create line & violin plot for hyper & non hyper data + fe & non fe data.
 
 
-def load_scores(source: Path, hyper: bool) -> pd.DataFrame:
+def load_scores(source: Path) -> pd.DataFrame:
     scores = []
-
-    file_name = "scores.csv" if not hyper else "hp_scores.csv"
 
     for root, dirs, files in os.walk(source):
         for file in files:
-            if file == file_name:
+            if file == "scores.csv" or file == "hp_scores.csv":
                 print("Loading file: ", file)
                 scores.append(pd.read_csv(os.path.join(root, file), sep=",", header=0))
 
-    assert len(scores) == 8, f"Not all biopsies have been selected. Only {len(scores)} biopsies have been selected."
+    assert len(scores) == 16, f"Not all biopsies have been selected. Only {len(scores)} biopsies have been selected."
 
     return pd.concat(scores, axis=0).sort_values(by=["Marker"]).reset_index(drop=True)
 
@@ -65,7 +63,7 @@ def create_violin_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_
 
 def create_line_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_name: str):
     fig = plt.figure(figsize=(10, 5), dpi=200)
-    ax = sns.lineplot(x="Marker", y=metric, hue="FE", data=data)
+    ax = sns.lineplot(x="Marker", y=metric, hue="FE", style="HP", data=data)
     plt.tight_layout()
     plt.savefig(f"{save_folder}/{file_name}.png")
     plt.close('all')
@@ -73,7 +71,7 @@ def create_line_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_na
 
 def combine_line_violin_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_name: str):
     fig = plt.figure(figsize=(10, 5), dpi=200)
-    ax = sns.lineplot(x="Marker", y=metric, hue="FE", data=data)
+    ax = sns.lineplot(x="Marker", y=metric, hue="FE", style="HP", data=data)
     sns.violinplot(data=data, x="Marker", y=metric, hue="FE", split=True, cut=0)
     plt.tight_layout()
     plt.show()
@@ -81,9 +79,8 @@ def combine_line_violin_plot(data: pd.DataFrame, metric: str, save_folder: Path,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--markers", nargs='+')
+    parser.add_argument("-m", "--markers", nargs='+', )
     parser.add_argument("-t", "--type", type=str, choices=["ip", "op"], default="ip")
-    parser.add_argument("-hp", "--hyperopt", action="store_true", default=False)
     parser.add_argument("-s", "--scores", type=str, default="MAE")
     args = parser.parse_args()
 
@@ -102,10 +99,10 @@ if __name__ == "__main__":
     if not save_path.exists():
         save_path.mkdir(parents=True)
 
-    non_fe_scores = load_scores(non_fe_data, hyper=args.hyperopt)
+    non_fe_scores = load_scores(non_fe_data)
     non_fe_scores["FE"] = "sp_0"
 
-    fe_scores = load_scores(fe_data, hyper=args.hyperopt)
+    fe_scores = load_scores(fe_data)
 
     scores = pd.concat([non_fe_scores, fe_scores], axis=0).reset_index(drop=True)
 
@@ -113,11 +110,11 @@ if __name__ == "__main__":
         scores = scores[scores["Marker"].isin(args.markers)]
 
     if args.markers:
-        violin_file_name: str = f"denoising_fe_vs_non_fe_{metric.lower()}_violin_{patient_type}{'_hyper' if args.hyperopt else ''}"
-        line_file_name: str = f"denoising_fe_vs_non_fe_{metric.lower()}_line_{patient_type}{'_hyper' if args.hyperopt else ''}"
+        violin_file_name: str = f"denoising_fe_vs_non_fe_{metric.lower()}_violin_{patient_type}_combined_hp"
+        line_file_name: str = f"denoising_fe_vs_non_fe_{metric.lower()}_line_{patient_type}_combined_hp"
     else:
-        violin_file_name: str = f"denoising_fe_vs_non_fe_{metric.lower()}_violin_{patient_type}{'_hyper' if args.hyperopt else ''}_all_markers"
-        line_file_name: str = f"denoising_fe_vs_non_fe_{metric.lower()}_line_{patient_type}{'_hyper' if args.hyperopt else ''}_all_markers"
+        violin_file_name: str = f"denoising_fe_vs_non_fe_{metric.lower()}_violin_{patient_type}_combined_hp_all_markers"
+        line_file_name: str = f"denoising_fe_vs_non_fe_{metric.lower()}_line_{patient_type}_combined_hp_all_markers"
 
     create_violin_plot(data=scores, metric=metric, save_folder=save_path, file_name=violin_file_name, ylim=(0, 0.5))
 
