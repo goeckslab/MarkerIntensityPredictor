@@ -81,7 +81,7 @@ if __name__ == '__main__':
     # argsparser
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--markers", nargs='+', help="Markers to be plotted", default=None)
-    parser.add_argument("-sp", "--spatial", type=int, help="Spatial distance", default=46)
+    parser.add_argument("-sp", "--spatial", type=int, help="Spatial distance", default=46, choices=[46, 92, 138, 184])
     parser.add_argument("-t", "--type", type=str, default="ip", choices=["ip", "op"])
     parser.add_argument("-s", "--score", type=str, default="MAE", choices=["RMSE", "MAE"])
     args = parser.parse_args()

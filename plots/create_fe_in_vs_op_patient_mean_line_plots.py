@@ -118,7 +118,6 @@ if __name__ == '__main__':
         # handles = [point[1] for point in points]
 
         labels = str_labels
-        print(labels)
         # change title of legend
         plt.legend(title="Microns", handles=handles, labels=labels)
         plt.xlabel("Markers")
@@ -135,7 +134,7 @@ if __name__ == '__main__':
 
     # create new df with only the means of each model for each marker
     # scores = scores.groupby(["Biopsy", "Model", "Marker", "Model Enc"]).mean().reset_index()
-    scores = scores.groupby(["Marker", "Model Enc", "Type"]).mean(numeric_only=True).reset_index()
+    #scores = scores.groupby(["Marker", "Model Enc", "Type"]).mean(numeric_only=True).reset_index()
     # Create line plot separated by spatial resolution using seaborn
     fig = plt.figure(dpi=200, figsize=(10, 6))
     # sns.violinplot(x="Marker", y="Score", hue="Model Enc", data=data, palette=palette_dict)

@@ -81,7 +81,7 @@ def create_violin_plot_per_segmentation(data: pd.DataFrame, score: str, title: s
     # remove y axis label
     plt.ylabel("")
     plt.xlabel("")
-    # plt.legend(loc='upper center')
+    plt.legend(loc='upper center')
     plt.ylim(ylim[0], ylim[1])
 
     y_ticks = [item.get_text() for item in fig.axes[0].get_yticklabels()]
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     # argsparser
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--markers", nargs='+', help="Markers to be plotted", default=None)
-    parser.add_argument("-sp", "--spatial", type=int, help="Spatial distance", default=46)
+    parser.add_argument("-sp", "--spatial", type=int, help="Spatial distance", default=46, choices=[46, 92, 138,184])
     args = parser.parse_args()
 
     # load mesmer mae scores from data mesmer folder and all subfolders
@@ -173,13 +173,12 @@ if __name__ == '__main__':
 
     data = pd.concat([ip_mae_scores, op_mae_scores])
 
-    print(data["Segmentation"].unique())
     for segmentation in data["Segmentation"].unique():
         data_seg = data[data["Segmentation"] == segmentation].copy()
         data_seg.drop(columns=["SNR", "Segmentation"], inplace=True)
         data_seg["Biopsy"] = data_seg["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
 
-        y_lim = [0, 0.4]
+        y_lim = [0, 0.3]
 
         if args.markers:
             mae_file_name = f"ludwig_{segmentation.lower()}_{spatial_distance}_mae_violin_plot"

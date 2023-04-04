@@ -145,15 +145,32 @@ if __name__ == '__main__':
     labels = [point[0] for point in points]
     handles = [point[1] for point in points]
     # change title of legend
-    plt.legend(title="Model", handles=handles, labels=labels)
-    plt.xlabel("Markers")
-    plt.ylabel(metric.upper())
+    # plt.legend(title="Model", handles=handles, labels=labels)
+    # plt.xlabel("Markers")
+    # plt.ylabel(metric.upper())
+
+    plt.ylabel("")
+    plt.xlabel("")
+    plt.title("")
+    plt.box(False)
+    # remove legend from fig
+    plt.legend().set_visible(False)
+
     if args.markers:
         plt.ylim(0, 0.3)
+        print("in here")
     else:
-        plt.ylim(0.025, 0.29)
-    plt.title(
-        f"{metric.upper()} scores\nPerformance difference between Ludwig and FE models")
+        plt.ylim(0, 0.3)
+
+    y_ticks = [item.get_text() for item in fig.axes[0].get_yticklabels()]
+    x_ticks = [item.get_text() for item in fig.axes[0].get_xticklabels()]
+    # set y ticks of fig
+    if args.markers:
+        ax.set_yticklabels(y_ticks, rotation=0, fontsize=20)
+        ax.set_xticklabels(x_ticks, rotation=0, fontsize=20)
+
+    # plt.title(
+    #    f"{metric.upper()} scores\nPerformance difference between Ludwig and FE models")
     plt.tight_layout()
     if args.markers:
         plt.savefig(f"{save_path}/{metric.lower()}_scores_fe_vs_no_fe_line_chart.png")
