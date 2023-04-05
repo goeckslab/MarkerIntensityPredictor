@@ -3,7 +3,6 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from pathlib import Path
-import plotly.graph_objects as go
 from matplotlib.cbook import boxplot_stats
 
 ip_path = Path("ip_plots/")

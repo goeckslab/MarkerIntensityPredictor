@@ -3,6 +3,7 @@ from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from typing import Dict
 
 ip_non_fe_data = Path("ae/ip")
 ip_fe_data = Path("ae_sp_46/ip")
@@ -32,18 +33,18 @@ def load_scores(source: Path) -> pd.DataFrame:
 
 
 def create_violin_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_name: str,
-                       ylim: tuple):
+                       ylim: tuple, color_palette: Dict):
     data["Biopsy"] = data["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
     if args.markers:
         fig = plt.figure(figsize=(13, 5), dpi=200)
     else:
         fig = plt.figure(figsize=(15, 5), dpi=200)
-    ax = sns.violinplot(data=data, x="Marker", y=metric, hue="FE", split=True, cut=0)
+    ax = sns.violinplot(data=data, x="Marker", y=metric, hue="FE", split=True, cut=0, palette=color_palette)
 
-    # plt.title(title)
-    # remove y axis label
-    # plt.ylabel("")
-    # plt.xlabel("")
+
+    plt.ylabel("")
+    plt.xlabel("")
+    plt.title("")
     # plt.legend(loc='upper center')
     plt.ylim(ylim[0], ylim[1])
 
@@ -55,15 +56,29 @@ def create_violin_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_
         ax.set_xticklabels(x_ticks, rotation=0, fontsize=20)
     plt.box(False)
     # remove legend from fig
-    # plt.legend().set_visible(False)
+    plt.legend().set_visible(False)
     plt.tight_layout()
     plt.savefig(f"{save_folder}/{file_name}.png")
     plt.close('all')
 
 
-def create_line_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_name: str):
+def create_line_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_name: str, color_palette: Dict):
     fig = plt.figure(figsize=(10, 5), dpi=200)
-    ax = sns.lineplot(x="Marker", y=metric, hue="FE", style="HP", data=data)
+    ax = sns.lineplot(x="Marker", y=metric, hue="FE", style="HP", data=data, palette=color_palette)
+
+    plt.title("")
+    plt.ylabel("")
+    plt.xlabel("")
+    plt.ylim(0, 0.45)
+    y_ticks = [item.get_text() for item in fig.axes[0].get_yticklabels()]
+    x_ticks = [item.get_text() for item in fig.axes[0].get_xticklabels()]
+    # set y ticks of fig
+    if args.markers:
+        ax.set_yticklabels(y_ticks, rotation=0, fontsize=20)
+        ax.set_xticklabels(x_ticks, rotation=0, fontsize=20)
+    plt.box(False)
+    # remove legend from fig
+    plt.legend().set_visible(False)
     plt.tight_layout()
     plt.savefig(f"{save_folder}/{file_name}.png")
     plt.close('all')
@@ -116,10 +131,11 @@ if __name__ == "__main__":
         violin_file_name: str = f"denoising_fe_vs_non_fe_{metric.lower()}_violin_{patient_type}_combined_hp_all_markers"
         line_file_name: str = f"denoising_fe_vs_non_fe_{metric.lower()}_line_{patient_type}_combined_hp_all_markers"
 
-    create_violin_plot(data=scores, metric=metric, save_folder=save_path, file_name=violin_file_name, ylim=(0, 0.5))
+    color_palette = {"sp_0": "grey", "sp_46": "purple"}
+    create_violin_plot(data=scores, metric=metric, save_folder=save_path, file_name=violin_file_name, ylim=(0, 0.5), color_palette=color_palette)
 
     create_line_plot(data=scores, metric=metric.upper(), file_name=line_file_name,
-                     save_folder=save_path)
+                     save_folder=save_path, color_palette=color_palette)
 
     # combine_line_violin_plot(data=scores, metric=metric.upper(), save_folder=save_path,
     #                         file_name=f"denoising_fe_vs_non_fe_{metric.lower()}_line_violin_{patient_type}")
