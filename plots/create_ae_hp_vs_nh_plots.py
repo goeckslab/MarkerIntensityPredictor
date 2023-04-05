@@ -47,15 +47,30 @@ def create_violin_plot(data: pd.DataFrame, score: str, save_folder: Path, file_n
         ax.set_xticklabels(x_ticks, rotation=0, fontsize=20)
     plt.box(False)
     # remove legend from fig
-    # plt.legend().set_visible(False)
+    plt.legend().set_visible(False)
     plt.tight_layout()
     plt.savefig(f"{save_folder}/{file_name}.png")
     plt.close('all')
 
 
-def create_line_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_name: str):
+def create_line_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_name: str, color_palette: dict):
     fig = plt.figure(figsize=(10, 5), dpi=200)
-    ax = sns.lineplot(x="Marker", y=metric, hue="HP", data=data)
+    ax = sns.lineplot(x="Marker", y=metric, hue="HP", data=data, palette=color_palette)
+    plt.ylabel("")
+    plt.xlabel("")
+    plt.title("")
+    plt.ylim(0.05, 0.45)
+    y_ticks = [item.get_text() for item in fig.axes[0].get_yticklabels()]
+    x_ticks = [item.get_text() for item in fig.axes[0].get_xticklabels()]
+    # set y ticks of fig
+    if args.markers:
+        ax.set_yticklabels(y_ticks, rotation=0, fontsize=20)
+        ax.set_xticklabels(x_ticks, rotation=0, fontsize=20)
+
+
+    plt.box(False)
+    plt.legend().set_visible(False)
+    plt.tight_layout()
     plt.savefig(f"{save_folder}/{file_name}.png")
     plt.close('all')
 
@@ -92,9 +107,10 @@ if __name__ == '__main__':
         create_violin_plot(data=scores, score=metric, save_folder=save_path,
                            file_name=f"denoising_{metric.lower()}_ae_hp_vs_nh_violin_all_markers", ylim=(0, 0.5))
 
+    line_pal = {0: "grey", 1: "fuchsia"}
     if args.markers:
         create_line_plot(data=scores, metric=metric.upper(), save_folder=save_path,
-                         file_name=f"denoising_{metric.lower()}_ae_hp_vs_nh_line")
+                         file_name=f"denoising_{metric.lower()}_ae_hp_vs_nh_line", color_palette=line_pal)
     else:
         create_line_plot(data=scores, metric=metric.upper(), save_folder=save_path,
-                         file_name=f"denoising_{metric.lower()}_ae_hp_vs_nh_line_all_markers")
+                         file_name=f"denoising_{metric.lower()}_ae_hp_vs_nh_line_all_markers", color_palette=line_pal)
