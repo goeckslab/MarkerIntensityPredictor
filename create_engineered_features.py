@@ -43,7 +43,7 @@ def get_args():
     parser.add_argument("--radius", "-r", action="store", required=False, default=46, type=int,
                         help="The radius around the cell in px")  # 2 cells
 
-    parser.add_argument("--output", "-o", action="store", required=True)
+    parser.add_argument("--output", "-o", action="store", required=True, help="The output path")
 
     return parser.parse_args()
 

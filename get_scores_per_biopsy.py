@@ -33,7 +33,13 @@ if __name__ == '__main__':
     type = "IP" if in_or_out == "in_patient" else "OP"
     segmentation = "Unmicst + S3" if "unmicst" in str(data_path) else "Mesmer"
     snr = 0 if "non_snr" in str(data_path) else 1
-    mode = "EN" if "_en" in str(data_path) else "Ludwig"
+
+    if "_en_6_2" in str(data_path):
+        mode = "EN_6_2"
+    elif "_en" in str(data_path):
+        mode = "EN"
+    else:
+        mode = "Ludwig"
     hyper = 1 if "_hyper" in str(data_path) else 0
 
     if "_sp" in str(data_path):
