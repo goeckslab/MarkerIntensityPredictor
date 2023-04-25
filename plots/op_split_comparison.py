@@ -4,20 +4,22 @@ import argparse
 import os, sys
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib.cbook import boxplot_stats
 
 ip_vs_op_folder = Path("op_vs_ip_plots")
 
 biopsies = ["9 2 1", "9 2 2", "9 3 1", "9 3 2", "9 14 1", "9 14 2", "9 15 1", "9 15 2"]
 
 
-def create_violin_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_name: str,
+def create_violin_plot(data: pd.DataFrame, outlier_df: pd.DataFrame, metric: str, save_folder: Path, file_name: str,
                        ylim: tuple):
     data["Biopsy"] = data["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
     if args.markers:
         fig = plt.figure(figsize=(13, 5), dpi=200)
     else:
         fig = plt.figure(figsize=(15, 5), dpi=200)
-    ax = sns.violinplot(data=data, x="Marker", y=metric, hue="Mode", split=False, cut=0)
+    ax = sns.violinplot(data=data, x="Marker", y=metric, hue="Split", split=False, cut=0)
+    #sns.stripplot(data=outlier_df, x="Marker", y=metric, jitter=True, hue="Split")
 
     # plt.title(title)
     # remove y axis label
@@ -76,6 +78,34 @@ if __name__ == '__main__':
 
     y_lim = [0, 0.4]
 
-    create_violin_plot(data=scores, metric="MAE",
+    # Rename mode EN from scores dataset to 7/1 split
+    scores.loc[scores["Mode"] == "EN", "Mode"] = "7/1"
+    scores.loc[scores["Mode"] == "EN_6_2", "Mode"] = "6/2"
+    scores.rename(columns={"Mode": "Split"}, inplace=True)
+
+    outlier_df = []
+    percent_outliers = []
+    for marker in scores["Marker"].unique():
+        # extract all outliers
+        data = scores[scores["Marker"] == marker]
+
+        outliers = [y for stat in boxplot_stats(data["MAE"]) for y in stat['fliers']]
+        print(outliers)
+        rows = data[data["MAE"].isin(outliers)]
+        outlier_df.append(rows)
+        # extract all rows which matches the value of the outliers
+
+        percent_outliers.append({
+            "Marker": marker,
+            "Percentage": len(outliers) / len(scores) * 100,
+            "Total Outliers": len(outliers),
+            "Total cells": len(scores)
+        })
+
+    outlier_df = pd.concat(outlier_df, axis=0)
+
+    print(outlier_df)
+
+    create_violin_plot(data=scores, outlier_df=outlier_df, metric="MAE",
                        file_name=mae_file_name, save_folder=ip_vs_op_folder,
                        ylim=y_lim)
