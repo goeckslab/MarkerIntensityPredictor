@@ -21,4 +21,4 @@ run_en: prepare_data
 
 
 plots:
-	python create_plots.py --truth "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_TEST_DATASET)" --predicted "$(OUTPUT_DIRECTORY)/$(MARKER)_y_hat.csv" --marker "${MARKER}" --output "$(OUTPUT_DIRECTORY)"
+	python ../../shared_scripts/create_plots.py --truth "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_TEST_DATASET)" --predicted "$(OUTPUT_DIRECTORY)/$(MARKER)_predictions.csv" --marker "${MARKER}" --output "$(OUTPUT_DIRECTORY)"
