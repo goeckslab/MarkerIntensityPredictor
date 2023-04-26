@@ -26,4 +26,4 @@ run_en: combine_data_sets prepare_data
 	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && python ../../../elastic_net.py --marker "$(MARKER)" --train "../../../$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_PROCESSED_DATASET)" --test "../../../$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_TEST_DATASET)"
 
 plots:
-	python create_plots.py --truth "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_TEST_DATASET)" --predicted "$(OUTPUT_DIRECTORY)/$(MARKER)_y_hat.csv" --marker "${MARKER}" --output "$(OUTPUT_DIRECTORY)"
+	python ../../shared_scripts/create_plots.py --truth "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_TEST_DATASET)" --predicted "$(OUTPUT_DIRECTORY)/$(MARKER)_predictions.csv" --marker "${MARKER}" --output "$(OUTPUT_DIRECTORY)"

@@ -30,7 +30,7 @@ if __name__ == '__main__':
     y_hat = elastic_net.predict(X_test)
     y_hat_df = pd.DataFrame(y_hat, columns=[args.marker])
 
-    y_hat_df.to_csv(f"{args.marker}_y_hat.csv", index=False)
+    y_hat_df.to_csv(f"{args.marker}_predictions.csv", index=False, header=False)
 
     data = {
         "patient": " ".join(Path(args.test).stem.split("_")[0:3]),
