@@ -70,10 +70,16 @@ if __name__ == '__main__':
     for marker in markers:
         path = Path(args.biopsy, f"{marker}", "evaluate", test_biopsy, "test_statistics.json")
         if not path.exists():
-            path = Path(train_biopsy, f"{marker}", "evaluation.json")
+            path = Path(args.biopsy, test_biopsy, marker, "evaluation.json")
+        if not path.exists():
+            raise ValueError(f"Path {path} does not exist")
 
         f = open(path)
         data = json.load(f)
+
+        if mode == "EN" and test_biopsy == "9_2_2" and type == "IP" and marker == "AR":
+            assert data['mean_absolute_error'] == 0.04704521207831636, "AR MAE should be 0.04704521207831636"
+
         scores.append(
             {
                 "Marker": marker,

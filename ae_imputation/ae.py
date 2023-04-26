@@ -109,6 +109,7 @@ if __name__ == '__main__':
 
     mode = args.mode
     hp: bool = args.hyper
+    iterations: int = args.iterations
 
     if hp:
         print("Using hyper parameter tuning")
@@ -133,7 +134,7 @@ if __name__ == '__main__':
         else:
             train_biopsy_name = "_".join(test_biopsy_name_split[:2]) + "_2"
 
-        print("Loading train data for biopsy: " + test_biopsy_name + " for mode: " + mode)
+        print("Test biopsy being loaded:: " + test_biopsy_name + " for mode: " + mode)
         print(f"Train biopsy being loaded: {train_biopsy_name}")
 
         # Load train data
@@ -190,7 +191,7 @@ if __name__ == '__main__':
             input_data[marker] = 0
 
             marker_prediction = input_data
-            for i in range(5):
+            for i in range(iterations):
                 marker_prediction = ae.decoder.predict(ae.encoder.predict(marker_prediction))
 
             # Add marker to prediction dataset
@@ -209,7 +210,7 @@ if __name__ == '__main__':
             input_data[marker] = 0
 
             marker_prediction = input_data
-            for i in range(5):
+            for i in range(iterations):
                 marker_prediction = ae.predict(marker_prediction)
 
             # Add marker to prediction dataset
@@ -227,13 +228,14 @@ if __name__ == '__main__':
             "RMSE": mean_squared_error(predictions[marker], test_data[marker], squared=False),
             "HP": int(hp),
             "Mode": mode,
-            "Imputation": 1
+            "Imputation": 1,
+            "Iterations": iterations
         })
 
     # Convert to df
     scores = pd.DataFrame(scores)
 
-    save_folder = Path(f"ae/{mode}/{test_biopsy_name}")
+    save_folder = Path(f"ae_imputation/{mode}/{test_biopsy_name}")
     if not save_folder.exists():
         save_folder.mkdir(parents=True)
 

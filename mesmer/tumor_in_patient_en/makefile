@@ -5,7 +5,7 @@ PREPROCESSED_TRAIN_DATASET = $(SAMPLE)_preprocessed_dataset.tsv
 TEST=$(test_id)
 PREPROCESSED_TEST_DATASET = $(TEST)_preprocessed_dataset.tsv
 MARKER=$(marker)
-OUTPUT_DIRECTORY = $(SAMPLE)/$(MARKER)
+OUTPUT_DIRECTORY = $(SAMPLE)/$(TEST)/$(MARKER)
 
 # Create preprocessed dataset.
 prepare_data:
@@ -17,7 +17,7 @@ prepare_data:
 
 # Run a ludwig experiment using the preprocessed dataset. Results are placed into the $(SAMPLE) directory.
 run_en: prepare_data
-	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && python ../../elastic_net.py --marker "$(MARKER)" --train "../../$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_TRAIN_DATASET)" --test "../../$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_TEST_DATASET)"
+	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && python ../../../elastic_net.py --marker "$(MARKER)" --train "../../../$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_TRAIN_DATASET)" --test "../../../$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_TEST_DATASET)"
 
 
 plots:
