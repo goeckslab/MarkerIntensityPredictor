@@ -18,12 +18,6 @@ if __name__ == '__main__':
     predicted = pd.read_csv(args.predicted, delimiter=",", header=None)
     predicted.rename(columns={0: marker}, inplace=True)
 
-    # print(truth.shape)
-    # print(predicted.shape)
-    # print(truth)
-    # print(predicted)
-    # print(marker)
-
     fig = plt.figure(figsize=(5, 3), dpi=200)
     plt.scatter(truth[[marker]], predicted[[marker]], alpha=0.5, label=marker)
     plt.plot(np.unique(truth[[marker]].values.flatten()),
