@@ -27,6 +27,9 @@ unmicst_s3_snr/tumor_out_patient_hyper/9_*
 
 ae/ae_hyperopt/*
 ae_sp_46/ae_hyperopt/*
+ae_imputation/ip/*
+ae_imputation/op/*
+ae_imputation/exp/*
 
 
 mesmer/tumor_in_patient/9_*
@@ -52,6 +55,7 @@ mesmer/tumor_out_patient_sp_46_6_2/*
 mesmer/tumor_out_patient_sp_92_6_2/*
 mesmer/tumor_out_patient_sp_138_6_2/*
 mesmer/tumor_out_patient_sp_184_6_2/*
+
 
 
 
