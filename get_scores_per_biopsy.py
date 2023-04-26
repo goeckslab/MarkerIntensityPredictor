@@ -102,6 +102,4 @@ if __name__ == '__main__':
 
     scores = pd.DataFrame.from_records(scores)
 
-    scores.to_csv(Path(scores_directory,
-                       f"{test_biopsy}_{type}_{'_'.join(segmentation.split(' '))}_{snr}_{fe}_{mode}_{hyper}_scores.csv"),
-                  index=False)
+    scores.to_csv(Path(scores_directory, f"{test_biopsy}_scores.csv"), index=False)
