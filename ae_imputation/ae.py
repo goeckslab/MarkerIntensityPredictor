@@ -12,6 +12,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping
 import keras_tuner as kt
 import shutil
+from typing import List
 
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
@@ -96,11 +97,25 @@ class AutoEncoder(Model):
         return decoded
 
 
+def append_scores_per_iteration(scores: List, ground_truth: pd.DataFrame, predictions: pd.DataFrame, hp: bool,
+                                mode: str, iteration: int, marker: str):
+    scores.append({
+        "Marker": marker,
+        "Biopsy": test_biopsy_name,
+        "MAE": mean_absolute_error(predictions[marker], ground_truth[marker]),
+        "RMSE": mean_squared_error(predictions[marker], ground_truth[marker], squared=False),
+        "HP": int(hp),
+        "Mode": mode,
+        "Imputation": 1,
+        "Iteration": iteration
+    })
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--biopsy", type=str, required=True,
                         help="Provide the biopsy name in the following format: 9_2_1. No suffix etc")
-    parser.add_argument("-m", "--mode", required=True, choices=["ip", "op"])
+    parser.add_argument("-m", "--mode", required=True, choices=["ip", "op", "exp"], default="ip")
     parser.add_argument("-hp", "--hyper", action="store_true", required=False, default=False,
                         help="Should hyper parameter tuning be used?")
     parser.add_argument("-o", "--override", action='store_true', default=False, help="Override existing hyperopt")
@@ -119,6 +134,7 @@ if __name__ == '__main__':
 
     # Load test data
     test_biopsy_name = args.biopsy
+    patient: str = "_".join(Path(test_biopsy_name).stem.split("_")[:2])
 
     hyperopt_project_name = f"{test_biopsy_name}_{mode}_hp"
     if hp and args.override:
@@ -134,7 +150,8 @@ if __name__ == '__main__':
         else:
             train_biopsy_name = "_".join(test_biopsy_name_split[:2]) + "_2"
 
-        print("Test biopsy being loaded:: " + test_biopsy_name + " for mode: " + mode)
+        print(f"Mode: {mode}")
+        print(f"Test biopsy being loaded: {test_biopsy_name}")
         print(f"Train biopsy being loaded: {train_biopsy_name}")
 
         # Load train data
@@ -145,7 +162,7 @@ if __name__ == '__main__':
         test_data = pd.read_csv(f'data/tumor_mesmer/{test_biopsy_name}.csv')
         test_data = clean_column_names(test_data)
         test_data = test_data[SHARED_MARKERS].copy()
-    else:
+    elif mode == "op":
         # Load noisy train data
         train_data = []
         search_dir = "data/tumor_mesmer"
@@ -166,6 +183,27 @@ if __name__ == '__main__':
         test_data = clean_column_names(test_data)
         test_data = test_data[SHARED_MARKERS].copy()
 
+    else:
+        # Load noisy train data
+        train_data = []
+        search_dir = "data/tumor_mesmer"
+        for file in os.listdir(search_dir):
+            file_name = Path(file).stem
+            if file.endswith(".csv") and patient not in file_name:
+                print("Loading train file: " + file)
+                data = pd.read_csv(Path(search_dir, file))
+                data = clean_column_names(data)
+                train_data.append(data)
+
+        assert len(train_data) == 6, f"There should be 6 train datasets, loaded {len(train_data)}"
+        train_data = pd.concat(train_data)
+        train_data = train_data[SHARED_MARKERS].copy()
+
+        # Load test data
+        test_data = pd.read_csv(f'data/tumor_mesmer/{test_biopsy_name}.csv')
+        test_data = clean_column_names(test_data)
+        test_data = test_data[SHARED_MARKERS].copy()
+
     # Scale data
     min_max_scaler = MinMaxScaler(feature_range=(0, 1))
     train_data = pd.DataFrame(min_max_scaler.fit_transform(np.log10(train_data + 1)),
@@ -176,6 +214,11 @@ if __name__ == '__main__':
     # Split noisy train data into train and validation
     train_data, val_data = train_test_split(train_data, test_size=0.2, random_state=42)
 
+    scores = []
+    predictions = {}
+    for i in range(iterations):
+        predictions[i] = pd.DataFrame(columns=test_data.columns)
+
     if not hp:
         # Create ae
         callbacks = [EarlyStopping(monitor='val_loss', patience=5)]
@@ -184,7 +227,6 @@ if __name__ == '__main__':
         history = ae.fit(train_data, train_data, epochs=100, batch_size=32, shuffle=True,
                          validation_data=(val_data, val_data), callbacks=callbacks)
 
-        predictions = pd.DataFrame(columns=test_data.columns)
         for marker in train_data.columns:
             # copy the test data
             input_data = test_data.copy()
@@ -193,11 +235,10 @@ if __name__ == '__main__':
             marker_prediction = input_data
             for i in range(iterations):
                 marker_prediction = ae.decoder.predict(ae.encoder.predict(marker_prediction))
-
-            # Add marker to prediction dataset
-
-            marker_prediction = pd.DataFrame(data=marker_prediction, columns=test_data.columns)
-            predictions[marker] = marker_prediction[marker].values
+                marker_prediction = pd.DataFrame(data=marker_prediction, columns=test_data.columns)
+                predictions[i][marker] = marker_prediction[marker].values
+                append_scores_per_iteration(scores=scores, predictions=marker_prediction, ground_truth=test_data, hp=hp,
+                                            mode=mode, iteration=i, marker=marker)
 
     else:
         # Hyperopt section
@@ -210,27 +251,13 @@ if __name__ == '__main__':
             input_data[marker] = 0
 
             marker_prediction = input_data
+
             for i in range(iterations):
                 marker_prediction = ae.predict(marker_prediction)
-
-            # Add marker to prediction dataset
-            predictions[marker] = marker_prediction[marker].values
-
-    print(predictions)
-
-    # Calculate mae for each marker between predictions and clean test data
-    scores = []
-    for marker in SHARED_MARKERS:
-        scores.append({
-            "Marker": marker,
-            "Biopsy": test_biopsy_name,
-            "MAE": mean_absolute_error(predictions[marker], test_data[marker]),
-            "RMSE": mean_squared_error(predictions[marker], test_data[marker], squared=False),
-            "HP": int(hp),
-            "Mode": mode,
-            "Imputation": 1,
-            "Iterations": iterations
-        })
+                marker_prediction = pd.DataFrame(data=marker_prediction, columns=test_data.columns)
+                predictions[i][marker] = marker_prediction[marker].values
+                append_scores_per_iteration(scores=scores, predictions=marker_prediction, ground_truth=test_data, hp=hp,
+                                            mode=mode, iteration=i, marker=marker)
 
     # Convert to df
     scores = pd.DataFrame(scores)
@@ -242,7 +269,9 @@ if __name__ == '__main__':
     # Save results
     if not hp:
         scores.to_csv(f"{save_folder}/scores.csv", index=False)
-        predictions.to_csv(f"{save_folder}/predictions.csv", index=False)
+        for key, value in predictions.items():
+            value.to_csv(f"{save_folder}/{key}_predictions.csv", index=False)
     else:
         scores.to_csv(f"{save_folder}/hp_scores.csv", index=False)
-        predictions.to_csv(f"{save_folder}/hp_predictions.csv", index=False)
+        for key, value in predictions.items():
+            value.to_csv(f"{save_folder}/{key}_hp_predictions.csv", index=False)
