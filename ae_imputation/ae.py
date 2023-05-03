@@ -97,15 +97,21 @@ class AutoEncoder(Model):
         return decoded
 
 
+def create_noise(shape: [], columns: List[str]):
+    mu, sigma = 0, 0.1
+    # creating a noise with the same dimension as the dataset (2,2)
+    return pd.DataFrame(data=np.random.normal(mu, sigma, shape), columns=columns)
+
+
 def append_scores_per_iteration(scores: List, ground_truth: pd.DataFrame, predictions: pd.DataFrame, hp: bool,
-                                mode: str, iteration: int, marker: str):
+                                type: str, iteration: int, marker: str):
     scores.append({
         "Marker": marker,
         "Biopsy": test_biopsy_name,
         "MAE": mean_absolute_error(predictions[marker], ground_truth[marker]),
         "RMSE": mean_squared_error(predictions[marker], ground_truth[marker], squared=False),
         "HP": int(hp),
-        "Mode": mode,
+        "Type": type,
         "Imputation": 1,
         "Iteration": iteration
     })
@@ -115,16 +121,27 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--biopsy", type=str, required=True,
                         help="Provide the biopsy name in the following format: 9_2_1. No suffix etc")
-    parser.add_argument("-m", "--mode", required=True, choices=["ip", "op", "exp"], default="ip")
+    parser.add_argument("-m", "--mode", required=True, choices=["ip", "op", "exp", "sp_23"], default="ip")
     parser.add_argument("-hp", "--hyper", action="store_true", required=False, default=False,
                         help="Should hyper parameter tuning be used?")
     parser.add_argument("-o", "--override", action='store_true', default=False, help="Override existing hyperopt")
     parser.add_argument("-i", "--iterations", action="store", default=5, type=int)
+    parser.add_argument("--replace_all", action="store_true", default=False,
+                        help="Instead of only replacing the imputed marker values, replace all values")
+    parser.add_argument("-rm", "--replace_mode", action="store", type=str, choices=["mean", "zero"], default="zero")
+    parser.add_argument("-an", "--an", action="store_true", default=False, help="Add noise to each iteration")
     args = parser.parse_args()
 
-    mode = args.mode
+    patient_type = args.mode
     hp: bool = args.hyper
     iterations: int = args.iterations
+    replace_all_markers = args.replace_all
+    replace_mode: str = args.replace_mode
+    add_noise: bool = args.an
+
+    print("Replace all markers: ", replace_all_markers)
+    print("Replace mode: ", replace_mode)
+    print("Add noise: ", add_noise)
 
     if hp:
         print("Using hyper parameter tuning")
@@ -136,13 +153,13 @@ if __name__ == '__main__':
     test_biopsy_name = args.biopsy
     patient: str = "_".join(Path(test_biopsy_name).stem.split("_")[:2])
 
-    hyperopt_project_name = f"{test_biopsy_name}_{mode}_hp"
+    hyperopt_project_name = f"{test_biopsy_name}_{patient_type}_hp"
     if hp and args.override:
         print("Overriding hyperopt")
         shutil.rmtree(f"{hyperopt_directory}/{hyperopt_project_name}")
 
     # Load train data
-    if mode == "ip":
+    if patient_type == "ip":
         # Extract biopsy name
         test_biopsy_name_split = test_biopsy_name.split("_")
         if int(test_biopsy_name_split[2]) == 2:
@@ -150,7 +167,7 @@ if __name__ == '__main__':
         else:
             train_biopsy_name = "_".join(test_biopsy_name_split[:2]) + "_2"
 
-        print(f"Mode: {mode}")
+        print(f"Mode: {patient_type}")
         print(f"Test biopsy being loaded: {test_biopsy_name}")
         print(f"Train biopsy being loaded: {train_biopsy_name}")
 
@@ -162,7 +179,7 @@ if __name__ == '__main__':
         test_data = pd.read_csv(f'data/tumor_mesmer/{test_biopsy_name}.csv')
         test_data = clean_column_names(test_data)
         test_data = test_data[SHARED_MARKERS].copy()
-    elif mode == "op":
+    elif patient_type == "op":
         # Load noisy train data
         train_data = []
         search_dir = "data/tumor_mesmer"
@@ -183,7 +200,7 @@ if __name__ == '__main__':
         test_data = clean_column_names(test_data)
         test_data = test_data[SHARED_MARKERS].copy()
 
-    else:
+    elif patient_type == "exp":
         # Load noisy train data
         train_data = []
         search_dir = "data/tumor_mesmer"
@@ -203,6 +220,30 @@ if __name__ == '__main__':
         test_data = pd.read_csv(f'data/tumor_mesmer/{test_biopsy_name}.csv')
         test_data = clean_column_names(test_data)
         test_data = test_data[SHARED_MARKERS].copy()
+
+    elif patient_type == "sp_23":
+        # Load noisy train data
+        train_data = []
+        search_dir = "data/tumor_mesmer_sp_23"
+        for file in os.listdir(search_dir):
+            file_name = Path(file).stem
+            if file.endswith(".csv") and patient not in file_name:
+                print("Loading train file: " + file)
+                data = pd.read_csv(Path(search_dir, file))
+                data = clean_column_names(data)
+                train_data.append(data)
+
+        assert len(train_data) == 6, f"There should be 6 train datasets, loaded {len(train_data)}"
+        train_data = pd.concat(train_data)
+        train_data = train_data[SHARED_MARKERS].copy()
+
+        # Load test data
+        test_data = pd.read_csv(f'data/tumor_mesmer_sp_23/{test_biopsy_name}.csv')
+        test_data = clean_column_names(test_data)
+        test_data = test_data[SHARED_MARKERS].copy()
+
+    else:
+        raise ValueError(f"Unknown patient type: {patient_type}")
 
     # Scale data
     min_max_scaler = MinMaxScaler(feature_range=(0, 1))
@@ -230,15 +271,31 @@ if __name__ == '__main__':
         for marker in train_data.columns:
             # copy the test data
             input_data = test_data.copy()
-            input_data[marker] = 0
+            if replace_mode == "zero":
+                input_data[marker] = 0
+            elif replace_mode == "mean":
+                input_data[marker] = input_data[marker].mean()
 
-            marker_prediction = input_data
+            marker_prediction = input_data.copy()
             for i in range(iterations):
                 marker_prediction = ae.decoder.predict(ae.encoder.predict(marker_prediction))
                 marker_prediction = pd.DataFrame(data=marker_prediction, columns=test_data.columns)
                 predictions[i][marker] = marker_prediction[marker].values
+
+                if add_noise:
+                    noise = create_noise(shape=marker_prediction.shape, columns=test_data.columns)
+                    marker_prediction = marker_prediction + noise
+
+                if not replace_all_markers:
+                    imputed_marker = marker_prediction[marker].values
+                    marker_prediction = input_data.copy()
+                    marker_prediction[marker] = imputed_marker
+                    if add_noise:
+                        noise = create_noise(shape=marker_prediction.shape, columns=test_data.columns)
+                        marker_prediction[marker] = marker_prediction[marker].values + noise[marker].values
+
                 append_scores_per_iteration(scores=scores, predictions=marker_prediction, ground_truth=test_data, hp=hp,
-                                            mode=mode, iteration=i, marker=marker)
+                                            type=patient_type, iteration=i, marker=marker)
 
     else:
         # Hyperopt section
@@ -248,21 +305,42 @@ if __name__ == '__main__':
         for marker in train_data.columns:
             # copy the test data
             input_data = test_data.copy()
-            input_data[marker] = 0
+            if replace_mode == "zero":
+                input_data[marker] = 0
+            elif replace_mode == "mean":
+                input_data[marker] = input_data[marker].mean()
 
-            marker_prediction = input_data
+            marker_prediction = input_data.copy()
 
             for i in range(iterations):
                 marker_prediction = ae.predict(marker_prediction)
                 marker_prediction = pd.DataFrame(data=marker_prediction, columns=test_data.columns)
                 predictions[i][marker] = marker_prediction[marker].values
+
+                if not replace_all_markers:
+                    imputed_marker = marker_prediction[marker].values
+                    marker_prediction = input_data.copy()
+                    marker_prediction[marker] = imputed_marker
+
                 append_scores_per_iteration(scores=scores, predictions=marker_prediction, ground_truth=test_data, hp=hp,
-                                            mode=mode, iteration=i, marker=marker)
+                                            type=patient_type, iteration=i, marker=marker)
 
     # Convert to df
     scores = pd.DataFrame(scores)
 
-    save_folder = Path(f"ae_imputation/{mode}/{test_biopsy_name}")
+    if replace_all_markers:
+        save_folder = Path(f"ae_imputation", f"{patient_type}_replace_all")
+    else:
+        save_folder = Path(f"ae_imputation", patient_type)
+
+    save_folder = Path(save_folder, replace_mode)
+    if add_noise:
+        save_folder = Path(save_folder, "noise")
+    else:
+        save_folder = Path(save_folder, "no_noise")
+
+    save_folder = Path(save_folder, test_biopsy_name)
+
     if not save_folder.exists():
         save_folder.mkdir(parents=True)
 
@@ -270,8 +348,10 @@ if __name__ == '__main__':
     if not hp:
         scores.to_csv(f"{save_folder}/scores.csv", index=False)
         for key, value in predictions.items():
-            value.to_csv(f"{save_folder}/{key}_predictions.csv", index=False)
+            value.to_csv(f"{save_folder}/{key}_predictions.csv",
+                         index=False)
     else:
         scores.to_csv(f"{save_folder}/hp_scores.csv", index=False)
         for key, value in predictions.items():
-            value.to_csv(f"{save_folder}/{key}_hp_predictions.csv", index=False)
+            value.to_csv(f"{save_folder}/{key}_hp_predictions.csv",
+                         index=False)

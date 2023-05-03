@@ -10,3 +10,4 @@ python3 ./ae_imputation/ae.py -m "ip" -b 9_14_1 -i 10
 python3 ./ae_imputation/ae.py -m "ip" -b 9_14_2 -i 10
 python3 ./ae_imputation/ae.py -m "ip" -b 9_15_1 -i 10
 python3 ./ae_imputation/ae.py -m "ip" -b 9_15_2 -i 10
+
