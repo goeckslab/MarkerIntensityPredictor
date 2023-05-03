@@ -1,3 +1,5 @@
+import shutil
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -5,12 +7,13 @@ import os, sys, math
 from pathlib import Path
 import argparse
 from typing import List
+from statannotations.Annotator import Annotator
 
 biopsies = ["9 2 1", "9 2 2", "9 3 1", "9 3 2", "9 14 1", "9 14 2", "9 15 1", "9 15 2"]
 
 ip_folder = Path("ip_plots")
 op_folder = Path("op_plots")
-save_path = Path("op_vs_ip_plots/ludwig_fe/fe_in_vs_op_violin_plots")
+save_path = Path("plots/ludwig/fe_ip_vs_op")
 
 
 def truncate_decimals(target_allocation, two_decimal_places) -> float:
@@ -68,14 +71,14 @@ def plot_performance_heatmap_per_segmentation(data, score: str, segmentation: st
     plt.close('all')
 
 
-def create_violin_plot_per_segmentation(data: pd.DataFrame, score: str, title: str, save_folder: Path, file_name: str,
-                                        ylim: List):
+def create_boxen_plot_per_segmentation(data: pd.DataFrame, metric: str, title: str, save_folder: Path, file_name: str,
+                                       ylim: List):
     data["Biopsy"] = data["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
     if args.markers:
         fig = plt.figure(figsize=(13, 5), dpi=200)
     else:
         fig = plt.figure(figsize=(15, 5), dpi=200)
-    ax = sns.violinplot(data=data, x="Marker", y=score, hue="Type", split=True, cut=0)
+    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Type")
 
     # plt.title(title)
     # remove y axis label
@@ -93,6 +96,34 @@ def create_violin_plot_per_segmentation(data: pd.DataFrame, score: str, title: s
     plt.box(False)
     # remove legend from fig
     plt.legend().set_visible(False)
+
+    hue = "Type"
+    hue_order = ["IP", "OP"]
+    pairs = [
+        (("pRB", "IP"), ("pRB", "OP")),
+        (("CD45", "IP"), ("CD45", "OP")),
+        (("CK19", "IP"), ("CK19", "OP")),
+        (("Ki67", "IP"), ("Ki67", "OP")),
+        (("aSMA", "IP"), ("aSMA", "OP")),
+        (("Ecad", "IP"), ("Ecad", "OP")),
+        (("PR", "IP"), ("PR", "OP")),
+        (("CK14", "IP"), ("CK14", "OP")),
+        (("HER2", "IP"), ("HER2", "OP")),
+        (("AR", "IP"), ("AR", "OP")),
+        (("CK17", "IP"), ("CK17", "OP")),
+        (("p21", "IP"), ("p21", "OP")),
+        (("Vimentin", "IP"), ("Vimentin", "OP")),
+        (("pERK", "IP"), ("pERK", "OP")),
+        (("EGFR", "IP"), ("EGFR", "OP")),
+        (("ER", "IP"), ("ER", "OP")),
+    ]
+    order = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
+             'pERK', 'EGFR', 'ER']
+    annotator = Annotator(ax, pairs, data=data, x="Marker", y=metric, order=order, hue=hue, hue_order=hue_order,
+                          verbose=1)
+    annotator.configure(test='Mann-Whitney', text_format='star', loc='outside')
+    annotator.apply_and_annotate()
+
     plt.tight_layout()
     plt.savefig(f"{save_folder}/{file_name}.png")
     plt.close('all')
@@ -119,15 +150,25 @@ if __name__ == '__main__':
     # argsparser
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--markers", nargs='+', help="Markers to be plotted", default=None)
-    parser.add_argument("-sp", "--spatial", type=int, help="Spatial distance", default=46, choices=[46, 92, 138,184])
+    parser.add_argument("-sp", "--spatial", type=int, help="Spatial distance", default=46,
+                        choices=[23, 46, 92, 138, 184])
     args = parser.parse_args()
 
     # load mesmer mae scores from data mesmer folder and all subfolders
     spatial_distance = args.spatial
+    markers = args.markers
     scores: pd.DataFrame = load_scores(spatial_distance=args.spatial)
 
-    if not save_path.exists():
-        save_path.mkdir(parents=True)
+    save_path = Path(save_path, str(spatial_distance))
+
+    if markers:
+        save_path = Path(save_path, "_".join(markers))
+    else:
+        save_path = Path(save_path, "all_markers")
+
+    if save_path.exists():
+        shutil.rmtree(save_path)
+    save_path.mkdir(parents=True)
 
     if args.markers:
         scores = scores[scores["Marker"].isin(args.markers)]
@@ -181,16 +222,16 @@ if __name__ == '__main__':
         y_lim = [0, 0.3]
 
         if args.markers:
-            mae_file_name = f"ludwig_{segmentation.lower()}_{spatial_distance}_mae_violin_plot"
-            rmse_file_name = f"ludwig_{segmentation.lower()}_{spatial_distance}_rmse_violin_plot"
+            mae_file_name = f"{segmentation.lower()}_mae_boxen"
+            rmse_file_name = f"{segmentation.lower()}_rmse_boxen"
         else:
-            mae_file_name = f"ludwig_{segmentation.lower()}_{spatial_distance}_mae_violin_plot_all_markers"
-            rmse_file_name = f"ludwig_{segmentation.lower()}_{spatial_distance}_rmse_violin_plot_all_markers"
+            mae_file_name = f"{segmentation.lower()}_mae_boxen"
+            rmse_file_name = f"{segmentation.lower()}_rmse_boxen"
 
-        create_violin_plot_per_segmentation(data=data_seg, score="MAE",
-                                            title=f"In & Out patient performance using spatial feature engineering",
-                                            file_name=mae_file_name, save_folder=save_path, ylim=y_lim)
+        create_boxen_plot_per_segmentation(data=data_seg, metric="MAE",
+                                           title=f"In & Out patient performance using spatial feature engineering",
+                                           file_name=mae_file_name, save_folder=save_path, ylim=y_lim)
 
-        create_violin_plot_per_segmentation(data=data_seg, score="RMSE",
-                                            title=f"In & Out patient performance using spatial feature engineering",
-                                            file_name=rmse_file_name, save_folder=save_path, ylim=y_lim)
+        create_boxen_plot_per_segmentation(data=data_seg, metric="RMSE",
+                                           title=f"In & Out patient performance using spatial feature engineering",
+                                           file_name=rmse_file_name, save_folder=save_path, ylim=y_lim)
