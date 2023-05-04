@@ -18,5 +18,5 @@ for marker in "${markers[@]}"; do
   echo "${marker}"
   echo test_id="${test_id}" marker="${marker}"
 
-  sbatch exacloud_executor.sh "${test_id}" "${marker}" "${patient}"
+  sbatch exacloud_helper.sh "${test_id}" "${marker}" "${patient}"
 done
