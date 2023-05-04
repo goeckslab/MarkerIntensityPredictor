@@ -1,3 +1,0 @@
-model_type: gbm
-training:
-  early_stop: 10
