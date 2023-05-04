@@ -35,9 +35,11 @@ if __name__ == '__main__':
     snr = 0 if "non_snr" in str(data_path) else 1
 
     if "_en_6_2" in str(data_path):
-        mode = "EN_6_2"
+        mode = "EN_EXP"
     elif "_en" in str(data_path):
         mode = "EN"
+    elif "_6_2" in str(data_path):
+        mode = "Ludwig_EXP"
     else:
         mode = "Ludwig"
     hyper = 1 if "_hyper" in str(data_path) else 0

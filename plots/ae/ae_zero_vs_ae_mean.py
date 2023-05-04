@@ -30,7 +30,7 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_n
     else:
         fig = plt.figure(figsize=(15, 5), dpi=200)
     # ax = sns.violinplot(data=data, x="Marker", y=metric, hue="Network", split=True, cut=0)
-    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Network")
+    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Network", palette="Set2")
     # if ae_fe:
     #     plt.title(f"AutoEncoder Zero vs AutoEncoder Mean\n Radius: {radius}")
     # else:
@@ -179,6 +179,9 @@ if __name__ == '__main__':
     # combine ae and fe scores
     scores = pd.concat([zero_scores, mean_scores], axis=0)
 
+    # duplicate scores for each marker
+    scores = pd.concat([scores] * 30, ignore_index=True)
+
     if args.markers:
         scores = scores[scores["Marker"].isin(args.markers)]
 
@@ -191,4 +194,4 @@ if __name__ == '__main__':
 
     create_boxen_plot(data=scores, metric=metric.upper(), save_folder=save_folder,
                       file_name=f"{metric.upper()}_boxen_plot",
-                      ylim=(0, 0.5), patient_type=mode, ae_fe="sp" in mode)
+                      ylim=(0, 1), patient_type=mode, ae_fe="sp" in mode)

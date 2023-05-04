@@ -278,21 +278,24 @@ if __name__ == '__main__':
 
             marker_prediction = input_data.copy()
             for i in range(iterations):
-                marker_prediction = ae.decoder.predict(ae.encoder.predict(marker_prediction))
-                marker_prediction = pd.DataFrame(data=marker_prediction, columns=test_data.columns)
-                predictions[i][marker] = marker_prediction[marker].values
-
-                if add_noise:
-                    noise = create_noise(shape=marker_prediction.shape, columns=test_data.columns)
-                    marker_prediction = marker_prediction + noise
+                predicted_intensities = ae.decoder.predict(ae.encoder.predict(marker_prediction))
+                predicted_intensities = pd.DataFrame(data=predicted_intensities, columns=test_data.columns)
+                predictions[i][marker] = predicted_intensities[marker].values
 
                 if not replace_all_markers:
-                    imputed_marker = marker_prediction[marker].values
+                    imputed_marker = predicted_intensities[marker].values
                     marker_prediction = input_data.copy()
                     marker_prediction[marker] = imputed_marker
+
                     if add_noise:
                         noise = create_noise(shape=marker_prediction.shape, columns=test_data.columns)
                         marker_prediction[marker] = marker_prediction[marker].values + noise[marker].values
+
+                else:
+                    marker_prediction = predicted_intensities.copy()
+                    if add_noise:
+                        noise = create_noise(shape=marker_prediction.shape, columns=test_data.columns)
+                        marker_prediction = marker_prediction + noise
 
                 append_scores_per_iteration(scores=scores, predictions=marker_prediction, ground_truth=test_data, hp=hp,
                                             type=patient_type, iteration=i, marker=marker)

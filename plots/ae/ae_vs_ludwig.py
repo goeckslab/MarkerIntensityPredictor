@@ -43,7 +43,8 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_n
     else:
         fig = plt.figure(figsize=(15, 5), dpi=200)
     # ax = sns.violinplot(data=data, x="Marker", y=metric, hue="Network", split=True, cut=0)
-    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Network")
+    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Network",
+                       palette={"AE Mean": "orange", "AE Zero": "blue", "Ludwig": "green"})
     # if ae_fe:
     #    plt.title(f"FE AutoEncoder vs FE Ludwig\n Radius: {radius}")
     # else:
@@ -65,24 +66,40 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_n
     # plt.legend().set_visible(False)
 
     hue = "Network"
-    hue_order = ['AE', 'Ludwig']
+    hue_order = ['AE Mean', "AE Zero", 'Ludwig']
     pairs = [
-        (("pRB", "AE"), ("pRB", "Ludwig")),
-        (("CD45", "AE"), ("CD45", "Ludwig")),
-        (("CK19", "AE"), ("CK19", "Ludwig")),
-        (("Ki67", "AE"), ("Ki67", "Ludwig")),
-        (("aSMA", "AE"), ("aSMA", "Ludwig")),
-        (("Ecad", "AE"), ("Ecad", "Ludwig")),
-        (("PR", "AE"), ("PR", "Ludwig")),
-        (("CK14", "AE"), ("CK14", "Ludwig")),
-        (("HER2", "AE"), ("HER2", "Ludwig")),
-        (("AR", "AE"), ("AR", "Ludwig")),
-        (("CK17", "AE"), ("CK17", "Ludwig")),
-        (("p21", "AE"), ("p21", "Ludwig")),
-        (("Vimentin", "AE"), ("Vimentin", "Ludwig")),
-        (("pERK", "AE"), ("pERK", "Ludwig")),
-        (("EGFR", "AE"), ("EGFR", "Ludwig")),
-        (("ER", "AE"), ("ER", "Ludwig")),
+        (("pRB", "AE Mean"), ("pRB", "Ludwig")),
+        (("CD45", "AE Mean"), ("CD45", "Ludwig")),
+        (("CK19", "AE Mean"), ("CK19", "Ludwig")),
+        (("Ki67", "AE Mean"), ("Ki67", "Ludwig")),
+        (("aSMA", "AE Mean"), ("aSMA", "Ludwig")),
+        (("Ecad", "AE Mean"), ("Ecad", "Ludwig")),
+        (("PR", "AE Mean"), ("PR", "Ludwig")),
+        (("CK14", "AE Mean"), ("CK14", "Ludwig")),
+        (("HER2", "AE Mean"), ("HER2", "Ludwig")),
+        (("AR", "AE Mean"), ("AR", "Ludwig")),
+        (("CK17", "AE Mean"), ("CK17", "Ludwig")),
+        (("p21", "AE Mean"), ("p21", "Ludwig")),
+        (("Vimentin", "AE Mean"), ("Vimentin", "Ludwig")),
+        (("pERK", "AE Mean"), ("pERK", "Ludwig")),
+        (("EGFR", "AE Mean"), ("EGFR", "Ludwig")),
+        (("ER", "AE Mean"), ("ER", "Ludwig")),
+        (("pRB", "AE Zero"), ("pRB", "Ludwig")),
+        (("CD45", "AE Zero"), ("CD45", "Ludwig")),
+        (("CK19", "AE Zero"), ("CK19", "Ludwig")),
+        (("Ki67", "AE Zero"), ("Ki67", "Ludwig")),
+        (("aSMA", "AE Zero"), ("aSMA", "Ludwig")),
+        (("Ecad", "AE Zero"), ("Ecad", "Ludwig")),
+        (("PR", "AE Zero"), ("PR", "Ludwig")),
+        (("CK14", "AE Zero"), ("CK14", "Ludwig")),
+        (("HER2", "AE Zero"), ("HER2", "Ludwig")),
+        (("AR", "AE Zero"), ("AR", "Ludwig")),
+        (("CK17", "AE Zero"), ("CK17", "Ludwig")),
+        (("p21", "AE Zero"), ("p21", "Ludwig")),
+        (("Vimentin", "AE Zero"), ("Vimentin", "Ludwig")),
+        (("pERK", "AE Zero"), ("pERK", "Ludwig")),
+        (("EGFR", "AE Zero"), ("EGFR", "Ludwig")),
+        (("ER", "AE Zero"), ("ER", "Ludwig")),
     ]
     order = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
              'pERK', 'EGFR', 'ER']
@@ -144,26 +161,30 @@ if __name__ == '__main__':
     save_folder.mkdir(parents=True)
 
     if mode == "ip":
-        ae_path = f"ae_imputation/ip/zero/{'noise' if add_noise else 'no_noise'}"
+        ae_zero_path = f"ae_imputation/ip/zero/{'noise' if add_noise else 'no_noise'}"
+        ae_mean_path = f"ae_imputation/ip/mean/{'noise' if add_noise else 'no_noise'}"
         ludwig_path = "data/scores/Mesmer/in_patient/Ludwig"
     elif mode == "op":
-        ae_path = f"ae_imputation/op/zero/{'noise' if add_noise else 'no_noise'}"
+        ae_zero_path = f"ae_imputation/op/zero/{'noise' if add_noise else 'no_noise'}"
+        ae_mean_path = f"ae_imputation/op/mean/{'noise' if add_noise else 'no_noise'}"
         ludwig_path = "data/scores/Mesmer/out_patient/Ludwig"
     elif mode == "exp":
-        ae_path = f"ae_imputation/exp/zero/{'noise' if add_noise else 'no_noise'}"
+        ae_zero_path = f"ae_imputation/exp/zero/{'noise' if add_noise else 'no_noise'}"
+        ae_mean_path = f"ae_imputation/exp/mean/{'noise' if add_noise else 'no_noise'}"
         ludwig_path = "data/scores/Mesmer/exp/Ludwig"
     elif mode == "sp_23":
-        ae_path = f"ae_imputation/sp_23/zero/{'noise' if add_noise else 'no_noise'}"
-        ludwig_path = f"data/scores/Mesmer/out_patient/Ludwig_sp_23"
+        ae_zero_path = f"ae_imputation/sp_23/zero/{'noise' if add_noise else 'no_noise'}"
+        ae_mean_path = f"ae_imputation/sp_23/mean/{'noise' if add_noise else 'no_noise'}"
+        ludwig_path = f"data/scores/Mesmer/out_patient/Ludwig_sp_23_6_2"
     else:
         raise ValueError("Unknown mode")
 
+    ae_mean_scores: pd.DataFrame = load_ae_scores(root_folder=ae_mean_path)
+    ae_mean_scores["Network"] = "AE Mean"
 
-    print(ae_path)
-    print(ludwig_path)
+    ae_zero_scores: pd.DataFrame = load_ae_scores(root_folder=ae_zero_path)
+    ae_zero_scores["Network"] = "AE Zero"
 
-    ae_scores: pd.DataFrame = load_ae_scores(root_folder=ae_path)
-    ae_scores["Network"] = "AE"
     ludwig_scores: pd.DataFrame = load_fe_scores(root_folder=ludwig_path)
     ludwig_scores["Network"] = f"Ludwig"
 
@@ -171,17 +192,24 @@ if __name__ == '__main__':
     # ae_scores = ae_scores[ae_scores["Iteration"] == 0]
 
     # for each marker and biopsy, select only the iteration with the lowest mae
-    ae_scores = ae_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
-    ae_scores = ae_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
+    ae_zero_scores = ae_zero_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
+    ae_zero_scores = ae_zero_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
 
-    create_histogram(data=ae_scores, file_name=f"ae_iteration_distribution")
+    create_histogram(data=ae_zero_scores, file_name=f"ae_mean_iteration_distribution")
+
+    ae_mean_scores = ae_mean_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
+    ae_mean_scores = ae_mean_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
+
+    create_histogram(data=ae_mean_scores, file_name=f"ae_zero_iteration_distribution")
 
     # Select only Marker, MAE, MSE, RMSE and Biopsy
     ludwig_scores = ludwig_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
-    ae_scores = ae_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
+    ae_mean_scores = ae_mean_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
+    ae_zero_scores = ae_zero_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
 
     # combine ae and fe scores
-    scores = pd.concat([ae_scores, ludwig_scores], axis=0)
+    scores = pd.concat([ae_mean_scores, ae_zero_scores, ludwig_scores], axis=0)
+    scores = pd.concat([scores] * 30, ignore_index=True)
 
     if args.markers:
         scores = scores[scores["Marker"].isin(args.markers)]
@@ -194,4 +222,4 @@ if __name__ == '__main__':
         file_name = f"{metric.upper()}_boxen_plot"
 
     create_boxen_plot(data=scores, metric="MAE", save_folder=save_folder, file_name=file_name,
-                      ylim=(0, 0.5), patient_type=mode, ae_fe="sp" in mode)
+                      ylim=(0, 0.8), patient_type=mode, ae_fe="sp" in mode)

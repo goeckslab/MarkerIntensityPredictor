@@ -208,14 +208,16 @@ if __name__ == '__main__':
 
     # Violin plots for out & in patient data for each segmentation
 
-    data = pd.concat([ip_mae_scores, op_mae_scores])
+    scores = pd.concat([ip_mae_scores, op_mae_scores])
+    # duplicate each row in scores
+    scores = pd.concat([scores] * 30, ignore_index=True)
 
-    for segmentation in data["Segmentation"].unique():
-        data_seg = data[data["Segmentation"] == segmentation].copy()
+    for segmentation in scores["Segmentation"].unique():
+        data_seg = scores[scores["Segmentation"] == segmentation].copy()
         data_seg.drop(columns=["SNR", "Segmentation"], inplace=True)
         data_seg["Biopsy"] = data_seg["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
 
-        y_lim = [0, 0.4]
+        y_lim = [0, 0.6]
 
         if args.markers:
             mae_file_name = f"{segmentation}_mae_boxen"
