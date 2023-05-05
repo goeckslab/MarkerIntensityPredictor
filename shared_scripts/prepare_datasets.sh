@@ -1,10 +1,6 @@
-BASE_DIR=$1
-TEST_ID=$2
-MARKER=$3
-PATIENT_ID=$4
+TEST_ID=$1
+PATIENT_ID=$2
 
-
-OUTPUT_DIRECTORY=$BASE_DIR/$TEST_ID/$MARKER
 DATA_DIRECTORY=./data/tumor_mesmer
 DATA_DIRECTORY_COMBINED=./data/tumor_mesmer/combined
 DATA_DIRECTORY_COMBINED_PREPROCESSED=./data/tumor_mesmer/combined/preprocessed
@@ -18,8 +14,3 @@ mkdir -p "$DATA_DIRECTORY_COMBINED" && python ./shared_scripts/combine_datasets.
 mkdir -p "$DATA_DIRECTORY_COMBINED_PREPROCESSED" && python ./shared_scripts/prepare_data.py "$DATA_DIRECTORY_COMBINED/$COMBINED_DATASET" "$DATA_DIRECTORY_COMBINED_PREPROCESSED/$COMBINED_PREPROCESSED_DATA"
 # Create preprocessed dataset for single data
 mkdir -p "$DATA_DIRECTORY_PREPROCESSED" && python ./shared_scripts/prepare_data.py "$DATA_DIRECTORY/$TEST_ID.csv" "$DATA_DIRECTORY_PREPROCESSED/$PREPROCESSED_DATASET"
-
-
-# Create final configuration file.
-python ./shared_scripts/create_input_features.py "$DATA_DIRECTORY_COMBINED_PREPROCESSED/$COMBINED_PREPROCESSED_DATA" "$MARKER" "${BASE_DIR}/${TEST_ID}_${MARKER}_input_features.yaml";
-cat "${BASE_DIR}/${TEST_ID}_${MARKER}_input_features.yaml" ${BASE_DIR}/base_config.yaml > "${BASE_DIR}/${TEST_ID}_${MARKER}_final_config.yaml"
