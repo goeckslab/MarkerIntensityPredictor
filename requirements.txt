@@ -24,3 +24,5 @@ scimap
 anndata
 tqdm
 lightgbm
+hummingbird
+hummingbird-ml
