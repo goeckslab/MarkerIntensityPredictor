@@ -7,7 +7,7 @@ keras
 matplotlib
 pydot
 graphviz
-sklearn
+scikit-learn
 plotly
 ipywidgets
 jupyterlab
