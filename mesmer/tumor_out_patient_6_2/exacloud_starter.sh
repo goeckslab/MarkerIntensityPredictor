@@ -30,7 +30,7 @@ for marker in "${markers[@]}"; do
     echo "${marker}"
 
     echo test_id="${test_id}" marker="${marker}" patient="${patient}" random_seed="${random_seed}"
-    #sbatch exacloud_helper.sh "${test_id}" "${marker}" "${patient}" "${random_seed}"
+    sbatch exacloud_helper.sh "${test_id}" "${marker}" "${patient}" "${random_seed}"
   done
 
 done
