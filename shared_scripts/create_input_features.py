@@ -16,6 +16,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     target = args.target
 
+    print(args.input_file)
+
     # Read features from input.
     input_df_cols = pd.read_csv(args.input_file, delimiter="\t", header=0, nrows=0).columns.tolist()
     input_df_cols.remove(target)
