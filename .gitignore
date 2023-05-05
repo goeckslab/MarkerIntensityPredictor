@@ -48,14 +48,15 @@ mesmer/tumor_in_patient_sp_138/*
 mesmer/tumor_in_patient_sp_184/*
 mesmer/tumor_in_patient_sp_23/*
 mesmer/tumor_out_patient_sp_23/*
-mesmer/tumor_out_patient_en_6_2/*
-mesmer/tumor_out_patient_6_2/9_*
-mesmer/tumor_out_patient_sp_23_6_2/*
-mesmer/tumor_out_patient_sp_46_6_2/*
-mesmer/tumor_out_patient_sp_92_6_2/*
-mesmer/tumor_out_patient_sp_138_6_2/*
-mesmer/tumor_out_patient_sp_184_6_2/*
-mesmer/tumor_out_patient_hyper_6_2/9_*
+
+mesmer/tumor_exp_patient_en/9_*
+mesmer/tumor_exp_patient/9_*
+mesmer/tumor_exp_patient_sp_23/9_*
+mesmer/tumor_exp_patient_sp_46/9_*
+mesmer/tumor_exp_patient_sp_92/9_*
+mesmer/tumor_exp_patient_sp_138/9_*
+mesmer/tumor_exp_patient_sp_184/9_*
+mesmer/tumor_exp_patient_hyper/9_*
 
 
 

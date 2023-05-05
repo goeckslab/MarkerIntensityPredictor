@@ -16,12 +16,6 @@ iterations=$3
 
 echo ${iterations}
 
-
-for i in $(seq 1 $iterations)
-do
-  echo "${i}"
-done
-
 markers=('pRB' 'CD45' 'CK19' 'Ki67' 'aSMA' 'Ecad' 'PR' 'CK14' 'HER2' 'AR' 'CK17' 'p21' 'Vimentin' 'pERK' 'EGFR' 'ER')
 for marker in "${markers[@]}"; do
   for i in $(seq 1 $iterations)
