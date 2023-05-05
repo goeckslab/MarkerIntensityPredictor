@@ -16,6 +16,6 @@ marker=$2
 patient=$3
 
 make -f makefile ludwig-experiment test_id="${test_id}" marker="${marker}" patient_id="${patient}" &&
-  make -f makefile ludwig-evaluate test_id="${test_id}" marker="${marker}" patient_id="${patient}" &&
-  make -f makefile ludwig-plots test_id="${test_id}" marker="${marker}" patient_id="${patient}" &&
-  make -f makefile clean test_id="${test_id}" marker="${marker}" patient_id="${patient}"
+  #make -f makefile ludwig-evaluate test_id="${test_id}" marker="${marker}" patient_id="${patient}" &&
+  #make -f makefile ludwig-plots test_id="${test_id}" marker="${marker}" patient_id="${patient}" &&
+make -f makefile clean test_id="${test_id}" marker="${marker}" patient_id="${patient}"
