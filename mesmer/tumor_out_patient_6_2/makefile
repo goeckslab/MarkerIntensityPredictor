@@ -9,6 +9,7 @@ DATA_DIRECTORY_PREPROCESSED = ../../data/tumor_mesmer/preprocessed
 PREPROCESSED_DATASET = $(TEST_ID)_preprocessed_dataset.tsv
 COMBINED_DATASET = $(PATIENT_ID)_excluded_dataset.csv
 COMBINED_PREPROCESSED_DATA = $(PATIENT_ID)_excluded_dataset.tsv
+RANDOM_SEED=$(random_seed)
 
 # Create preprocessed dataset for combined data
 "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_PREPROCESSED_DATA)":
@@ -29,7 +30,7 @@ COMBINED_PREPROCESSED_DATA = $(PATIENT_ID)_excluded_dataset.tsv
 
 # Run a ludwig experiment using the preprocessed dataset. Results are placed into the $(TEST_ID) directory.
 ludwig-experiment: "$(TEST_ID)_$(MARKER)_final_config.yaml"
-	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_PREPROCESSED_DATA)" --config "../../$(TEST_ID)_$(MARKER)_final_config.yaml" -rs 456
+	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_PREPROCESSED_DATA)" --config "../../$(TEST_ID)_$(MARKER)_final_config.yaml" -rs $(RANDOM_SEED)
 
 ludwig-evaluate:
 	python ../../shared_scripts/prepare_data.py "$(DATA_DIRECTORY)/$(TEST_ID).csv" "$(DATA_DIRECTORY_PREPROCESSED)/$(TEST_ID)_preprocessed_dataset.tsv"
