@@ -63,7 +63,11 @@ if __name__ == '__main__':
         for root, marker_sub_directories, files in os.walk(str(results_path)):
             if "experiment_run" in marker_sub_directories:
                 for experiment in marker_sub_directories:
-                    model = LudwigModel.load(Path(results_path, experiment, 'model'))
+                    models = None
+                    try:
+                        model = LudwigModel.load(Path(results_path, experiment, 'model'))
+                    except:
+                        continue
                     eval_stats, _, _ = model.evaluate(dataset=dataset)
 
                     # Marker,MAE,MSE,RMSE,Biopsy,Panel,Type,Segmentation,SNR,FE,Mode,Hyper
