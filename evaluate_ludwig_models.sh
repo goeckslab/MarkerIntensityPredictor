@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --job-name=ludwig_model_evaluation
-#SBATCH --time=0-24:00:00
+#SBATCH --time=0-48:00:00
 #SBATCH --partition=exacloud
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
