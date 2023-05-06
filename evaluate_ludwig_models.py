@@ -3,6 +3,9 @@ from pathlib import Path
 from ludwig.api import LudwigModel
 import pandas as pd
 
+SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
+                  'pERK', 'EGFR', 'ER']
+
 
 def create_scores_dir(biopsy_path: str, combination: str) -> Path:
     if "_sp" in str(biopsy_path):
@@ -55,34 +58,30 @@ if __name__ == '__main__':
 
     save_path = create_scores_dir(biopsy_path=biopsy_path, combination=combination)
 
-    # iterate through all the models
-    for root, dirs, files in os.walk(biopsy_path):
-        for marker_root in dirs:
-            path = Path(biopsy_path, marker_root, "results")
-            print("Processing: ", marker_root)
-            marker = marker_root
-            for root, marker_sub_directories, files in os.walk(str(path)):
-                if "experiment_run" in marker_sub_directories:
-                    for experiment in marker_sub_directories:
-                        model = LudwigModel.load(Path(path, experiment, 'model'))
-                        eval_stats, _, _ = model.evaluate(dataset=dataset)
+    for marker in SHARED_MARKERS:
+        results_path = Path(biopsy_path, marker, "results")
+        for root, marker_sub_directories, files in os.walk(str(results_path)):
+            if "experiment_run" in marker_sub_directories:
+                for experiment in marker_sub_directories:
+                    model = LudwigModel.load(Path(results_path, experiment, 'model'))
+                    eval_stats, _, _ = model.evaluate(dataset=dataset)
 
-                        # Marker,MAE,MSE,RMSE,Biopsy,Panel,Type,Segmentation,SNR,FE,Mode,Hyper
-                        print(eval_stats)
+                    # Marker,MAE,MSE,RMSE,Biopsy,Panel,Type,Segmentation,SNR,FE,Mode,Hyper
+                    print(eval_stats)
 
-                        scores.append(
-                            {
-                                "Marker": marker,
-                                "MAE": eval_stats[marker]['mean_absolute_error'],
-                                "MSE": eval_stats[marker]['mean_squared_error'],
-                                "RMSE": eval_stats[marker]['root_mean_squared_error'],
-                                "Biopsy": test_biopsy_name,
-                                "Combination": combination,
-                                "FE": fe,
-                                "Mode": "Ludwig",
-                                "Hyper": 0
-                            }
-                        )
+                    scores.append(
+                        {
+                            "Marker": marker,
+                            "MAE": eval_stats[marker]['mean_absolute_error'],
+                            "MSE": eval_stats[marker]['mean_squared_error'],
+                            "RMSE": eval_stats[marker]['root_mean_squared_error'],
+                            "Biopsy": test_biopsy_name,
+                            "Combination": combination,
+                            "FE": fe,
+                            "Mode": "Ludwig",
+                            "Hyper": 0
+                        }
+                    )
 
     scores = pd.DataFrame(scores)
     print(scores)
