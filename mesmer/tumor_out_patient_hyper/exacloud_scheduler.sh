@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --output=./output_reports/slurm.%N.%j.out
 #SBATCH --error=./error_reports/${marker}_slurm.%N.%j.err
-#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-type=FAIL
 #SBATCH --mail-user=kirchgae@ohsu.edus
 
 test_id=$1
