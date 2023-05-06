@@ -7,6 +7,8 @@ import pandas as pd
 import json
 from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error, mean_absolute_error
 
+base_path = Path("experiment_run")
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--train", help="train data", required=True)
