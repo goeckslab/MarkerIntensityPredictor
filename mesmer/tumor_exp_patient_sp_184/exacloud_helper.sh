@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --job-name=mesmer_exp_patient_sp_184
-#SBATCH --time=0-48:00:00
+#SBATCH --time=0-72:00:00
 #SBATCH --partition=exacloud
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
