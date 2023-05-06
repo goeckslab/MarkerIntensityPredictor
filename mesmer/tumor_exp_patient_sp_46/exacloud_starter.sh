@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --job-name=mesmer_in_patient_sp_23
+#SBATCH --job-name=mesmer_out_patient
 #SBATCH --time=0-24:00:00
 #SBATCH --partition=exacloud
 #SBATCH --ntasks=1
@@ -10,10 +10,9 @@
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=kirchgae@ohsu.edus
 
-sample_id=$1
-test_id=$2
-patient=$3
-iterations=$4
+test_id=$1
+patient=$2
+iterations=$3
 
 echo ${iterations}
 
@@ -24,8 +23,8 @@ for marker in "${markers[@]}"; do
     random_seed=$RANDOM
     echo "${marker}"
 
-    echo sample_id="${sample_id}" test_id="${test_id}" marker="${marker}" patient="${patient}" random_seed="${random_seed}"
-    sbatch exacloud_helper.sh "${sample_id}" "${test_id}" "${marker}" "${patient}" "${random_seed}"
+    echo test_id="${test_id}" marker="${marker}" patient="${patient}" random_seed="${random_seed}"
+    sbatch exacloud_helper.sh "${test_id}" "${marker}" "${patient}" "${random_seed}"
   done
 
 done

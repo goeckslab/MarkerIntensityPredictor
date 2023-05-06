@@ -5,6 +5,7 @@ PREPROCESSED_DATASET = $(SAMPLE)_preprocessed_dataset.tsv
 TEST_ID=$(test_id)
 MARKER=$(marker)
 OUTPUT_DIRECTORY = $(SAMPLE)/$(MARKER)
+RANDOM_SEED=$(random_seed)
 
 # Create preprocessed dataset.
 "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)":
@@ -17,7 +18,7 @@ OUTPUT_DIRECTORY = $(SAMPLE)/$(MARKER)
 
 # Run a ludwig experiment using the preprocessed dataset. Results are placed into the $(SAMPLE) directory.
 ludwig-experiment: "$(SAMPLE)_final_config.yaml"
-	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" --config "../../$(SAMPLE)_$(MARKER)_final_config.yaml" -rs 456
+	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" --config "../../$(SAMPLE)_$(MARKER)_final_config.yaml" -rs $(RANDOM_SEED)
 
 ludwig-evaluate:
 	python ../../shared_scripts/prepare_data_fe.py "$(DATA_DIRECTORY)/$(TEST_ID).csv" "$(DATA_DIRECTORY_PREPROCESSED)/$(TEST_ID)_preprocessed_dataset.tsv"
@@ -28,4 +29,8 @@ ludwig-plots:
 
 clean:
 	rm "$(SAMPLE)_$(MARKER)_final_config.yaml" "$(SAMPLE)_$(MARKER)_input_features.yaml"
+
+ludwig-experiment-exa:
+	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" --config "../../$(SAMPLE)_$(MARKER)_final_config.yaml" -rs $(RANDOM_SEED)
+
 

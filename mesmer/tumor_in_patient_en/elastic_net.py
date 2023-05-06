@@ -1,4 +1,6 @@
 import os
+import random
+
 import numpy as np
 from sklearn.linear_model import ElasticNetCV
 import argparse
@@ -6,6 +8,8 @@ from pathlib import Path
 import pandas as pd
 import json
 from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error, mean_absolute_error
+
+base_path = Path("experiment_run")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -15,13 +19,22 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    suffix = 1
+    save_path = base_path
+    while Path(save_path).exists():
+        save_path = Path(str(base_path) + "_" + str(suffix))
+        suffix += 1
+
+    save_path.mkdir(parents=True, exist_ok=True)
+
     train_df = pd.read_csv(args.train, sep="\t", header=0)
     test_df = pd.read_csv(args.test, sep="\t", header=0)
 
     X = train_df.drop(columns=[args.marker])
     y = train_df[args.marker]
 
-    elastic_net = ElasticNetCV(cv=5, random_state=0)
+    # generate random state
+    elastic_net = ElasticNetCV(cv=5, random_state=random.randint(0, 50000))
     elastic_net.fit(X, y)
 
     X_test = test_df.drop(columns=[args.marker])
@@ -30,7 +43,7 @@ if __name__ == '__main__':
     y_hat = elastic_net.predict(X_test)
     y_hat_df = pd.DataFrame(y_hat, columns=[args.marker])
 
-    y_hat_df.to_csv(f"{args.marker}_predictions.csv", index=False, header=False)
+    y_hat_df.to_csv(Path(save_path, f"{args.marker}_predictions.csv"), index=False, header=False)
 
     data = {
         "patient": " ".join(Path(args.test).stem.split("_")[0:3]),
@@ -43,5 +56,5 @@ if __name__ == '__main__':
         # "rmspe": np.sqrt(np.mean(np.square(((y_test - y_hat_df[args.marker]) / y_test)), axis=0))
     }
 
-    with open('evaluation.json', 'w', encoding='utf-8') as f:
+    with open(Path(save_path, "evaluation.json"), 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
