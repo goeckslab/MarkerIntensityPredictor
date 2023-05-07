@@ -117,6 +117,34 @@ def append_scores_per_iteration(scores: List, ground_truth: pd.DataFrame, predic
     })
 
 
+def create_results_folder() -> Path:
+    if replace_all_markers:
+        save_folder = Path(f"ae_imputation", f"{patient_type}_replace_all")
+    else:
+        save_folder = Path(f"ae_imputation", patient_type)
+
+    save_folder = Path(save_folder, replace_mode)
+    if add_noise:
+        save_folder = Path(save_folder, "noise")
+    else:
+        save_folder = Path(save_folder, "no_noise")
+
+    save_folder = Path(save_folder, test_biopsy_name)
+
+    suffix = 1
+
+    base_path = Path(save_folder, "experiment_run")
+    save_path = base_path
+    while Path(save_path).exists():
+        save_path = Path(str(base_path) + "_" + str(suffix))
+        suffix += 1
+
+    if not save_path.exists():
+        save_path.mkdir(parents=True)
+
+    return save_path
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--biopsy", type=str, required=True,
@@ -152,6 +180,8 @@ if __name__ == '__main__':
     # Load test data
     test_biopsy_name = args.biopsy
     patient: str = "_".join(Path(test_biopsy_name).stem.split("_")[:2])
+
+    save_folder = create_results_folder()
 
     hyperopt_project_name = f"{test_biopsy_name}_{patient_type}_hp"
     if hp and args.override:
@@ -330,22 +360,6 @@ if __name__ == '__main__':
 
     # Convert to df
     scores = pd.DataFrame(scores)
-
-    if replace_all_markers:
-        save_folder = Path(f"ae_imputation", f"{patient_type}_replace_all")
-    else:
-        save_folder = Path(f"ae_imputation", patient_type)
-
-    save_folder = Path(save_folder, replace_mode)
-    if add_noise:
-        save_folder = Path(save_folder, "noise")
-    else:
-        save_folder = Path(save_folder, "no_noise")
-
-    save_folder = Path(save_folder, test_biopsy_name)
-
-    if not save_folder.exists():
-        save_folder.mkdir(parents=True)
 
     # Save results
     if not hp:
