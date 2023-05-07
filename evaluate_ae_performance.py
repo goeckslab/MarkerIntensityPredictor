@@ -18,8 +18,6 @@ if __name__ == '__main__':
                 if 'experiment_run' not in str(current_path):
                     continue
 
-                # ae_imputation / exp / zero / noise / 9_2_1 / experiment_run_1
-
                 scores = pd.read_csv(Path(root, sub_directory, "scores.csv"))
                 experiment = str(current_path).split("/")[6].split("_")[-1]
                 radius = str(current_path).split("/")[5]
@@ -41,7 +39,7 @@ if __name__ == '__main__':
 
     all_scores = pd.concat(all_scores)
     save_path = Path("data/scores/ae")
-    
+
     if save_path.exists():
         shutil.rmtree(save_path)
 
