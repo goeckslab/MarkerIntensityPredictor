@@ -117,7 +117,7 @@ def append_scores_per_iteration(scores: List, ground_truth: pd.DataFrame, predic
     })
 
 
-def create_results_folder() -> Path:
+def create_results_folder(spatial_radius: str) -> Path:
     if replace_all_markers:
         save_folder = Path(f"ae_imputation", f"{patient_type}_replace_all")
     else:
@@ -130,10 +130,11 @@ def create_results_folder() -> Path:
         save_folder = Path(save_folder, "no_noise")
 
     save_folder = Path(save_folder, test_biopsy_name)
+    save_folder = Path(save_folder, spatial_radius)
 
     suffix = 1
 
-    base_path = Path(save_folder, "experiment_run")
+    base_path = Path(save_folder, "experiment_run_0")
     save_path = base_path
     while Path(save_path).exists():
         save_path = Path(str(base_path) + "_" + str(suffix))
@@ -149,7 +150,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--biopsy", type=str, required=True,
                         help="Provide the biopsy name in the following format: 9_2_1. No suffix etc")
-    parser.add_argument("-m", "--mode", required=True, choices=["ip", "op", "exp", "sp_23"], default="ip")
+    parser.add_argument("-m", "--mode", required=True, choices=["ip", "op", "exp"], default="ip")
+    parser.add_argument("-sp", "--spatial", required=False, default="0", type=str)
     parser.add_argument("-hp", "--hyper", action="store_true", required=False, default=False,
                         help="Should hyper parameter tuning be used?")
     parser.add_argument("-o", "--override", action='store_true', default=False, help="Override existing hyperopt")
@@ -166,6 +168,7 @@ if __name__ == '__main__':
     replace_all_markers = args.replace_all
     replace_mode: str = args.replace_mode
     add_noise: bool = args.an
+    spatial = args.spatial
 
     print("Replace all markers: ", replace_all_markers)
     print("Replace mode: ", replace_mode)
@@ -181,7 +184,7 @@ if __name__ == '__main__':
     test_biopsy_name = args.biopsy
     patient: str = "_".join(Path(test_biopsy_name).stem.split("_")[:2])
 
-    save_folder = create_results_folder()
+    save_folder = create_results_folder(spatial_radius=spatial)
 
     hyperopt_project_name = f"{test_biopsy_name}_{patient_type}_hp"
     if hp and args.override:
@@ -201,18 +204,20 @@ if __name__ == '__main__':
         print(f"Test biopsy being loaded: {test_biopsy_name}")
         print(f"Train biopsy being loaded: {train_biopsy_name}")
 
+        base_path = "data/tumor_mesmer" if spatial is "0" else f"data/tumor_mesmer_sp_{spatial}"
+
         # Load train data
-        train_data = pd.read_csv(f'data/tumor_mesmer/{train_biopsy_name}.csv')
+        train_data = pd.read_csv(f'{base_path}/{train_biopsy_name}.csv')
         train_data = clean_column_names(train_data)
         train_data = train_data[SHARED_MARKERS].copy()
 
-        test_data = pd.read_csv(f'data/tumor_mesmer/{test_biopsy_name}.csv')
+        test_data = pd.read_csv(f'{base_path}/{test_biopsy_name}.csv')
         test_data = clean_column_names(test_data)
         test_data = test_data[SHARED_MARKERS].copy()
     elif patient_type == "op":
         # Load noisy train data
         train_data = []
-        search_dir = "data/tumor_mesmer"
+        search_dir = "data/tumor_mesmer" if spatial is "0" else f"data/tumor_mesmer_sp_{spatial}"
         for file in os.listdir(search_dir):
             file_name = Path(file).stem
             if file.endswith(".csv") and file_name != test_biopsy_name:
@@ -233,7 +238,7 @@ if __name__ == '__main__':
     elif patient_type == "exp":
         # Load noisy train data
         train_data = []
-        search_dir = "data/tumor_mesmer"
+        search_dir = "data/tumor_mesmer" if spatial is "0" else f"data/tumor_mesmer_sp_{spatial}"
         for file in os.listdir(search_dir):
             file_name = Path(file).stem
             if file.endswith(".csv") and patient not in file_name:
@@ -248,27 +253,6 @@ if __name__ == '__main__':
 
         # Load test data
         test_data = pd.read_csv(f'data/tumor_mesmer/{test_biopsy_name}.csv')
-        test_data = clean_column_names(test_data)
-        test_data = test_data[SHARED_MARKERS].copy()
-
-    elif patient_type == "sp_23":
-        # Load noisy train data
-        train_data = []
-        search_dir = "data/tumor_mesmer_sp_23"
-        for file in os.listdir(search_dir):
-            file_name = Path(file).stem
-            if file.endswith(".csv") and patient not in file_name:
-                print("Loading train file: " + file)
-                data = pd.read_csv(Path(search_dir, file))
-                data = clean_column_names(data)
-                train_data.append(data)
-
-        assert len(train_data) == 6, f"There should be 6 train datasets, loaded {len(train_data)}"
-        train_data = pd.concat(train_data)
-        train_data = train_data[SHARED_MARKERS].copy()
-
-        # Load test data
-        test_data = pd.read_csv(f'data/tumor_mesmer_sp_23/{test_biopsy_name}.csv')
         test_data = clean_column_names(test_data)
         test_data = test_data[SHARED_MARKERS].copy()
 

@@ -7,19 +7,14 @@ SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', '
                   'pERK', 'EGFR', 'ER']
 
 
-def create_scores_dir(biopsy_path: str, combination: str) -> Path:
-    if "_sp" in str(biopsy_path):
-        splits = str(biopsy_path).split("_")
-        fe = f"{splits[-2]}_{splits[-1]}"
-    else:
-        fe = "None"
-
+def create_scores_dir(combination: str, radius) -> Path:
     scores_directory = Path("data/scores/Mesmer")
+    scores_directory = Path(scores_directory, combination)
 
-    if fe == "None":
-        scores_directory = Path(scores_directory, combination)
+    if radius is not None:
+        scores_directory = Path(scores_directory, f"Ludwig_sp_{radius}")
     else:
-        scores_directory = Path(scores_directory, f"{combination}_{fe}")
+        scores_directory = Path(scores_directory, f"Ludwig")
 
     scores_directory = Path(scores_directory)
 
@@ -34,7 +29,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', "--biopsy", type=str, required=True, help="path to biopsy")
     parser.add_argument('-d', '--dataset', type=str, required=True, help="path to dataset")
+    parser.add_argument('-r', '--radius', type=str, required=False, default=None, help="The radius")
     args = parser.parse_args()
+
+    radius: str = args.radius
 
     biopsy_path: str = args.biopsy
     dataset: str = args.dataset
@@ -51,12 +49,10 @@ if __name__ == '__main__':
     else:
         raise ValueError("Unknown mode")
 
-    fe = 1 if '_sp' in str(biopsy_path) else 0
-
     if combination == "IP" and test_biopsy_name == Path(biopsy_path).stem:
         raise ValueError("Train and test biopsy are the same")
 
-    save_path = create_scores_dir(biopsy_path=biopsy_path, combination=combination)
+    save_path = create_scores_dir(combination=combination, radius=radius)
 
     for marker in SHARED_MARKERS:
         results_path = Path(biopsy_path, marker, "results")
@@ -81,7 +77,7 @@ if __name__ == '__main__':
                             "RMSE": eval_stats[marker]['root_mean_squared_error'],
                             "Biopsy": test_biopsy_name,
                             "Combination": combination,
-                            "FE": fe,
+                            "FE": radius,
                             "Mode": "Ludwig",
                             "Hyper": 0
                         }
