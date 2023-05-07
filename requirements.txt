@@ -26,3 +26,4 @@ tqdm
 lightgbm
 hummingbird
 hummingbird-ml
+keras-tuner

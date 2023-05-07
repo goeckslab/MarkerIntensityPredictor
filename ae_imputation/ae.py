@@ -204,7 +204,7 @@ if __name__ == '__main__':
         print(f"Test biopsy being loaded: {test_biopsy_name}")
         print(f"Train biopsy being loaded: {train_biopsy_name}")
 
-        base_path = "data/tumor_mesmer" if spatial is "0" else f"data/tumor_mesmer_sp_{spatial}"
+        base_path = "data/tumor_mesmer" if spatial == "0" else f"data/tumor_mesmer_sp_{spatial}"
 
         # Load train data
         train_data = pd.read_csv(f'{base_path}/{train_biopsy_name}.csv')
