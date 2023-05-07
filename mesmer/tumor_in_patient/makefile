@@ -29,3 +29,6 @@ ludwig-plots:
 clean:
 	rm "$(SAMPLE)_$(MARKER)_final_config.yaml" "$(SAMPLE)_$(MARKER)_input_features.yaml"
 
+# Run a ludwig experiment using the preprocessed dataset. Results are placed into the $(SAMPLE) directory.
+ludwig-experiment-exa:
+	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" --config "../../$(SAMPLE)_$(MARKER)_final_config.yaml" -rs $(RANDOM_SEED)
