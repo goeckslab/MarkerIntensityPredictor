@@ -65,7 +65,7 @@ if __name__ == '__main__':
                 for experiment in marker_sub_directories:
                     models = None
                     try:
-                        model = LudwigModel.load(Path(results_path, experiment, 'model'))
+                        model = LudwigModel.load(str(Path(results_path, experiment, 'model')))
                     except:
                         continue
                     eval_stats, _, _ = model.evaluate(dataset=dataset)
