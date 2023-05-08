@@ -15,13 +15,10 @@ mode=$1
 replace_value=$2
 noise=$3
 spatial=$4
-iterations=$5
-
 
 source venv/bin/activate
 
-for i in $(seq 1 $iterations)
-do
+
   if [ "$spatial" != "" ]; then
     echo "spatial is set"
 
@@ -67,6 +64,5 @@ do
       python3 ./ae_imputation/ae.py -m "${mode}" -b 9_15_2 -i 10 -rm "${replace_value}"
     fi
   fi
-done
 
 
