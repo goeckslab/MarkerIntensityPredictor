@@ -135,7 +135,7 @@ def create_results_folder(spatial_radius: str) -> Path:
     suffix = 1
 
     base_path = Path(save_folder, "experiment_run")
-    save_path = Path(base_path, "_0")
+    save_path = Path(str(base_path) + "_0")
     while Path(save_path).exists():
         save_path = Path(str(base_path) + "_" + str(suffix))
         suffix += 1
