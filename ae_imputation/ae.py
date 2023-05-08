@@ -134,14 +134,17 @@ def create_results_folder(spatial_radius: str) -> Path:
 
     suffix = 1
 
-    base_path = Path(save_folder, "experiment_run_0")
-    save_path = base_path
+    base_path = Path(save_folder, "experiment_run")
+    save_path = Path(base_path, "_0")
     while Path(save_path).exists():
         save_path = Path(str(base_path) + "_" + str(suffix))
         suffix += 1
 
     if not save_path.exists():
         save_path.mkdir(parents=True)
+
+    print(save_path)
+    input()
 
     return save_path
 
@@ -217,7 +220,7 @@ if __name__ == '__main__':
     elif patient_type == "op":
         # Load noisy train data
         train_data = []
-        search_dir = "data/tumor_mesmer" if spatial is "0" else f"data/tumor_mesmer_sp_{spatial}"
+        search_dir = "data/tumor_mesmer" if spatial == "0" else f"data/tumor_mesmer_sp_{spatial}"
         for file in os.listdir(search_dir):
             file_name = Path(file).stem
             if file.endswith(".csv") and file_name != test_biopsy_name:
@@ -238,7 +241,7 @@ if __name__ == '__main__':
     elif patient_type == "exp":
         # Load noisy train data
         train_data = []
-        search_dir = "data/tumor_mesmer" if spatial is "0" else f"data/tumor_mesmer_sp_{spatial}"
+        search_dir = "data/tumor_mesmer" if spatial == "0" else f"data/tumor_mesmer_sp_{spatial}"
         for file in os.listdir(search_dir):
             file_name = Path(file).stem
             if file.endswith(".csv") and patient not in file_name:
