@@ -27,3 +27,4 @@ lightgbm
 hummingbird
 hummingbird-ml
 keras-tuner
+torch_geometric
