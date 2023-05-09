@@ -48,6 +48,41 @@ class GCNAutoencoder(torch.nn.Module):
 
         return out, embedding
 
+def create_results_folder(spatial_radius: str) -> Path:
+    if replace_all_markers:
+        save_folder = Path(f"ae_imputation", f"{patient_type}_replace_all")
+    else:
+        save_folder = Path(f"ae_imputation", patient_type)
+
+    save_folder = Path(save_folder, replace_mode)
+    if add_noise:
+        save_folder = Path(save_folder, "noise")
+    else:
+        save_folder = Path(save_folder, "no_noise")
+
+    save_folder = Path(save_folder, test_biopsy_name)
+    save_folder = Path(save_folder, spatial_radius)
+
+    suffix = 1
+
+    base_path = Path(save_folder, "experiment_run")
+    save_path = Path(str(base_path) + "_0")
+    while Path(save_path).exists():
+        save_path = Path(str(base_path) + "_" + str(suffix))
+        suffix += 1
+
+    created: bool = False
+    if not save_path.exists():
+        while not created:
+            try:
+                save_path.mkdir(parents=True)
+                created = True
+            except:
+                suffix += 1
+                save_path = Path(str(base_path) + "_" + str(suffix))
+
+    return save_path
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
