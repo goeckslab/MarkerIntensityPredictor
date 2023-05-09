@@ -140,8 +140,15 @@ def create_results_folder(spatial_radius: str) -> Path:
         save_path = Path(str(base_path) + "_" + str(suffix))
         suffix += 1
 
+    created: bool = False
     if not save_path.exists():
-        save_path.mkdir(parents=True)
+        while not created:
+            try:
+                save_path.mkdir(parents=True)
+                created = True
+            except:
+                suffix += 1
+                save_path = Path(str(base_path) + "_" + str(suffix))
 
     return save_path
 
