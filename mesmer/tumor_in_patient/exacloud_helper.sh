@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --job-name=mesmer_in_patient
+#SBATCH --job-name=in_patient
 #SBATCH --time=5-00:00:00
 #SBATCH --partition=exacloud
 #SBATCH --qos=long_jobs
