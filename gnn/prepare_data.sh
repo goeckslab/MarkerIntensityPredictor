@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --job-name=exp_patient
+#SBATCH --job-name=gnn_prepare_data
 #SBATCH --time=5-00:00:00
 #SBATCH --partition=exacloud
 #SBATCH --qos=long_jobs
-#SBATCH --mem=16000
+#SBATCH --mem=32000
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --output=./output_reports/slurm.%N.%j.out
