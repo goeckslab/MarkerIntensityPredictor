@@ -2,15 +2,15 @@ import torch
 from torch.nn import Linear
 from torch_geometric.data import Data
 from torch_geometric.nn import GCNConv
-
+from typing import List
 from scipy.spatial.distance import cdist
-
 import numpy as np
 import pandas as pd
-
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import os, argparse
 from pathlib import Path
+from tqdm import tqdm
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 
 class GCNAutoencoder(torch.nn.Module):
@@ -48,17 +48,11 @@ class GCNAutoencoder(torch.nn.Module):
 
         return out, embedding
 
-def create_results_folder(spatial_radius: str) -> Path:
-    if replace_all_markers:
-        save_folder = Path(f"ae_imputation", f"{patient_type}_replace_all")
-    else:
-        save_folder = Path(f"ae_imputation", patient_type)
+
+def create_results_folder(spatial_radius: str, patient_type: str, replace_mode: str, test_biopsy_name: str) -> Path:
+    save_folder = Path(f"gnn/results", patient_type)
 
     save_folder = Path(save_folder, replace_mode)
-    if add_noise:
-        save_folder = Path(save_folder, "noise")
-    else:
-        save_folder = Path(save_folder, "no_noise")
 
     save_folder = Path(save_folder, test_biopsy_name)
     save_folder = Path(save_folder, spatial_radius)
@@ -84,24 +78,49 @@ def create_results_folder(spatial_radius: str) -> Path:
     return save_path
 
 
+def append_scores_per_iteration(scores: List, test_biopsy_name: str, ground_truth: pd.DataFrame,
+                                predictions: pd.DataFrame, hp: bool,
+                                type: str, iteration: int, marker: str, spatial_radius: int):
+    scores.append({
+        "Marker": marker,
+        "Biopsy": test_biopsy_name,
+        "MAE": mean_absolute_error(predictions[marker], ground_truth[marker]),
+        "RMSE": mean_squared_error(predictions[marker], ground_truth[marker], squared=False),
+        "HP": int(hp),
+        "Type": type,
+        "Imputation": 1,
+        "Iteration": iteration,
+        "Spatial Radius": spatial_radius,
+    })
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--folder",
                         help="The folder where all files are stored. Should not be a top level folder ", required=True)
+    parser.add_argument("-rm", "--replace_mode", action="store", type=str, choices=["mean", "zero"], default="zero")
+    parser.add_argument("-i", "--iterations", action="store", default=10, type=int)
 
     args = parser.parse_args()
 
     folder = args.folder
-    biopsy = Path(folder).stem
-    patient = "_".join(Path(folder).stem.split("_")[:2])
+    spatial_radius = folder.split("/")[-1]
+    biopsy_name = folder.split("/")[-2]
+    patient_type = folder.split("/")[-3]
+    patient = "_".join(biopsy_name.split("_")[:2])
     test_set = pd.read_csv(str(Path(folder, f"test_set.csv")), header=0)
     test_edge_index = torch.load(str(Path(folder, f"test_edge_index.pt")))
     train_set = pd.read_csv(str(Path(folder, f"train_set.csv")), header=0)
     train_edge_index = torch.load(str(Path(folder, f"train_edge_index.pt")))
 
-    print(biopsy)
-    print(folder)
-    print(patient)
+    replace_mode = args.replace_mode
+    iterations = args.iterations
+
+    print(spatial_radius)
+    print(biopsy_name)
+    print(patient_type)
+
+    save_folder = create_results_folder(spatial_radius, patient_type, replace_mode, biopsy_name)
 
     train_node_features = torch.tensor(train_set.values, dtype=torch.float)
     num_train_cells = train_set.shape[0]
@@ -136,16 +155,46 @@ if __name__ == '__main__':
 
     # Evaluate model performance on test set.
     model.eval()
-    with torch.no_grad():
-        out, h = model(test_data.x, test_data.edge_index)
-        loss = criterion(out, test_data.x)  # Compute the loss.
-    print("total loss", loss.item())
 
-    print("per marker loss:")
-    out_test = out
-    data_test = test_data.x
-    for i, col in enumerate(test_set.columns):
-        out_marker = out_test[:, i]
-        data_marker = data_test[:, i]
-        loss = criterion(out_marker, data_marker)
-        print("\t", col, loss.item())
+    scores = []
+    predictions = {}
+    for i in range(iterations):
+        predictions[i] = pd.DataFrame(columns=test_set.columns)
+
+    for marker in test_set.columns:
+        input_data = pd.DataFrame(test_data.x, columns=test_set.columns).copy()
+        if replace_mode == "zero":
+            input_data[marker] = 0
+        elif replace_mode == "mean":
+            input_data[marker] = input_data[marker].mean()
+
+        marker_prediction = input_data.copy()
+
+        for i in tqdm(range(iterations)):
+            with torch.no_grad():
+                # convert data to tensor
+                marker_prediction = torch.tensor(marker_prediction.values, dtype=torch.float)
+                predicted_intensities, h = model(marker_prediction, test_data.edge_index)
+                predicted_intensities = pd.DataFrame(data=predicted_intensities, columns=test_set.columns)
+                predictions[i][marker] = predicted_intensities[marker].values
+
+                # Extract the reconstructed marker
+                imputed_marker = predicted_intensities[marker].values
+                # copy the original dataset and replace the marker in question with the imputed data
+                marker_prediction = input_data.copy()
+                marker_prediction[marker] = imputed_marker
+
+                append_scores_per_iteration(scores=scores, test_biopsy_name=biopsy_name, predictions=marker_prediction,
+                                            ground_truth=test_set,
+                                            hp=0, type=patient_type, iteration=i, marker=marker, spatial_radius=spatial_radius)
+
+    # Convert to df
+    scores = pd.DataFrame(scores)
+
+    print(predictions.keys())
+
+    # Save data
+    scores.to_csv(f"{save_folder}/scores.csv", index=False)
+    for key, value in predictions.items():
+        value.to_csv(f"{save_folder}/{key}_predictions.csv",
+                     index=False)
