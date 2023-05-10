@@ -162,7 +162,7 @@ if __name__ == '__main__':
     parser.add_argument("-hp", "--hyper", action="store_true", required=False, default=False,
                         help="Should hyper parameter tuning be used?")
     parser.add_argument("-o", "--override", action='store_true', default=False, help="Override existing hyperopt")
-    parser.add_argument("-i", "--iterations", action="store", default=5, type=int)
+    parser.add_argument("-i", "--iterations", action="store", default=10, type=int)
     parser.add_argument("--replace_all", action="store_true", default=False,
                         help="Instead of only replacing the imputed marker values, replace all values")
     parser.add_argument("-rm", "--replace_mode", action="store", type=str, choices=["mean", "zero"], default="zero")
