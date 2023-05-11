@@ -7,10 +7,9 @@ markers=('pRB' 'CD45' 'CK19' 'Ki67' 'aSMA' 'Ecad' 'PR' 'CK14' 'HER2' 'AR' 'CK17'
 echo "spatial is set" ${SPATIAL}
 for marker in "${markers[@]}"; do
       if [ "$SPATIAL" != "" ]; then
-          ./shared_scripts/prepare_config_files_sp.sh $BASE_DIR $BIOPSY $marker $PATIENT $SPATIAL
+        echo "Preparing ${marker} for ${BIOPSY} with spatial ${SPATIAL}"
+        ./shared_scripts/prepare_config_files_sp.sh $BASE_DIR $BIOPSY $marker $PATIENT $SPATIAL
       else
          ./shared_scripts/prepare_config_files.sh $BASE_DIR $BIOPSY $marker $PATIENT
       fi
-
-
 done
