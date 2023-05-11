@@ -12,6 +12,6 @@ COMBINED_PREPROCESSED_DATA=${PATIENT_ID}_excluded_dataset.tsv
 
 mkdir -p "$DATA_DIRECTORY_COMBINED" && python ./shared_scripts/combine_datasets.py -exp --dir "$DATA_DIRECTORY" --target "$TEST_ID" --output_dir "$DATA_DIRECTORY_COMBINED"
 # Create preprocessed dataset for combined data
-mkdir -p "$DATA_DIRECTORY_COMBINED_PREPROCESSED" && python ./shared_scripts/prepare_data.py "$DATA_DIRECTORY_COMBINED/$COMBINED_DATASET" "$DATA_DIRECTORY_COMBINED_PREPROCESSED/$COMBINED_PREPROCESSED_DATA"
+mkdir -p "$DATA_DIRECTORY_COMBINED_PREPROCESSED" && python ./shared_scripts/prepare_data_fe.py "$DATA_DIRECTORY_COMBINED/$COMBINED_DATASET" "$DATA_DIRECTORY_COMBINED_PREPROCESSED/$COMBINED_PREPROCESSED_DATA"
 # Create preprocessed dataset for single data
 mkdir -p "$DATA_DIRECTORY_PREPROCESSED" && python ./shared_scripts/prepare_data.py "$DATA_DIRECTORY/$TEST_ID.csv" "$DATA_DIRECTORY_PREPROCESSED/$PREPROCESSED_DATASET"
