@@ -10,6 +10,8 @@ base_path="./gnn/data/"
 
 for biopsy in "${biopsies[@]}"; do
     data_path=$base_path$mode/$biopsy/$spatial
-    ./gnn/gnn.sh "${data_path}" "${replace_value}"
-
+    for i in $(seq 1 $iterations)
+    do
+        sbatch ./gnn/gnn.sh "${data_path}" "${replace_value}"
+    done
 done

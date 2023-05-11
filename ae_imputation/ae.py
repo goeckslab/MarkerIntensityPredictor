@@ -104,7 +104,8 @@ def create_noise(shape: [], columns: List[str]):
 
 
 def append_scores_per_iteration(scores: List, ground_truth: pd.DataFrame, predictions: pd.DataFrame, hp: bool,
-                                type: str, iteration: int, marker: str):
+                                type: str, iteration: int, marker: str, spatial_radius: int, experiment_id: int,
+                                replace_value: str, add_noise: bool):
     scores.append({
         "Marker": marker,
         "Biopsy": test_biopsy_name,
@@ -113,17 +114,22 @@ def append_scores_per_iteration(scores: List, ground_truth: pd.DataFrame, predic
         "HP": int(hp),
         "Type": type,
         "Imputation": 1,
-        "Iteration": iteration
+        "Iteration": iteration,
+        "FE": spatial_radius,
+        "Experiment": experiment_id,
+        "Mode": "AE",
+        "Noise": int(add_noise),
+        "Replace Value": replace_value
     })
 
 
-def create_results_folder(spatial_radius: str) -> Path:
+def create_results_folder(spatial_radius: str) -> [Path, int]:
     if replace_all_markers:
         save_folder = Path(f"ae_imputation", f"{patient_type}_replace_all")
     else:
         save_folder = Path(f"ae_imputation", patient_type)
 
-    save_folder = Path(save_folder, replace_mode)
+    save_folder = Path(save_folder, replace_value)
     if add_noise:
         save_folder = Path(save_folder, "noise")
     else:
@@ -132,13 +138,13 @@ def create_results_folder(spatial_radius: str) -> Path:
     save_folder = Path(save_folder, test_biopsy_name)
     save_folder = Path(save_folder, spatial_radius)
 
-    suffix = 1
+    experiment_id = 0
 
     base_path = Path(save_folder, "experiment_run")
-    save_path = Path(str(base_path) + "_0")
+    save_path = Path(str(base_path) + "_" + str(experiment_id))
     while Path(save_path).exists():
-        save_path = Path(str(base_path) + "_" + str(suffix))
-        suffix += 1
+        save_path = Path(str(base_path) + "_" + str(experiment_id))
+        experiment_id += 1
 
     created: bool = False
     if not save_path.exists():
@@ -147,10 +153,11 @@ def create_results_folder(spatial_radius: str) -> Path:
                 save_path.mkdir(parents=True)
                 created = True
             except:
-                suffix += 1
-                save_path = Path(str(base_path) + "_" + str(suffix))
+                experiment_id += 1
+                save_path = Path(str(base_path) + "_" + str(experiment_id))
 
-    return save_path
+
+    return save_path, experiment_id - 1 if experiment_id != 0 else 0
 
 
 if __name__ == '__main__':
@@ -173,12 +180,12 @@ if __name__ == '__main__':
     hp: bool = args.hyper
     iterations: int = args.iterations
     replace_all_markers = args.replace_all
-    replace_mode: str = args.replace_mode
+    replace_value: str = args.replace_mode
     add_noise: bool = args.an
     spatial = args.spatial
 
     print("Replace all markers: ", replace_all_markers)
-    print("Replace mode: ", replace_mode)
+    print("Replace value: ", replace_value)
     print("Add noise: ", add_noise)
 
     if hp:
@@ -191,7 +198,7 @@ if __name__ == '__main__':
     test_biopsy_name = args.biopsy
     patient: str = "_".join(Path(test_biopsy_name).stem.split("_")[:2])
 
-    save_folder = create_results_folder(spatial_radius=spatial)
+    save_folder, experiment_id = create_results_folder(spatial_radius=spatial)
 
     hyperopt_project_name = f"{test_biopsy_name}_{patient_type}_hp"
     if hp and args.override:
@@ -292,9 +299,9 @@ if __name__ == '__main__':
         for marker in train_data.columns:
             # copy the test data
             input_data = test_data.copy()
-            if replace_mode == "zero":
+            if replace_value == "zero":
                 input_data[marker] = 0
-            elif replace_mode == "mean":
+            elif replace_value == "mean":
                 input_data[marker] = input_data[marker].mean()
 
             marker_prediction = input_data.copy()
@@ -319,7 +326,8 @@ if __name__ == '__main__':
                         marker_prediction = marker_prediction + noise
 
                 append_scores_per_iteration(scores=scores, predictions=marker_prediction, ground_truth=test_data, hp=hp,
-                                            type=patient_type, iteration=i, marker=marker)
+                                            type=patient_type, iteration=i, marker=marker, spatial_radius=spatial,
+                                            experiment_id=experiment_id, replace_value=replace_value, add_noise=add_noise)
 
     else:
         # Hyperopt section
@@ -329,9 +337,9 @@ if __name__ == '__main__':
         for marker in train_data.columns:
             # copy the test data
             input_data = test_data.copy()
-            if replace_mode == "zero":
+            if replace_value == "zero":
                 input_data[marker] = 0
-            elif replace_mode == "mean":
+            elif replace_value == "mean":
                 input_data[marker] = input_data[marker].mean()
 
             marker_prediction = input_data.copy()
@@ -347,7 +355,8 @@ if __name__ == '__main__':
                     marker_prediction[marker] = imputed_marker
 
                 append_scores_per_iteration(scores=scores, predictions=marker_prediction, ground_truth=test_data, hp=hp,
-                                            type=patient_type, iteration=i, marker=marker)
+                                            type=patient_type, iteration=i, marker=marker, spatial_radius=int(spatial),
+                                            experiment_id=experiment_id, replace_value=replace_value, add_noise=add_noise)
 
     # Convert to df
     scores = pd.DataFrame(scores)
