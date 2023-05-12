@@ -22,6 +22,27 @@ def create_save_folder(save_path: Path, biopsy, mode: str, spatial: str) -> Path
     return save_path
 
 
+def prepare_data_for_gnn(biopsy_name: str, dataset: pd.DataFrame, spatial: int):
+    print(f"Preparing {biopsy_name}...")
+    current_df = dataset[markers]
+    current_df = np.log10(current_df + 1)
+    min_max_scaler = MinMaxScaler(feature_range=(0, 1))
+    current_df = pd.DataFrame(min_max_scaler.fit_transform(current_df),
+                              columns=current_df.columns)
+
+    coords = dataset[['X_centroid', 'Y_centroid']].values
+    distances = cdist(coords, coords)
+
+    threshold = spatial
+    edge_index = torch.tensor(
+        [(i, j) for i in range(len(current_df)) for j in range(len(current_df)) if
+         i != j and distances[i, j] < threshold],
+        dtype=torch.long).t()
+
+    current_df.to_csv(str(Path("gnn", "data", "exp", f"{biopsy_name}_scaled.csv")), index=False)
+    torch.save(edge_index, str(Path("gnn", "data", "exp", f"{biopsy_name}_{spatial}_edge_index.pt")))
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--biopsy", help="The test biopsy", required=True)
@@ -56,65 +77,113 @@ if __name__ == '__main__':
         # load train set from the folder of the biopsy
         train_set = pd.read_csv(str(Path("data/tumor_mesmer", f"{train_biopsy}.csv")), header=0)
 
+        # Transform the train data.
+        train_markers_df = train_set[markers]
+        train_markers_df = np.log10(train_markers_df + 1)
+        min_max_scaler = MinMaxScaler(feature_range=(0, 1))
+        train_markers_df = pd.DataFrame(min_max_scaler.fit_transform(train_markers_df),
+                                        columns=train_markers_df.columns)
+
+        # Transform the test data.
+        test_markers_df = test_set[markers]
+        test_markers_df = np.log10(test_markers_df + 1)
+        min_max_scaler = MinMaxScaler(feature_range=(0, 1))
+        test_markers_df = pd.DataFrame(min_max_scaler.fit_transform(test_markers_df), columns=test_markers_df.columns)
+
+        # extract x and y coordinates as numpy array
+        train_coords = train_set[['X_centroid', 'Y_centroid']].values
+        test_coords = test_set[['X_centroid', 'Y_centroid']].values
+
+        print("Calculating pairwise distances for train set...")
+        # compute pairwise distances between nodes
+        train_distances = cdist(train_coords, train_coords)
+        print("Calculating pairwise distances for test set...")
+        test_distances = cdist(test_coords, test_coords)
+
+        print("Creating train edge index...")
+
+        # set distance threshold and create edge index
+        threshold = spatial
+        train_edge_index = torch.tensor(
+            [(i, j) for i in range(len(train_markers_df)) for j in range(len(train_markers_df)) if
+             i != j and train_distances[i, j] < threshold],
+            dtype=torch.long).t()
+
+        print("Creating test edge index...")
+        test_edge_index = torch.tensor(
+            [(i, j) for i in range(len(test_markers_df)) for j in range(len(test_markers_df)) if
+             i != j and test_distances[i, j] < threshold],
+            dtype=torch.long).t()
+
+        print(save_path)
+        print(biopsy_name)
+
+        # save the data
+        torch.save(train_edge_index, str(Path(str(save_path), f"train_edge_index.pt")))
+        torch.save(test_edge_index, str(Path(str(save_path), f"test_edge_index.pt")))
+        train_markers_df.to_csv(str(Path(str(save_path), f"train_set.csv")), index=False)
+        test_markers_df.to_csv(str(Path(str(save_path), f"test_set.csv")), index=False)
+
     elif mode == "exp":
-        train_set = []
+        train_set = {}
+        test_set = pd.DataFrame()
         for root, dirs, files in os.walk(str(Path("data/tumor_mesmer"))):
             for name in files:
                 if Path(name).suffix == ".csv" and patient not in name and "excluded" not in name:
-                    print("Loading {}".format(name))
-                    train_set.append(pd.read_csv(os.path.join(root, name), header=0))
+                    print("Loading {}".format(Path(name).stem))
+                    train_set[Path(name).stem] = pd.read_csv(os.path.join(root, name), header=0)
+
+                if Path(name).suffix == ".csv" and Path(name).stem == biopsy_name:
+                    print("Loading test biopsy {}".format(Path(name).stem))
+                    test_set = pd.read_csv(os.path.join(root, name), header=0)
 
         assert len(train_set) == 6, "Expected 6 files, got {}".format(len(train_set))
 
-        train_set = pd.concat(train_set, axis=0)
+        for train_biopsy_name, dataset in train_set.items():
+            # check if edge_index.pt does exist in folder
+            if not Path("gnn", "data", "exp", f"{train_biopsy_name}_{spatial}_edge_index.pt").exists() or \
+                    not (Path("gnn", "data", "exp", f"{train_biopsy_name}_scaled.csv").exists()):
+                prepare_data_for_gnn(train_biopsy_name, dataset, spatial)
+
+        # prepare test set
+        if not Path("gnn", "data", "exp", f"{biopsy_name}_{spatial}_edge_index.pt").exists() or \
+                not (Path("gnn", "data", "exp", f"{biopsy_name}_scaled.csv").exists()):
+            prepare_data_for_gnn(biopsy_name, test_set, spatial)
+
+        # load indexes
+        indexes = []
+        dfs = []
+        max_id = 0
+        for train_biopsy_name in train_set.keys():
+            # load scaled data set
+            current_df = pd.read_csv(str(Path("gnn", "data", "exp", f"{train_biopsy_name}_scaled.csv")), header=0)
+
+            # load index
+            node_index = torch.load(str(Path("gnn", "data", "exp", f"{train_biopsy_name}_{spatial}_edge_index.pt")))
+
+            # update all values of the node index array with the index value
+            node_index = node_index + max_id
+
+            indexes.append(node_index)
+            dfs.append(current_df)
+
+            # update index
+            max_id = max_id + len(current_df)
+
+        patient_excluded_df = pd.concat(dfs, ignore_index=True)
+        patient_excluded_edges = torch.cat(indexes, dim=1)
+        print(patient_excluded_edges)
+        print(patient_excluded_df)
+        print(biopsy_name)
+
+        # save patient excluded edges
+        torch.save(patient_excluded_edges,
+                   str(Path("gnn", "data", "exp", biopsy_name, str(spatial), f"{patient}_excluded_edge_index.pt")))
+
+        # save patient excluded df
+        patient_excluded_df.to_csv(
+            str(Path("gnn", "data", "exp", biopsy_name, str(spatial), f"{patient}_excluded_scaled.csv")), index=False)
+
 
     else:
         raise ValueError("Invalid mode")
-
-
-
-    # Transform the train data.
-    train_markers_df = train_set[markers]
-    train_markers_df = np.log10(train_markers_df + 1)
-    min_max_scaler = MinMaxScaler(feature_range=(0, 1))
-    train_markers_df = pd.DataFrame(min_max_scaler.fit_transform(train_markers_df), columns=train_markers_df.columns)
-
-    # Transform the test data.
-    test_markers_df = test_set[markers]
-    test_markers_df = np.log10(test_markers_df + 1)
-    min_max_scaler = MinMaxScaler(feature_range=(0, 1))
-    test_markers_df = pd.DataFrame(min_max_scaler.fit_transform(test_markers_df), columns=test_markers_df.columns)
-
-    # extract x and y coordinates as numpy array
-    train_coords = train_set[['X_centroid', 'Y_centroid']].values
-    test_coords = train_set[['X_centroid', 'Y_centroid']].values
-
-    print("Calculating pairwise distances for train set...")
-    # compute pairwise distances between nodes
-    train_distances = cdist(train_coords, train_coords)
-    print("Calculating pairwise distances for test set...")
-    test_distances = cdist(test_coords, test_coords)
-
-    print("Creating train edge index...")
-
-    # set distance threshold and create edge index
-    threshold = spatial
-    train_edge_index = torch.tensor(
-        [(i, j) for i in range(len(train_markers_df)) for j in range(len(train_markers_df)) if
-         i != j and train_distances[i, j] < threshold],
-        dtype=torch.long).t()
-
-    print("Creating test edge index...")
-    test_edge_index = torch.tensor(
-        [(i, j) for i in range(len(test_markers_df)) for j in range(len(test_markers_df)) if
-         i != j and test_distances[i, j] < threshold],
-        dtype=torch.long).t()
-
-    print(save_path)
-    print(biopsy_name)
-
-    # save the data
-    torch.save(train_edge_index, str(Path(str(save_path), f"train_edge_index.pt")))
-    torch.save(test_edge_index, str(Path(str(save_path), f"test_edge_index.pt")))
-    train_markers_df.to_csv(str(Path(str(save_path), f"train_set.csv")), index=False)
-    test_markers_df.to_csv(str(Path(str(save_path), f"test_set.csv")), index=False)
