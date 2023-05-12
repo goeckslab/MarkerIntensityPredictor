@@ -11,5 +11,5 @@ for marker in "${markers[@]}"; do
     random_seed=$RANDOM
 
     echo sample_id="${sample_id}" test_id="${test_id}" marker="${marker}" patient="${patient}" random_seed="${random_seed}"
-    sbatch exacloud_helper.sh "${sample_id}" "${test_id}" "${marker}" "${patient}" "${random_seed}"
+    sbatch marker_job.sh "${sample_id}" "${test_id}" "${marker}" "${patient}" "${random_seed}"
 done
