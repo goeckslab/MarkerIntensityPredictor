@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --job-name=exp
+#SBATCH --job-name=exp_23
 #SBATCH --time=10-00:00:00
 #SBATCH --partition=exacloud
 #SBATCH --qos=long_jobs
