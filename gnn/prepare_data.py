@@ -5,15 +5,17 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from scipy.spatial.distance import cdist
 import torch
+from sklearn.neighbors import BallTree
 
 save_path = Path("gnn/data")
 markers = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
            'pERK', 'EGFR', 'ER']
 
 
-def create_save_folder(save_path: Path, biopsy, mode: str, spatial: str) -> Path:
+def create_save_folder(save_path: Path, biopsy_name: str, mode: str, spatial: str) -> Path:
     save_path = Path(save_path, mode)
-    save_path = Path(save_path, biopsy)
+    if mode == "ip":
+        save_path = Path(save_path, biopsy_name)
     save_path = Path(save_path, spatial)
 
     if not save_path.exists():
@@ -30,17 +32,21 @@ def prepare_data_for_gnn(biopsy_name: str, dataset: pd.DataFrame, spatial: int):
     current_df = pd.DataFrame(min_max_scaler.fit_transform(current_df),
                               columns=current_df.columns)
 
-    coords = dataset[['X_centroid', 'Y_centroid']].values
-    distances = cdist(coords, coords)
+    print("Calculating distances...")
+    tree = BallTree(dataset[['X_centroid', 'Y_centroid']], leaf_size=2)
 
-    threshold = spatial
-    edge_index = torch.tensor(
-        [(i, j) for i in range(len(current_df)) for j in range(len(current_df)) if
-         i != j and distances[i, j] < threshold],
-        dtype=torch.long).t()
+    ind = tree.query_radius(dataset[['X_centroid', 'Y_centroid']], r=spatial)
+
+    # convert indexes to a list of lists
+    edge_index = []
+    for i in range(len(ind)):
+        for j in range(len(ind[i])):
+            edge_index.append([i, ind[i][j]])
+
+    edge_index = torch.tensor(edge_index, dtype=torch.long).t()
 
     current_df.to_csv(str(Path("gnn", "data", "exp", f"{biopsy_name}_scaled.csv")), index=False)
-    torch.save(edge_index, str(Path("gnn", "data", "exp", f"{biopsy_name}_{spatial}_edge_index.pt")))
+    torch.save(edge_index, str(Path("gnn", "data", "exp", str(spatial), f"{biopsy_name}_edge_index.pt")))
 
 
 if __name__ == '__main__':
@@ -159,7 +165,7 @@ if __name__ == '__main__':
             current_df = pd.read_csv(str(Path("gnn", "data", "exp", f"{train_biopsy_name}_scaled.csv")), header=0)
 
             # load index
-            node_index = torch.load(str(Path("gnn", "data", "exp", f"{train_biopsy_name}_{spatial}_edge_index.pt")))
+            node_index = torch.load(str(Path("gnn", "data", "exp", str(spatial), f"{train_biopsy_name}_edge_index.pt")))
 
             # update all values of the node index array with the index value
             node_index = node_index + max_id
@@ -172,17 +178,14 @@ if __name__ == '__main__':
 
         patient_excluded_df = pd.concat(dfs, ignore_index=True)
         patient_excluded_edges = torch.cat(indexes, dim=1)
-        print(patient_excluded_edges)
-        print(patient_excluded_df)
-        print(biopsy_name)
 
         # save patient excluded edges
         torch.save(patient_excluded_edges,
-                   str(Path("gnn", "data", "exp", biopsy_name, str(spatial), f"{patient}_excluded_edge_index.pt")))
+                   str(Path(save_path, f"{patient}_excluded_edge_index.pt")))
 
         # save patient excluded df
         patient_excluded_df.to_csv(
-            str(Path("gnn", "data", "exp", biopsy_name, str(spatial), f"{patient}_excluded_scaled.csv")), index=False)
+            str(Path("gnn", "data", "exp", f"{patient}_excluded_scaled.csv")), index=False)
 
 
     else:

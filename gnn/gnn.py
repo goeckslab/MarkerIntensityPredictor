@@ -56,7 +56,7 @@ def create_results_folder(spatial_radius: str, patient_type: str, replace_mode: 
     save_folder = Path(save_folder, replace_mode)
 
     save_folder = Path(save_folder, test_biopsy_name)
-    save_folder = Path(save_folder, spatial_radius)
+    save_folder = Path(save_folder, str(spatial_radius))
 
     experiment_id = 0
 
@@ -101,29 +101,49 @@ def append_scores_per_iteration(scores: List, test_biopsy_name: str, ground_trut
     })
 
 
+def train(data: Data):
+    optimizer.zero_grad()  # Clear gradients.
+    out, h = model(data.x, data.edge_index)  # Perform a single forward pass.
+    loss = criterion(out, data.x)  # Compute the loss.
+    loss.backward()  # Derive gradients.
+    optimizer.step()  # Update parameters based on gradients.
+    return loss, h
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--folder",
-                        help="The folder where all files are stored. Should not be a top level folder ", required=True)
     parser.add_argument("-rm", "--replace_mode", action="store", type=str, choices=["mean", "zero"], default="zero")
     parser.add_argument("-i", "--iterations", action="store", default=10, type=int)
+    parser.add_argument("--mode", action="store", type=str, choices=["ip", "exp"], default="ip")
+    parser.add_argument("--spatial", "-sp", action="store", type=int, choices=[23, 46, 92, 138, 184], default=46)
+    parser.add_argument("-b", "--biopsy", action="store", type=str, required=True)
 
     args = parser.parse_args()
 
-    folder = args.folder
-    spatial_radius = folder.split("/")[-1]
-    biopsy_name = folder.split("/")[-2]
-    patient_type = folder.split("/")[-3]
+    folder = Path("gnn", "data", args.mode)
+    spatial_radius = args.spatial
+    biopsy_name = args.biopsy
+    mode = args.mode
     patient = "_".join(biopsy_name.split("_")[:2])
-    test_set = pd.read_csv(str(Path(folder, f"test_set.csv")), header=0)
-    test_edge_index = torch.load(str(Path(folder, f"test_edge_index.pt")))
-    train_set = pd.read_csv(str(Path(folder, f"train_set.csv")), header=0)
-    train_edge_index = torch.load(str(Path(folder, f"train_edge_index.pt")))
+
+    if mode == "ip":
+        test_set = pd.read_csv(str(Path(folder, biopsy_name, str(spatial_radius), f"test_set.csv")), header=0)
+        test_edge_index = torch.load(str(Path(folder, biopsy_name, str(spatial_radius), f"test_edge_index.pt")))
+        train_set = pd.read_csv(str(Path(folder, biopsy_name, str(spatial_radius), f"train_set.csv")), header=0)
+        train_edge_index = torch.load(str(Path(folder, biopsy_name, str(spatial_radius), f"train_edge_index.pt")))
+    else:
+        test_set = pd.read_csv(str(Path(folder, f"{biopsy_name}_scaled.csv")),
+                               header=0)
+        test_edge_index = torch.load(
+            str(Path(folder, str(spatial_radius), f"{biopsy_name}_edge_index.pt")))
+        train_set = pd.read_csv(str(Path(folder, f"{patient}_excluded_scaled.csv")), header=0)
+        train_edge_index = torch.load(
+            str(Path("gnn", "data", "exp", str(spatial_radius), f"{patient}_excluded_edge_index.pt")))
 
     replace_value = args.replace_mode
     iterations = args.iterations
 
-    save_folder, experiment_id = create_results_folder(spatial_radius, patient_type, replace_value, biopsy_name)
+    save_folder, experiment_id = create_results_folder(spatial_radius, mode, replace_value, biopsy_name)
 
     train_node_features = torch.tensor(train_set.values, dtype=torch.float)
     num_train_cells = train_set.shape[0]
@@ -143,17 +163,10 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)  # Define optimizer.
     out = []
 
-
-    def train(data: Data):
-        optimizer.zero_grad()  # Clear gradients.
-        out, h = model(data.x, data.edge_index)  # Perform a single forward pass.
-        loss = criterion(out, data.x)  # Compute the loss.
-        loss.backward()  # Derive gradients.
-        optimizer.step()  # Update parameters based on gradients.
-        return loss, h
-
-
+    print("Training model....")
     for epoch in range(100):
+        if epoch % 10 == 0:
+            print("Epoch: ", epoch)
         loss, h = train(train_data)
 
     # Evaluate model performance on test set.
@@ -161,6 +174,7 @@ if __name__ == '__main__':
 
     scores = []
     predictions = {}
+    # prepare predictions dict
     for i in range(iterations):
         predictions[i] = pd.DataFrame(columns=test_set.columns)
 
@@ -189,7 +203,7 @@ if __name__ == '__main__':
 
                 append_scores_per_iteration(scores=scores, test_biopsy_name=biopsy_name, predictions=marker_prediction,
                                             ground_truth=test_set,
-                                            hp=False, type=patient_type, iteration=i, marker=marker,
+                                            hp=False, type=mode, iteration=i, marker=marker,
                                             spatial_radius=spatial_radius, experiment_id=experiment_id,
                                             replace_value=replace_value)
 
