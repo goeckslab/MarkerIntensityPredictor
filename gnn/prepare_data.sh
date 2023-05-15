@@ -14,5 +14,6 @@
 
 biopsy=$1
 mode=$2
+spatial=$3
 
-python3 gnn/prepare_data.py -b "${biopsy}" -m "${mode}"
+python3 gnn/prepare_data.py -b "${biopsy}" --mode "${mode}" --spatial "${spatial}"

@@ -52,8 +52,8 @@ def prepare_data_for_exp_gnn(biopsy_name: str, dataset: pd.DataFrame, spatial: i
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--biopsy", help="The test biopsy", required=True)
-    parser.add_argument("-m", "--mode", choices=["ip", "exp"], default="ip")
-    parser.add_argument("-sp", "--sp", choices=[23, 46, 92, 138, 184],
+    parser.add_argument("--mode", choices=["ip", "exp"], default="ip")
+    parser.add_argument("-sp", "--spatial", choices=[23, 46, 92, 138, 184],
                         help="The distance in pixels between nodes", default=46, type=int)
 
     args = parser.parse_args()
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     biopsy_name = Path(biopsy).stem
     patient = "_".join(Path(args.biopsy).stem.split("_")[:2])
     mode = args.mode
-    spatial = args.sp
+    spatial = args.spatial
 
     print(f"Mode: {mode}")
     print(f"Biopsy: {biopsy_name}")
