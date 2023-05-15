@@ -2,7 +2,8 @@
 output_reports/
 error_reports/
 
-Gnn/data/*
+gnn/data/*
+gnn/results/*
 
 
 phenotyping
