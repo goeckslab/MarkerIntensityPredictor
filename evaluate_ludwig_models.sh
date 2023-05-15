@@ -1,10 +1,11 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --job-name=ludwig_model_evaluation
-#SBATCH --time=0-24:00:00
+#SBATCH --job-name=ludwig_metrics
+#SBATCH --time=5-00:00:00
 #SBATCH --partition=exacloud
+#SBATCH --qos=long_jobs
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=8
 #SBATCH --output=./output_reports/slurm.%N.%j.out
 #SBATCH --error=./error_reports/slurm.%N.%j.err
 #SBATCH --mail-type=END,FAIL
@@ -12,8 +13,13 @@
 
 
 biopsy=$1
-dataset=$2
+mode=$2
+spatial=$3
 
 source venv/bin/activate
 
-python3 evaluate_ludwig_models.py -b $1 -d $2
+if [ "$spatial" != "" ]; then
+  python3 evaluate_ludwig_models.py -b $1 --mode $2 --spatial $3
+else
+  python3 evaluate_ludwig_models.py -b $1 --mode $2
+done

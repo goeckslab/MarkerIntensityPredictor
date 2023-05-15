@@ -24,7 +24,7 @@ def create_save_folder(save_path: Path, biopsy_name: str, mode: str, spatial: st
     return save_path
 
 
-def prepare_data_for_gnn(biopsy_name: str, dataset: pd.DataFrame, spatial: int):
+def prepare_data_for_exp_gnn(biopsy_name: str, dataset: pd.DataFrame, spatial: int):
     print(f"Preparing {biopsy_name}...")
     current_df = dataset[markers]
     current_df = np.log10(current_df + 1)
@@ -96,30 +96,31 @@ if __name__ == '__main__':
         min_max_scaler = MinMaxScaler(feature_range=(0, 1))
         test_markers_df = pd.DataFrame(min_max_scaler.fit_transform(test_markers_df), columns=test_markers_df.columns)
 
-        # extract x and y coordinates as numpy array
-        train_coords = train_set[['X_centroid', 'Y_centroid']].values
-        test_coords = test_set[['X_centroid', 'Y_centroid']].values
-
-        print("Calculating pairwise distances for train set...")
-        # compute pairwise distances between nodes
-        train_distances = cdist(train_coords, train_coords)
-        print("Calculating pairwise distances for test set...")
-        test_distances = cdist(test_coords, test_coords)
-
         print("Creating train edge index...")
 
         # set distance threshold and create edge index
         threshold = spatial
-        train_edge_index = torch.tensor(
-            [(i, j) for i in range(len(train_markers_df)) for j in range(len(train_markers_df)) if
-             i != j and train_distances[i, j] < threshold],
-            dtype=torch.long).t()
+        print("Calculating distances...")
+        tree = BallTree(train_set[['X_centroid', 'Y_centroid']], leaf_size=2)
+        ind = tree.query_radius(train_set[['X_centroid', 'Y_centroid']], r=spatial)
+        # convert indexes to a list of lists
+        edge_index = []
+        for i in range(len(ind)):
+            for j in range(len(ind[i])):
+                edge_index.append([i, ind[i][j]])
+
+        train_edge_index = torch.tensor(edge_index, dtype=torch.long).t()
 
         print("Creating test edge index...")
-        test_edge_index = torch.tensor(
-            [(i, j) for i in range(len(test_markers_df)) for j in range(len(test_markers_df)) if
-             i != j and test_distances[i, j] < threshold],
-            dtype=torch.long).t()
+        tree = BallTree(test_set[['X_centroid', 'Y_centroid']], leaf_size=2)
+        ind = tree.query_radius(test_set[['X_centroid', 'Y_centroid']], r=spatial)
+        # convert indexes to a list of lists
+        edge_index = []
+        for i in range(len(ind)):
+            for j in range(len(ind[i])):
+                edge_index.append([i, ind[i][j]])
+
+        test_edge_index = torch.tensor(edge_index, dtype=torch.long).t()
 
         print(save_path)
         print(biopsy_name)
@@ -149,12 +150,12 @@ if __name__ == '__main__':
             # check if edge_index.pt does exist in folder
             if not Path("gnn", "data", "exp", f"{train_biopsy_name}_{spatial}_edge_index.pt").exists() or \
                     not (Path("gnn", "data", "exp", f"{train_biopsy_name}_scaled.csv").exists()):
-                prepare_data_for_gnn(train_biopsy_name, dataset, spatial)
+                prepare_data_for_exp_gnn(train_biopsy_name, dataset, spatial)
 
         # prepare test set
         if not Path("gnn", "data", "exp", f"{biopsy_name}_{spatial}_edge_index.pt").exists() or \
                 not (Path("gnn", "data", "exp", f"{biopsy_name}_scaled.csv").exists()):
-            prepare_data_for_gnn(biopsy_name, test_set, spatial)
+            prepare_data_for_exp_gnn(biopsy_name, test_set, spatial)
 
         # load indexes
         indexes = []
