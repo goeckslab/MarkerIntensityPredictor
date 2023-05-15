@@ -4,7 +4,6 @@
 #SBATCH --time=5-00:00:00
 #SBATCH --partition=exacloud
 #SBATCH --qos=long_jobs
-#SBATCH --mem=32000
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --output=./output_reports/slurm.%N.%j.out
@@ -12,7 +11,10 @@
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=kirchgae@ohsu.edu
 
-folder=$1
+biopsy=$1
 replace_value=$2
+mode=$3
+spatial=$4
 
-python3 ./gnn/gnn.py -f "${folder}" -rm ${replace_value} -i 10
+
+python3 ./gnn/gnn.py -b "${biopsy}" -rm ${replace_value} --mode "${mode}" --spatial "${spatial}" -i 10

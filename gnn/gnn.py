@@ -52,9 +52,7 @@ class GCNAutoencoder(torch.nn.Module):
 def create_results_folder(spatial_radius: str, patient_type: str, replace_mode: str, test_biopsy_name: str) -> [Path,
                                                                                                                 int]:
     save_folder = Path(f"gnn/results", patient_type)
-
     save_folder = Path(save_folder, replace_mode)
-
     save_folder = Path(save_folder, test_biopsy_name)
     save_folder = Path(save_folder, str(spatial_radius))
 
@@ -65,8 +63,6 @@ def create_results_folder(spatial_radius: str, patient_type: str, replace_mode: 
     while Path(save_path).exists():
         save_path = Path(str(base_path) + "_" + str(experiment_id))
         experiment_id += 1
-        print(experiment_id)
-        print(save_path)
 
     created: bool = False
     while not created:
@@ -116,7 +112,7 @@ if __name__ == '__main__':
     parser.add_argument("-i", "--iterations", action="store", default=10, type=int)
     parser.add_argument("--mode", action="store", type=str, choices=["ip", "exp"], default="ip")
     parser.add_argument("--spatial", "-sp", action="store", type=int, choices=[23, 46, 92, 138, 184], default=46)
-    parser.add_argument("-b", "--biopsy", action="store", type=str, required=True)
+    parser.add_argument("-b", "--biopsy", action="store", type=str, required=True, help="The biopsy to run")
 
     args = parser.parse_args()
 
