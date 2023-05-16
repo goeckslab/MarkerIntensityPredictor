@@ -36,7 +36,10 @@ if __name__ == '__main__':
 
     all_scores = pd.concat(all_scores)
 
-    save_path = Path("data/scores/ae")
+    if model == 'ae':
+        save_path = Path("data/scores/ae")
+    else:
+        save_path = Path("data/scores/gnn")
 
     if save_path.exists():
         shutil.rmtree(save_path)
