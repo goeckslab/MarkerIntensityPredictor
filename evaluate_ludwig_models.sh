@@ -22,4 +22,4 @@ if [ "$spatial" != "" ]; then
   python3 evaluate_ludwig_models.py -b $1 --mode $2 --spatial $3
 else
   python3 evaluate_ludwig_models.py -b $1 --mode $2
-done
+fi
