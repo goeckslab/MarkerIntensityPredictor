@@ -99,8 +99,8 @@ if __name__ == '__main__':
                             "MSE": eval_stats[marker]['mean_squared_error'],
                             "RMSE": eval_stats[marker]['root_mean_squared_error'],
                             "Biopsy": test_biopsy_name,
-                            "Combination": mode,
-                            "FE": spatial_radius,
+                            "Type": mode,
+                            "FE": spatial_radius if spatial_radius is not None else 0,
                             "Mode": "Ludwig",
                             "Hyper": 0
                         }
