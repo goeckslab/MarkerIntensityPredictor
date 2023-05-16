@@ -121,8 +121,11 @@ if __name__ == '__main__':
     biopsy_name = args.biopsy
     mode = args.mode
     patient = "_".join(biopsy_name.split("_")[:2])
+    replace_value = args.replace_mode
+    iterations = args.iterations
 
     if mode == "ip":
+        print(str(Path(folder, biopsy_name, str(spatial_radius))))
         test_set = pd.read_csv(str(Path(folder, biopsy_name, str(spatial_radius), f"test_set.csv")), header=0)
         test_edge_index = torch.load(str(Path(folder, biopsy_name, str(spatial_radius), f"test_edge_index.pt")))
         train_set = pd.read_csv(str(Path(folder, biopsy_name, str(spatial_radius), f"train_set.csv")), header=0)
@@ -135,9 +138,6 @@ if __name__ == '__main__':
         train_set = pd.read_csv(str(Path(folder, f"{patient}_excluded_scaled.csv")), header=0)
         train_edge_index = torch.load(
             str(Path("gnn", "data", "exp", str(spatial_radius), f"{patient}_excluded_edge_index.pt")))
-
-    replace_value = args.replace_mode
-    iterations = args.iterations
 
     save_folder, experiment_id = create_results_folder(spatial_radius, mode, replace_value, biopsy_name)
 

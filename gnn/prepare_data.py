@@ -6,6 +6,7 @@ from sklearn.preprocessing import MinMaxScaler
 from scipy.spatial.distance import cdist
 import torch
 from sklearn.neighbors import BallTree
+from time import sleep
 
 save_path = Path("gnn/data")
 markers = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
@@ -26,26 +27,26 @@ def create_save_folder(save_path: Path, biopsy_name: str, mode: str, spatial: st
 
 def prepare_data_for_exp_gnn(biopsy_name: str, dataset: pd.DataFrame, spatial: int):
     print(f"Preparing {biopsy_name}...")
-    current_df = dataset[markers]
-    current_df = np.log10(current_df + 1)
-    min_max_scaler = MinMaxScaler(feature_range=(0, 1))
-    current_df = pd.DataFrame(min_max_scaler.fit_transform(current_df),
-                              columns=current_df.columns)
+    marker_df = dataset[markers]
+    marker_df = np.log10(marker_df + 1)
+    scaler = MinMaxScaler(feature_range=(0, 1))
+    marker_df = pd.DataFrame(scaler.fit_transform(marker_df),
+                             columns=marker_df.columns)
 
     print("Calculating distances...")
-    tree = BallTree(dataset[['X_centroid', 'Y_centroid']], leaf_size=2)
+    exp_tree = BallTree(dataset[['X_centroid', 'Y_centroid']], leaf_size=2)
 
-    ind = tree.query_radius(dataset[['X_centroid', 'Y_centroid']], r=spatial)
+    ids = exp_tree.query_radius(dataset[['X_centroid', 'Y_centroid']], r=spatial)
 
     # convert indexes to a list of lists
     edge_index = []
-    for i in range(len(ind)):
-        for j in range(len(ind[i])):
-            edge_index.append([i, ind[i][j]])
+    for i in range(len(ids)):
+        for j in range(len(ids[i])):
+            edge_index.append([i, ids[i][j]])
 
     edge_index = torch.tensor(edge_index, dtype=torch.long).t()
 
-    current_df.to_csv(str(Path("gnn", "data", "exp", f"{biopsy_name}_scaled.csv")), index=False)
+    marker_df.to_csv(str(Path("gnn", "data", "exp", f"{biopsy_name}_scaled.csv")), index=False)
     torch.save(edge_index, str(Path("gnn", "data", "exp", str(spatial), f"{biopsy_name}_edge_index.pt")))
 
 
@@ -161,6 +162,9 @@ if __name__ == '__main__':
         if not Path("gnn", "data", "exp", str(spatial), f"{biopsy_name}_edge_index.pt").exists() or \
                 not (Path("gnn", "data", "exp", f"{biopsy_name}_scaled.csv").exists()):
             prepare_data_for_exp_gnn(biopsy_name, test_set, spatial)
+
+        # Potential exacloud fix
+        sleep(20)
 
         # load indexes
         indexes = []
