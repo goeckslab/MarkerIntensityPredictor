@@ -10,10 +10,10 @@ for biopsy in "${biopsies[@]}"; do
     for i in $(seq 1 $iterations)
       do
         #echo "${biopsy}" "${radius}"
-        sbatch ./gnn/gnn.sh "${data_path}" "mean" "ip" "${radius}"
-        sbatch ./gnn/gnn.sh "${data_path}" "mean" "exp" "${radius}"
-        sbatch ./gnn/gnn.sh "${data_path}" "zero" "ip" "${radius}"
-        sbatch ./gnn/gnn.sh "${data_path}" "zero" "exp" "${radius}"
+        sbatch ./gnn/gnn.sh "${biopsy}" "mean" "ip" "${radius}"
+        sbatch ./gnn/gnn.sh "${biopsy}" "mean" "exp" "${radius}"
+        sbatch ./gnn/gnn.sh "${biopsy}" "zero" "ip" "${radius}"
+        sbatch ./gnn/gnn.sh "${biopsy}" "zero" "exp" "${radius}"
       done
     done
 done
