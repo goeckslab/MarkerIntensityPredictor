@@ -102,7 +102,8 @@ if __name__ == '__main__':
                             "Type": mode,
                             "FE": spatial_radius if spatial_radius is not None else 0,
                             "Mode": "Ludwig",
-                            "Hyper": 0
+                            "Hyper": 0,
+                            "Load Path": str(Path(results_path, experiment, 'model'))
                         }
                     )
 
