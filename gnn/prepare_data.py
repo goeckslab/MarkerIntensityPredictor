@@ -1,4 +1,4 @@
-import argparse, os
+import argparse, os, sys
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -80,6 +80,11 @@ if __name__ == '__main__':
 
         print(f"Train Biopsy: {train_biopsy}")
 
+        if Path(save_path, f"test_edge_index.pt").exists() and Path(save_path, "test_set.csv").exists() and Path(
+                save_path, "train_set.csv").exists() and Path(save_path, "train_edge_index.pt").exists():
+            print("Data already exists. Skipping...")
+            sys.exit(0)
+
         # load train set from the folder of the biopsy
         train_set = pd.read_csv(str(Path("data/tumor_mesmer", f"{train_biopsy}.csv")), header=0)
 
@@ -148,12 +153,12 @@ if __name__ == '__main__':
 
         for train_biopsy_name, dataset in train_set.items():
             # check if edge_index.pt does exist in folder
-            if not Path("gnn", "data", "exp", f"{train_biopsy_name}_{spatial}_edge_index.pt").exists() or \
+            if not Path("gnn", "data", "exp", str(spatial), f"{train_biopsy_name}_edge_index.pt").exists() or \
                     not (Path("gnn", "data", "exp", f"{train_biopsy_name}_scaled.csv").exists()):
                 prepare_data_for_exp_gnn(train_biopsy_name, dataset, spatial)
 
         # prepare test set
-        if not Path("gnn", "data", "exp", f"{biopsy_name}_{spatial}_edge_index.pt").exists() or \
+        if not Path("gnn", "data", "exp", str(spatial), f"{biopsy_name}_edge_index.pt").exists() or \
                 not (Path("gnn", "data", "exp", f"{biopsy_name}_scaled.csv").exists()):
             prepare_data_for_exp_gnn(biopsy_name, test_set, spatial)
 
