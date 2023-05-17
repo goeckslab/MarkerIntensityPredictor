@@ -27,6 +27,7 @@ if __name__ == '__main__':
                     continue
                 print(f"Loading path: {Path(root, sub_directory)}")
                 scores = pd.read_csv(Path(root, sub_directory, "scores.csv"))
+                scores["Load Path"] = str(Path(current_path))
                 all_scores.append(scores)
 
                 loaded_files += 1
