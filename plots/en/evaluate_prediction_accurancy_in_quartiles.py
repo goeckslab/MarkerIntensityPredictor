@@ -88,5 +88,5 @@ if __name__ == '__main__':
     ax = sns.boxenplot(x="Quartile", y="MAE", hue="Mode", data=results, palette="Set2")
     ax.set_xlabel("Quartile")
     ax.set_ylabel("MAE")
-    ax.set_title(f"MAE per quartile")
+    ax.set_title(f"MAE per quartile\nAll Biopsies", fontsize=20)
     plt.savefig(str(Path(save_path, f"accuracy.png")))
