@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --nodes=1
-#SBATCH --job-name=ludwig_metrics
+#SBATCH --job-name=zip_results
 #SBATCH --time=5-00:00:00
 #SBATCH --partition=exacloud
 #SBATCH --qos=long_jobs
