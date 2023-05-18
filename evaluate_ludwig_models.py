@@ -88,10 +88,6 @@ if __name__ == '__main__':
                     except:
                         continue
                     eval_stats, _, _ = model.evaluate(dataset=test_dataset)
-
-                    # Marker,MAE,MSE,RMSE,Biopsy,Panel,Type,Segmentation,SNR,FE,Mode,Hyper
-                    print(eval_stats)
-
                     scores.append(
                         {
                             "Marker": marker,
@@ -107,6 +103,8 @@ if __name__ == '__main__':
                         }
                     )
 
+                    # predictions = pd.DataFrame(data=model.predict(dataset=test_dataset), columns=test_dataset.columns)
+                    # predictions.to_csv(str(Path(results_path, experiment, 'predictions.csv')), index=False)
+
     scores = pd.DataFrame(scores)
-    print(scores)
     scores.to_csv(Path(save_path, f"{test_biopsy_name}_scores.csv"), index=False)

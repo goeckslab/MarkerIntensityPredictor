@@ -30,30 +30,20 @@ def load_ae_scores(mode: str, replace_value: str, add_noise: str, spatial: int):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["ip", "exp"], default="ip")
-    parser.add_argument("--replace_all", action="store_true", default=False,
-                        help="Loads the scores where all marker are replaced")
     parser.add_argument("-m", "--markers", nargs='+')
     parser.add_argument("-rv", "--replace_value", choices=["mean", "zero"], default="mean")
-    parser.add_argument("-an", "--an", action="store_true", default=False)
-    parser.add_argument("-sp", "--spatial", choices=[23, 42, 92, 138, 184], default=23, type=int)
+    parser.add_argument("-sp", "--spatial", choices=[23, 46, 92, 138, 184], default=23, type=int)
 
     args = parser.parse_args()
 
-    replace_all = args.replace_all
     mode = args.mode
     markers = args.markers
     replace_value = args.replace_value
-    add_noise = "noise" if args.an else "no_noise"
     spatial = args.spatial
 
     save_path = Path(save_path, "iterations")
     save_path = Path(save_path, mode)
     save_path = Path(save_path, str(spatial))
-
-    if replace_all:
-        save_path = Path(save_path, "replace_all")
-    else:
-        save_path = Path(save_path, "replace_one")
 
     if markers:
         save_path = Path(save_path, "_".join(markers))
@@ -61,7 +51,6 @@ if __name__ == '__main__':
         save_path = Path(save_path, "all_markers")
 
     save_path = Path(save_path, replace_value)
-    save_path = Path(save_path, add_noise)
 
     if save_path.exists():
         shutil.rmtree(save_path)
@@ -71,7 +60,7 @@ if __name__ == '__main__':
     mode = args.mode
 
     # load scores
-    scores: pd.DataFrame = load_ae_scores(mode=mode, replace_value=replace_value, add_noise=add_noise, spatial=spatial)
+    scores: pd.DataFrame = load_ae_scores(mode=mode, replace_value=replace_value, add_noise="no_noise", spatial=spatial)
 
     if args.markers:
         scores = scores[scores["Marker"].isin(args.markers)]
@@ -110,13 +99,11 @@ if __name__ == '__main__':
 
     fig.legend(handles, labels, loc='lower right', ncol=3)
     if args.markers:
-        plt.savefig(Path(save_path, f"gnn_iterations_{mode}{'_replace_all' if replace_all else ''}.png"))
+        plt.savefig(Path(save_path, f"gnn_iterations_{mode}.png"))
     else:
-        plt.savefig(Path(save_path, f"gnn_iterations_{mode}{'_replace_all' if replace_all else ''}_all_markers.png"))
+        plt.savefig(Path(save_path, f"gnn_iterations_{mode}_all_markers.png"))
 
     # create charts by lineage or functional
-
-    print(markers_dict)
 
     for identification, markers in markers_dict.items():
         # select all markers
