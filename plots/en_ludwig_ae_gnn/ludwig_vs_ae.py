@@ -86,6 +86,16 @@ def load_scores(load_path: str):
     return pd.concat(scores)
 
 
+def load_ae_scores(mode: str, replace_value: str, add_noise: str, spatial: int):
+    all_scores = pd.read_csv(Path("data", "scores", "ae", "scores.csv"))
+    noise: int = 1 if add_noise == "noise" else 0
+    all_scores = all_scores[all_scores["Type"] == mode]
+    all_scores = all_scores[all_scores["Replace Value"] == replace_value]
+    all_scores = all_scores[all_scores["Noise"] == noise]
+    all_scores = all_scores[all_scores["FE"] == spatial]
+    return all_scores
+
+
 if __name__ == '__main__':
 
     # load mesmer mae scores from data mesmer folder and all subfolders
@@ -121,13 +131,13 @@ if __name__ == '__main__':
     print(mode)
     if mode == 'ip':
         ludwig_scores = load_scores(f"data/scores/Mesmer/in_patient/Ludwig")
-        ae_scores = load_scores(f"ae_imputation/ip/{replace_value}/{add_noise}")
+        ae_scores = load_ae_scores(mode="ip", replace_value=replace_value, add_noise=add_noise, spatial=0)
     elif mode == 'op':
         ludwig_scores = load_scores(f"data/scores/Mesmer/out_patient/Ludwig")
-        ae_scores = load_scores(f"ae_imputation/op/{replace_value}/{add_noise}")
+        ae_scores =  load_ae_scores(mode="op", replace_value=replace_value, add_noise=add_noise, spatial=0)
     elif mode == 'exp':
         ludwig_scores = load_scores(f"data/scores/Mesmer/exp/Ludwig")
-        ae_scores = load_scores(f"ae_imputation/exp/{replace_value}/{add_noise}")
+        ae_scores = load_ae_scores(mode="exp", replace_value=replace_value, add_noise=add_noise, spatial=0)
     else:
         raise ValueError("Mode not recognized")
 
@@ -143,7 +153,7 @@ if __name__ == '__main__':
     # combine ae and fe scores
     scores = pd.concat([ae_scores, ludwig_scores], axis=0)
     # duplicate each row in scores
-    scores = pd.concat([scores] * 30, ignore_index=True)
+    scores = pd.concat(scores, ignore_index=True)
 
     create_boxen_plot_per_segmentation(data=scores, metric=metric.upper(), title=metric.upper(), save_folder=save_path,
                                        file_name=metric.upper(),

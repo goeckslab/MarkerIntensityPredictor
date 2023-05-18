@@ -6,11 +6,11 @@ import seaborn as sns
 import pandas as pd
 from pathlib import Path
 
-save_path = Path("plots/ae/plots")
+save_path = Path("plots/gnn/plots")
 
 
-def load_ae_scores(mode: str, replace_value: str, add_noise: str, spatial: int):
-    all_scores = pd.read_csv(Path("data", "scores", "ae", "scores.csv"))
+def load_gnn_scores(mode: str, replace_value: str, add_noise: str, spatial: int) -> pd.DataFrame:
+    all_scores = pd.read_csv(Path("data", "scores", "gnn", "scores.csv"))
     noise: int = 1 if add_noise == "noise" else 0
     all_scores = all_scores[all_scores["Type"] == mode]
     all_scores = all_scores[all_scores["Replace Value"] == replace_value]
@@ -20,7 +20,7 @@ def load_ae_scores(mode: str, replace_value: str, add_noise: str, spatial: int):
 
 
 def create_boxen_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_name: str,
-                      ylim: tuple, ae_fe: bool, patient_type: str):
+                      ylim: tuple):
     data["Biopsy"] = data["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
     if args.markers:
         fig = plt.figure(figsize=(13, 5), dpi=200)
@@ -49,24 +49,24 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_n
     # plt.legend().set_visible(False)
 
     hue = "Network"
-    hue_order = ['AE Zero', 'AE Mean']
+    hue_order = ['GNN Zero', 'GNN Mean']
     pairs = [
-        (("pRB", "AE Zero"), ("pRB", "AE Mean")),
-        (("CD45", "AE Zero"), ("CD45", "AE Mean")),
-        (("CK19", "AE Zero"), ("CK19", "AE Mean")),
-        (("Ki67", "AE Zero"), ("Ki67", "AE Mean")),
-        (("aSMA", "AE Zero"), ("aSMA", "AE Mean")),
-        (("Ecad", "AE Zero"), ("Ecad", "AE Mean")),
-        (("PR", "AE Zero"), ("PR", "AE Mean")),
-        (("CK14", "AE Zero"), ("CK14", "AE Mean")),
-        (("HER2", "AE Zero"), ("HER2", "AE Mean")),
-        (("AR", "AE Zero"), ("AR", "AE Mean")),
-        (("CK17", "AE Zero"), ("CK17", "AE Mean")),
-        (("p21", "AE Zero"), ("p21", "AE Mean")),
-        (("Vimentin", "AE Zero"), ("Vimentin", "AE Mean")),
-        (("pERK", "AE Zero"), ("pERK", "AE Mean")),
-        (("EGFR", "AE Zero"), ("EGFR", "AE Mean")),
-        (("ER", "AE Zero"), ("ER", "AE Mean")),
+        (("pRB", "GNN Zero"), ("pRB", "GNN Mean")),
+        (("CD45", "GNN Zero"), ("CD45", "GNN Mean")),
+        (("CK19", "GNN Zero"), ("CK19", "GNN Mean")),
+        (("Ki67", "GNN Zero"), ("Ki67", "GNN Mean")),
+        (("aSMA", "GNN Zero"), ("aSMA", "GNN Mean")),
+        (("Ecad", "GNN Zero"), ("Ecad", "GNN Mean")),
+        (("PR", "GNN Zero"), ("PR", "GNN Mean")),
+        (("CK14", "GNN Zero"), ("CK14", "GNN Mean")),
+        (("HER2", "GNN Zero"), ("HER2", "GNN Mean")),
+        (("AR", "GNN Zero"), ("AR", "GNN Mean")),
+        (("CK17", "GNN Zero"), ("CK17", "GNN Mean")),
+        (("p21", "GNN Zero"), ("p21", "GNN Mean")),
+        (("Vimentin", "GNN Zero"), ("Vimentin", "GNN Mean")),
+        (("pERK", "GNN Zero"), ("pERK", "GNN Mean")),
+        (("EGFR", "GNN Zero"), ("EGFR", "GNN Mean")),
+        (("ER", "GNN Zero"), ("ER", "GNN Mean")),
     ]
     order = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
              'pERK', 'EGFR', 'ER']
@@ -81,7 +81,7 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_n
     plt.close('all')
 
 
-def create_histogram(data: pd.DataFrame, file_name: str):
+def create_histogram(data: pd.DataFrame, file_name: str, save_folder: Path):
     fig = plt.figure(figsize=(10, 5), dpi=200)
     # sns.histplot(data=data, x="Iteration", hue="Marker", multiple="stack", bins=10)
     # replace _ with '' for biopsy
@@ -103,20 +103,18 @@ def create_histogram(data: pd.DataFrame, file_name: str):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["ip", "op", "exp", ], default="ip")
-    parser.add_argument("-sp", "--spatial", choices=[0, 23, 46, 92, 138, 184], default=0, type=int)
+    parser.add_argument("--mode", choices=["ip", "exp"], default="ip")
+    parser.add_argument("-sp", "--spatial", choices=[23, 46, 92, 138, 184], default=23, type=int)
     parser.add_argument("-m", "--markers", nargs='+')
     parser.add_argument("--metric", type=str, choices=["MAE", "RMSE"], default="MAE")
-    parser.add_argument("-an", "--an", action="store_true", default=False)
     args = parser.parse_args()
 
     spatial: int = args.spatial
     metric: str = args.metric
     mode = args.mode
-    add_noise: str = "noise" if args.an else "no_noise"
-    markers = args.markers
 
-    save_path = Path(save_path, "ae_zero_vs_ae_mean")
+    markers = args.markers
+    save_path = Path(save_path, "gnn_zero_vs_gnn_mean")
     save_path = Path(save_path, mode)
     save_path = Path(save_path, str(spatial))
 
@@ -125,21 +123,16 @@ if __name__ == '__main__':
     else:
         save_path = Path(save_path, "all_markers")
 
-    if add_noise:
-        save_folder = Path(save_path, "noise")
-    else:
-        save_folder = Path(save_path, "no_noise")
+    if save_path.exists():
+        shutil.rmtree(save_path)
 
-    if save_folder.exists():
-        shutil.rmtree(save_folder)
+    print("Creating new folder..")
+    save_path.mkdir(parents=True)
 
-    print("Creating new folder")
-    save_folder.mkdir(parents=True)
-
-    zero_scores: pd.DataFrame = load_ae_scores(mode=mode, replace_value="zero", add_noise=add_noise, spatial=spatial)
-    zero_scores["Network"] = "AE Zero"
-    mean_scores: pd.DataFrame = load_ae_scores(mode=mode, replace_value="mean", add_noise=add_noise, spatial=spatial)
-    mean_scores["Network"] = f"AE Mean"
+    zero_scores: pd.DataFrame = load_gnn_scores(mode=mode, spatial=spatial, add_noise="no_noise", replace_value="zero")
+    zero_scores["Network"] = "GNN Zero"
+    mean_scores: pd.DataFrame = load_gnn_scores(mode=mode, spatial=spatial, add_noise="no_noise", replace_value="mean")
+    mean_scores["Network"] = f"GNN Mean"
 
     # Select first iteration
     # ae_scores = ae_scores[ae_scores["Iteration"] == 0]
@@ -151,8 +144,8 @@ if __name__ == '__main__':
     mean_scores = mean_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
     mean_scores = mean_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
 
-    create_histogram(data=zero_scores, file_name=f"ae_zero_iteration_distribution")
-    create_histogram(data=mean_scores, file_name=f"ae_mean_iteration_distribution")
+    create_histogram(data=zero_scores, file_name=f"ae_zero_iteration_distribution", save_folder=save_path)
+    create_histogram(data=mean_scores, file_name=f"ae_mean_iteration_distribution", save_folder=save_path)
 
     # Select only Marker, MAE, MSE, RMSE and Biopsy
     zero_scores = zero_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
@@ -171,6 +164,6 @@ if __name__ == '__main__':
     else:
         file_name = f"{metric.upper()}_boxen_plot"
 
-    create_boxen_plot(data=scores, metric=metric.upper(), save_folder=save_folder,
+    create_boxen_plot(data=scores, metric=metric.upper(), save_folder=save_path,
                       file_name=f"{metric.upper()}_boxen_plot",
-                      ylim=(0, 1), patient_type=mode, ae_fe="sp" in mode)
+                      ylim=(0, 1))

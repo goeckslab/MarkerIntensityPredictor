@@ -110,9 +110,9 @@ if __name__ == '__main__':
 
     fig.legend(handles, labels, loc='lower right', ncol=3)
     if args.markers:
-        plt.savefig(Path(save_path, f"ae_iterations_{mode}{'_replace_all' if replace_all else ''}.png"))
+        plt.savefig(Path(save_path, f"gnn_iterations_{mode}{'_replace_all' if replace_all else ''}.png"))
     else:
-        plt.savefig(Path(save_path, f"ae_iterations_{mode}{'_replace_all' if replace_all else ''}_all_markers.png"))
+        plt.savefig(Path(save_path, f"gnn_iterations_{mode}{'_replace_all' if replace_all else ''}_all_markers.png"))
 
     # create charts by lineage or functional
 

@@ -6,11 +6,11 @@ from pathlib import Path
 import shutil
 from statannotations.Annotator import Annotator
 
-save_path = Path("plots/ae/plots")
+save_path = Path("plots/gnn/plots")
 
 
-def load_ae_scores(mode: str, replace_value: str, add_noise: str, spatial: int) -> pd.DataFrame:
-    all_scores = pd.read_csv(Path("data", "scores", "ae", "scores.csv"))
+def load_gnn_scores(mode: str, replace_value: str, add_noise: str, spatial: int) -> pd.DataFrame:
+    all_scores = pd.read_csv(Path("data", "scores", "gnn", "scores.csv"))
     noise: int = 1 if add_noise == "noise" else 0
     all_scores = all_scores[all_scores["Type"] == mode]
     all_scores = all_scores[all_scores["Replace Value"] == replace_value]
@@ -41,7 +41,7 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_n
         fig = plt.figure(figsize=(15, 5), dpi=200)
     # ax = sns.violinplot(data=data, x="Marker", y=metric, hue="Network", split=True, cut=0)
     ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Network",
-                       palette={"AE Mean": "orange", "AE Zero": "blue", "Ludwig": "green"})
+                       palette={"GNN Mean": "orange", "GNN Zero": "blue", "Ludwig": "green"})
     # if ae_fe:
     #    plt.title(f"FE AutoEncoder vs FE Ludwig\n Radius: {radius}")
     # else:
@@ -63,40 +63,40 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_n
     # plt.legend().set_visible(False)
 
     hue = "Network"
-    hue_order = ['AE Mean', "AE Zero", 'Ludwig']
+    hue_order = ['GNN Mean', 'GNN Zero', 'Ludwig']
     pairs = [
-        (("pRB", "AE Mean"), ("pRB", "Ludwig")),
-        (("CD45", "AE Mean"), ("CD45", "Ludwig")),
-        (("CK19", "AE Mean"), ("CK19", "Ludwig")),
-        (("Ki67", "AE Mean"), ("Ki67", "Ludwig")),
-        (("aSMA", "AE Mean"), ("aSMA", "Ludwig")),
-        (("Ecad", "AE Mean"), ("Ecad", "Ludwig")),
-        (("PR", "AE Mean"), ("PR", "Ludwig")),
-        (("CK14", "AE Mean"), ("CK14", "Ludwig")),
-        (("HER2", "AE Mean"), ("HER2", "Ludwig")),
-        (("AR", "AE Mean"), ("AR", "Ludwig")),
-        (("CK17", "AE Mean"), ("CK17", "Ludwig")),
-        (("p21", "AE Mean"), ("p21", "Ludwig")),
-        (("Vimentin", "AE Mean"), ("Vimentin", "Ludwig")),
-        (("pERK", "AE Mean"), ("pERK", "Ludwig")),
-        (("EGFR", "AE Mean"), ("EGFR", "Ludwig")),
-        (("ER", "AE Mean"), ("ER", "Ludwig")),
-        (("pRB", "AE Zero"), ("pRB", "Ludwig")),
-        (("CD45", "AE Zero"), ("CD45", "Ludwig")),
-        (("CK19", "AE Zero"), ("CK19", "Ludwig")),
-        (("Ki67", "AE Zero"), ("Ki67", "Ludwig")),
-        (("aSMA", "AE Zero"), ("aSMA", "Ludwig")),
-        (("Ecad", "AE Zero"), ("Ecad", "Ludwig")),
-        (("PR", "AE Zero"), ("PR", "Ludwig")),
-        (("CK14", "AE Zero"), ("CK14", "Ludwig")),
-        (("HER2", "AE Zero"), ("HER2", "Ludwig")),
-        (("AR", "AE Zero"), ("AR", "Ludwig")),
-        (("CK17", "AE Zero"), ("CK17", "Ludwig")),
-        (("p21", "AE Zero"), ("p21", "Ludwig")),
-        (("Vimentin", "AE Zero"), ("Vimentin", "Ludwig")),
-        (("pERK", "AE Zero"), ("pERK", "Ludwig")),
-        (("EGFR", "AE Zero"), ("EGFR", "Ludwig")),
-        (("ER", "AE Zero"), ("ER", "Ludwig")),
+        (("pRB", "GNN Mean"), ("pRB", "Ludwig")),
+        (("CD45", "GNN Mean"), ("CD45", "Ludwig")),
+        (("CK19", "GNN Mean"), ("CK19", "Ludwig")),
+        (("Ki67", "GNN Mean"), ("Ki67", "Ludwig")),
+        (("aSMA", "GNN Mean"), ("aSMA", "Ludwig")),
+        (("Ecad", "GNN Mean"), ("Ecad", "Ludwig")),
+        (("PR", "GNN Mean"), ("PR", "Ludwig")),
+        (("CK14", "GNN Mean"), ("CK14", "Ludwig")),
+        (("HER2", "GNN Mean"), ("HER2", "Ludwig")),
+        (("AR", "GNN Mean"), ("AR", "Ludwig")),
+        (("CK17", "GNN Mean"), ("CK17", "Ludwig")),
+        (("p21", "GNN Mean"), ("p21", "Ludwig")),
+        (("Vimentin", "GNN Mean"), ("Vimentin", "Ludwig")),
+        (("pERK", "GNN Mean"), ("pERK", "Ludwig")),
+        (("EGFR", "GNN Mean"), ("EGFR", "Ludwig")),
+        (("ER", "GNN Mean"), ("ER", "Ludwig")),
+        (("pRB", "GNN Zero"), ("pRB", "Ludwig")),
+        (("CD45", "GNN Zero"), ("CD45", "Ludwig")),
+        (("CK19", "GNN Zero"), ("CK19", "Ludwig")),
+        (("Ki67", "GNN Zero"), ("Ki67", "Ludwig")),
+        (("aSMA", "GNN Zero"), ("aSMA", "Ludwig")),
+        (("Ecad", "GNN Zero"), ("Ecad", "Ludwig")),
+        (("PR", "GNN Zero"), ("PR", "Ludwig")),
+        (("CK14", "GNN Zero"), ("CK14", "Ludwig")),
+        (("HER2", "GNN Zero"), ("HER2", "Ludwig")),
+        (("AR", "GNN Zero"), ("AR", "Ludwig")),
+        (("CK17", "GNN Zero"), ("CK17", "Ludwig")),
+        (("p21", "GNN Zero"), ("p21", "Ludwig")),
+        (("Vimentin", "GNN Zero"), ("Vimentin", "Ludwig")),
+        (("pERK", "GNN Zero"), ("pERK", "Ludwig")),
+        (("EGFR", "GNN Zero"), ("EGFR", "Ludwig")),
+        (("ER", "GNN Zero"), ("ER", "Ludwig")),
     ]
     order = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
              'pERK', 'EGFR', 'ER']
@@ -134,19 +134,18 @@ def create_histogram(data: pd.DataFrame, file_name: str, save_folder: Path):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["ip", "exp"], default="ip")
-    parser.add_argument("-sp", "--spatial", choices=[0, 23, 46, 92, 138, 184], default=0, type=int)
+    parser.add_argument("-sp", "--spatial", choices=[23, 46, 92, 138, 184], default=23, type=int)
     parser.add_argument("-m", "--markers", nargs='+')
     parser.add_argument("--metric", type=str, choices=["MAE", "RMSE"], default="MAE")
-    parser.add_argument("-an", "--an", action="store_true", default=False)
+
     args = parser.parse_args()
 
     mode = args.mode
     metric: str = args.metric
-    add_noise: str = "noise" if args.an else "no_noise"
     markers = args.markers
     spatial: int = args.spatial
 
-    save_path = Path(save_path, "ae_vs_ludwig")
+    save_path = Path(save_path, "gnn_vs_ludwig")
     save_path = Path(save_path, mode)
     save_path = Path(save_path, str(spatial))
 
@@ -155,25 +154,24 @@ if __name__ == '__main__':
     else:
         save_path = Path(save_path, "all_markers")
 
-    save_path = Path(save_path, add_noise)
 
     if save_path.exists():
         shutil.rmtree(save_path)
     save_path.mkdir(parents=True)
 
     if mode == "ip":
-        ludwig_path = "data/scores/Mesmer/ip/Ludwig" if spatial == 0 else f"data/scores/Mesmer/ip/Ludwig_sp_{spatial}"
+        ludwig_path = f"data/scores/Mesmer/ip/Ludwig_sp_{spatial}"
     elif mode == "exp":
-        ludwig_path = "data/scores/Mesmer/exp/Ludwig"
+        ludwig_path = f"data/scores/Mesmer/exp/Ludwig_sp_{spatial}"
     else:
         raise ValueError("Unknown mode")
 
-    ae_zero_scores: pd.DataFrame = load_ae_scores(mode=mode, replace_value="zero",
-                                                  add_noise=add_noise, spatial=spatial)
-    ae_zero_scores["Network"] = "AE Zero"
-    ae_mean_scores: pd.DataFrame = load_ae_scores(mode=mode, replace_value="mean",
-                                                  add_noise=add_noise, spatial=spatial)
-    ae_zero_scores["Network"] = "AE Mean"
+    gnn_zero_scores: pd.DataFrame = load_gnn_scores(mode=mode, replace_value="zero",
+                                                    add_noise="no_noise", spatial=spatial)
+    gnn_zero_scores["Network"] = "GNN Zero"
+    gnn_mean_scores: pd.DataFrame = load_gnn_scores(mode=mode, replace_value="mean",
+                                                    add_noise="no_noise", spatial=spatial)
+    gnn_mean_scores["Network"] = "GNN Mean"
 
     ludwig_scores: pd.DataFrame = load_fe_scores(root_folder=ludwig_path)
     ludwig_scores["Network"] = f"Ludwig"
@@ -182,23 +180,25 @@ if __name__ == '__main__':
     # ae_scores = ae_scores[ae_scores["Iteration"] == 0]
 
     # for each marker and biopsy, select only the iteration with the lowest mae
-    ae_zero_scores = ae_zero_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
-    ae_zero_scores = ae_zero_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
+    gnn_zero_scores = gnn_zero_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
+    gnn_zero_scores = gnn_zero_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
+    create_histogram(data=gnn_zero_scores, file_name=f"gnn_mean_iteration_distribution", save_folder=save_path)
 
-    create_histogram(data=ae_zero_scores, file_name=f"ae_mean_iteration_distribution", save_folder=save_path)
+    gnn_mean_scores = gnn_mean_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
+    gnn_mean_scores = gnn_mean_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
+    create_histogram(data=gnn_mean_scores, file_name=f"gnn_zero_iteration_distribution", save_folder=save_path)
 
-    ae_mean_scores = ae_mean_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
-    ae_mean_scores = ae_mean_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
-
-    create_histogram(data=ae_mean_scores, file_name=f"ae_zero_iteration_distribution", save_folder=save_path)
+    # if column combination exists in ludwig scores ranem to type
+    if "Combination" in ludwig_scores.columns:
+        ludwig_scores = ludwig_scores.rename(columns={"Combination": "Type"})
 
     # Select only Marker, MAE, MSE, RMSE and Biopsy
     ludwig_scores = ludwig_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
-    ae_mean_scores = ae_mean_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
-    ae_zero_scores = ae_zero_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
+    gnn_mean_scores = gnn_mean_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
+    gnn_zero_scores = gnn_zero_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
 
-    # combine ae and fe scores
-    scores = pd.concat([ae_mean_scores, ae_zero_scores, ludwig_scores], axis=0)
+    # combine gnn and fe scores
+    scores = pd.concat([gnn_mean_scores, gnn_zero_scores, ludwig_scores], axis=0)
 
     if markers:
         scores = scores[scores["Marker"].isin(args.markers)]

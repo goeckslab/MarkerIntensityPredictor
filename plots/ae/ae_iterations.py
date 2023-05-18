@@ -17,27 +17,25 @@ markers_dict = {
 }
 
 
-def load_scores(root_folder: str) -> pd.DataFrame:
-    scores = []
-    for root, dirs, files in os.walk(root_folder):
-        for name in files:
-            if Path(name).suffix == ".csv" and name == "scores.csv":
-                print("Loading file: ", name)
-                scores.append(pd.read_csv(os.path.join(root, name), sep=",", header=0))
-
-    assert len(scores) == 8, "Not all biopsies have been processed"
-
-    return pd.concat(scores, axis=0).sort_values(by=["Marker"])
+def load_ae_scores(mode: str, replace_value: str, add_noise: str, spatial: int):
+    all_scores = pd.read_csv(Path("data", "scores", "ae", "scores.csv"))
+    noise: int = 1 if add_noise == "noise" else 0
+    all_scores = all_scores[all_scores["Type"] == mode]
+    all_scores = all_scores[all_scores["Replace Value"] == replace_value]
+    all_scores = all_scores[all_scores["Noise"] == noise]
+    all_scores = all_scores[all_scores["FE"] == spatial]
+    return all_scores
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["ip", "op", "exp", "sp_23"], default="ip")
+    parser.add_argument("--mode", choices=["ip", "exp"], default="ip")
     parser.add_argument("--replace_all", action="store_true", default=False,
                         help="Loads the scores where all marker are replaced")
     parser.add_argument("-m", "--markers", nargs='+')
     parser.add_argument("-rv", "--replace_value", choices=["mean", "zero"], default="mean")
     parser.add_argument("-an", "--an", action="store_true", default=False)
+    parser.add_argument("-sp", "--spatial", choices=[0, 23, 42, 92, 138, 184], default=0, type=int)
     args = parser.parse_args()
 
     replace_all = args.replace_all
@@ -45,9 +43,11 @@ if __name__ == '__main__':
     markers = args.markers
     replace_value = args.replace_value
     add_noise = "noise" if args.an else "no_noise"
+    spatial = args.spatial
 
     save_path = Path(save_path, "iterations")
     save_path = Path(save_path, mode)
+    save_path = Path(save_path, str(spatial))
 
     if replace_all:
         save_path = Path(save_path, "replace_all")
@@ -60,6 +60,7 @@ if __name__ == '__main__':
         save_path = Path(save_path, "all_markers")
 
     save_path = Path(save_path, replace_value)
+    save_path = Path(save_path, add_noise)
 
     if save_path.exists():
         shutil.rmtree(save_path)
@@ -67,21 +68,7 @@ if __name__ == '__main__':
     save_path.mkdir(parents=True, exist_ok=True)
 
     mode = args.mode
-    if mode == "ip":
-        load_path = f"ae_imputation/ip{'_replace_all' if replace_all else ''}/{replace_value}/{add_noise}"
-    elif mode == "op":
-        load_path = f"ae_imputation/op{'_replace_all' if replace_all else ''}/{replace_value}/{add_noise}"
-    elif mode == "exp":
-        load_path = f"ae_imputation/exp{'_replace_all' if replace_all else ''}/{replace_value}/{add_noise}"
-    elif mode == "sp_23":
-        load_path = f"ae_imputation/sp_23{'_replace_all' if replace_all else ''}/{replace_value}/{add_noise}"
-
-    else:
-        raise ValueError("Unknown mode")
-
-    print(load_path)
-
-    scores: pd.DataFrame = load_scores(root_folder=load_path)
+    scores: pd.DataFrame = load_ae_scores(mode=mode, replace_value=replace_value, add_noise=add_noise, spatial=spatial)
 
     if args.markers:
         scores = scores[scores["Marker"].isin(args.markers)]
