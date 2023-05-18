@@ -22,7 +22,7 @@ if __name__ == '__main__':
 
     experiment_id = 0
     # save_path = Path(str(base_path) + "_" + str(experiment_id))
-    save_path = Path(str(base_path) + "_" + str(experiment_id))
+    save_path = Path(str(base_path))
     while Path(save_path).exists():
         # save_path = Path(str(base_path) + "_" + str(experiment_id))
         # experiment_id += 1
