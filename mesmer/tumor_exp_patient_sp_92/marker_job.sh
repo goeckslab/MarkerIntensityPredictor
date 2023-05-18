@@ -20,8 +20,8 @@ random_seed=$RANDOM
 
 echo $random_seed
 
-make -f makefile ludwig-experiment-exa test_id="${test_id}" marker="${marker}" patient_id="${patient}" random_seed=$random_seed ;
-make -f makefile ludwig-experiment-exa test_id="${test_id}" marker="${marker}" patient_id="${patient}" random_seed=$random_seed ;
-make -f makefile ludwig-experiment-exa test_id="${test_id}" marker="${marker}" patient_id="${patient}" random_seed=$random_seed ;
-make -f makefile ludwig-experiment-exa test_id="${test_id}" marker="${marker}" patient_id="${patient}" random_seed=$random_seed ;
-make -f makefile ludwig-experiment-exa test_id="${test_id}" marker="${marker}" patient_id="${patient}" random_seed=$random_seed
+make -f makefile ludwig-experiment-exa test_id="${test_id}" marker="${marker}" patient_id="${patient}" random_seed="${random_seed}" ;
+make -f makefile ludwig-experiment-exa test_id="${test_id}" marker="${marker}" patient_id="${patient}" random_seed="${random_seed}" ;
+make -f makefile ludwig-experiment-exa test_id="${test_id}" marker="${marker}" patient_id="${patient}" random_seed="${random_seed}" ;
+make -f makefile ludwig-experiment-exa test_id="${test_id}" marker="${marker}" patient_id="${patient}" random_seed="${random_seed}" ;
+make -f makefile ludwig-experiment-exa test_id="${test_id}" marker="${marker}" patient_id="${patient}" random_seed="${random_seed}"
