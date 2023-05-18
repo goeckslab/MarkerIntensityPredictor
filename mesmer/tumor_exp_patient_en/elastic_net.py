@@ -1,4 +1,4 @@
-import os
+import os, shutil
 import numpy as np
 from sklearn.linear_model import ElasticNetCV
 import argparse
@@ -17,11 +17,15 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    suffix = 1
-    save_path = base_path
+    experiment_id = 0
+    # save_path = Path(str(base_path) + "_" + str(experiment_id))
+    save_path = Path(str(base_path))
     while Path(save_path).exists():
-        save_path = Path(str(base_path) + "_" + str(suffix))
-        suffix += 1
+        # save_path = Path(str(base_path) + "_" + str(experiment_id))
+        # experiment_id += 1
+        shutil.rmtree(save_path)
+
+    save_path.mkdir(parents=True, exist_ok=True)
 
     train_df = pd.read_csv(args.train, sep="\t", header=0)
     test_df = pd.read_csv(args.test, sep="\t", header=0)
