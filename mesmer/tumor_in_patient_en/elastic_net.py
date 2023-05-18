@@ -1,5 +1,6 @@
 import os
 import random
+import shutil
 
 import numpy as np
 from sklearn.linear_model import ElasticNetCV
@@ -19,11 +20,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    suffix = 1
-    save_path = base_path
+    experiment_id = 0
+    # save_path = Path(str(base_path) + "_" + str(experiment_id))
+    save_path = Path(str(base_path) + "_" + str(experiment_id))
     while Path(save_path).exists():
-        save_path = Path(str(base_path) + "_" + str(suffix))
-        suffix += 1
+        # save_path = Path(str(base_path) + "_" + str(experiment_id))
+        # experiment_id += 1
+        shutil.rmtree(save_path)
 
     save_path.mkdir(parents=True, exist_ok=True)
 

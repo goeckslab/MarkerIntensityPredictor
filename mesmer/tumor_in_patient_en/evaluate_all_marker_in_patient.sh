@@ -7,5 +7,5 @@ for marker in "${markers[@]}"; do
   echo "${marker}"
   echo sample_id="${sample_id}" test_id="${test_id}" marker="${marker}"
   make -f makefile run_en sample_id="${sample_id}" test_id="${test_id}" marker="${marker}" &&
-    make -f makefile plots sample_id="${sample_id}" test_id="${test_id}" marker="${marker}"
+  make -f makefile plots sample_id="${sample_id}" test_id="${test_id}" marker="${marker}"
 done
