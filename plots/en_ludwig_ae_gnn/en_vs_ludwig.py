@@ -91,7 +91,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--markers", nargs='+', help="Markers to be plotted", default=None)
-    parser.add_argument("--mode", choices=["ip", "op", "exp"], type=str, default="ip")
+    parser.add_argument("--mode", choices=["ip", "exp"], type=str, default="ip")
 
     args = parser.parse_args()
     mode = args.mode
@@ -108,8 +108,8 @@ if __name__ == '__main__':
 
     save_path.mkdir(parents=True, exist_ok=True)
 
-    en_scores = load_scores(f"data/scores/Mesmer/{'in_patient' if mode == 'ip' else 'out_patient'}/EN")
-    ludwig_scores = load_scores(f"data/scores/Mesmer/{'in_patient' if mode == 'ip' else 'out_patient'}/Ludwig")
+    en_scores = load_scores(f"data/scores/Mesmer/{'in_patient' if mode == 'ip' else 'exp'}/EN")
+    ludwig_scores = load_scores(f"data/scores/Mesmer/{'in_patient' if mode == 'ip' else 'exp'}/Ludwig")
 
     # concat en_score & ludwig_scores to one dataframe
     scores = pd.concat(en_scores + ludwig_scores, ignore_index=True)
