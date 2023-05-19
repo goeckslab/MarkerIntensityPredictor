@@ -30,16 +30,12 @@ if __name__ == '__main__':
     else:
         test_biopsy = Path(args.biopsy).stem
 
-    type = "IP" if in_or_out == "in_patient" else "OP"
+    type = "IP" if in_or_out == "in_patient" else "EXP"
     segmentation = "Unmicst + S3" if "unmicst" in str(data_path) else "Mesmer"
     snr = 0 if "non_snr" in str(data_path) else 1
 
-    if "_en_6_2" in str(data_path):
-        mode = "EN_EXP"
-    elif "_en" in str(data_path):
+    if "_en" in str(data_path):
         mode = "EN"
-    elif "_6_2" in str(data_path):
-        mode = "Ludwig_EXP"
     else:
         mode = "Ludwig"
     hyper = 1 if "_hyper" in str(data_path) else 0
@@ -52,8 +48,8 @@ if __name__ == '__main__':
 
     scores_directory = Path(scores_directory, segmentation)
 
-    scores_directory = Path(scores_directory, "in_patient") if type == "IP" else Path(scores_directory,
-                                                                                      "out_patient")
+    scores_directory = Path(scores_directory, "ip") if type == "IP" else Path(scores_directory,
+                                                                              "exp")
     if segmentation != "Mesmer":
         scores_directory = Path(scores_directory, "snr") if snr else Path(scores_directory, "non_snr")
 
