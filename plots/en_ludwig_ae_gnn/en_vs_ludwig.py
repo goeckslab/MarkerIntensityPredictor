@@ -108,8 +108,8 @@ if __name__ == '__main__':
 
     save_path.mkdir(parents=True, exist_ok=True)
 
-    en_scores = load_scores(f"data/scores/Mesmer/{'in_patient' if mode == 'ip' else 'exp'}/EN")
-    ludwig_scores = load_scores(f"data/scores/Mesmer/{'in_patient' if mode == 'ip' else 'exp'}/Ludwig")
+    en_scores = load_scores(f"data/scores/Mesmer/{'ip' if mode == 'ip' else 'exp'}/EN")
+    ludwig_scores = load_scores(f"data/scores/Mesmer/{'ip' if mode == 'ip' else 'exp'}/Ludwig")
 
     # concat en_score & ludwig_scores to one dataframe
     scores = pd.concat(en_scores + ludwig_scores, ignore_index=True)
