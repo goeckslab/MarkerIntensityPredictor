@@ -25,14 +25,14 @@ python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_en/9_14_2
 python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_en/9_15_1
 python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_en/9_15_2
 
-python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_en_6_2/9_2_1
-python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_en_6_2/9_2_2
-python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_en_6_2/9_3_1
-python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_en_6_2/9_3_2
-python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_en_6_2/9_14_1
-python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_en_6_2/9_14_2
-python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_en_6_2/9_15_1
-python3 get_scores_per_biopsy.py -b mesmer/tumor_out_patient_en_6_2/9_15_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_exp_patient_en/9_2_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_exp_patient_en/9_2_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_exp_patient_en/9_3_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_exp_patient_en/9_3_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_exp_patient_en/9_14_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_exp_patient_en/9_14_2
+python3 get_scores_per_biopsy.py -b mesmer/tumor_exp_patient_en/9_15_1
+python3 get_scores_per_biopsy.py -b mesmer/tumor_exp_patient_en/9_15_2
 
 # Ludwig w/o hyper
 echo "Creating scores for Ludwig w/o hyper"

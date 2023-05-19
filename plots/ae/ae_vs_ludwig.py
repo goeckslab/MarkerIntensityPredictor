@@ -173,7 +173,7 @@ if __name__ == '__main__':
     ae_zero_scores["Network"] = "AE Zero"
     ae_mean_scores: pd.DataFrame = load_ae_scores(mode=mode, replace_value="mean",
                                                   add_noise=add_noise, spatial=spatial)
-    ae_zero_scores["Network"] = "AE Mean"
+    ae_mean_scores["Network"] = "AE Mean"
 
     ludwig_scores: pd.DataFrame = load_fe_scores(root_folder=ludwig_path)
     ludwig_scores["Network"] = f"Ludwig"
@@ -191,6 +191,10 @@ if __name__ == '__main__':
     ae_mean_scores = ae_mean_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
 
     create_histogram(data=ae_mean_scores, file_name=f"ae_zero_iteration_distribution", save_folder=save_path)
+
+    if "Combination" in ludwig_scores.columns:
+        # rename Combination to Type
+        ludwig_scores = ludwig_scores.rename(columns={"Combination": "Type"})
 
     # Select only Marker, MAE, MSE, RMSE and Biopsy
     ludwig_scores = ludwig_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
