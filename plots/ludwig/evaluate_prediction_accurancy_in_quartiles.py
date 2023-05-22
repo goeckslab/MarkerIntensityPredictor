@@ -15,7 +15,6 @@ markers = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 
 modes = ["exp", "ip"]
 
 
-
 def create_results_file() -> pd.DataFrame:
     results = []
     for mode in modes:
@@ -54,16 +53,23 @@ def create_results_file() -> pd.DataFrame:
                         if "experiment_run" not in experiment_run:
                             continue
 
-                        model = None
-                        try:
-                            model = LudwigModel.load(str(Path(experiment_run, 'model')))
-                        except:
-                            continue
+                        if not Path(experiment_run, "predictions.csv").exists():
+                            model = None
+                            try:
+                                model = LudwigModel.load(str(Path(experiment_run, 'model')))
+                            except:
+                                continue
 
-                        # drop current marker from ground truth
-                        predictions = pd.DataFrame(model.predict(ground_truth.drop(marker, axis=1))[0])
-                        # rename the prediction column
-                        predictions = predictions.rename(columns={f"{marker}_predictions": "prediction"})
+                            print(
+                                f"Predictions file does not exist. Creating predictions for {str(Path(marker_results_dir, experiment_run))}")
+                            # drop current marker from ground truth
+                            predictions = pd.DataFrame(model.predict(ground_truth.drop(marker, axis=1))[0])
+                            # rename the prediction column
+                            predictions = predictions.rename(columns={f"{marker}_predictions": "prediction"})
+                            predictions.to_csv(str(Path(experiment_run, "predictions.csv")), index=False)
+
+                        else:
+                            predictions = pd.read_csv(str(Path(experiment_run, "predictions.csv")))
 
                         # extract the quartiles
                         quartiles = ground_truth.quantile([0.25, 0.5, 0.75])
@@ -102,6 +108,7 @@ def create_results_file() -> pd.DataFrame:
 
     return results
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-sp", "--spatial", choices=[0, 23, 46, 92, 138, 184], default=0, type=int)
@@ -118,10 +125,10 @@ if __name__ == '__main__':
     save_path.mkdir(parents=True, exist_ok=True)
 
     if not Path(save_path, "accuracy.csv").exists():
-        print("Creating results file")
-        results = create_results_file()
+        print("Creating results file...")
+        results: pd.DataFrame = create_results_file()
     else:
-        results = pd.read_csv(str(Path(save_path, "accuracy.csv")))
+        results: pd.DataFrame = pd.read_csv(str(Path(save_path, "accuracy.csv")))
 
     # plot the quartiles
     fig = plt.figure(figsize=(10, 10), dpi=200)
