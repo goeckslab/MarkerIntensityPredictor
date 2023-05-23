@@ -80,31 +80,32 @@ if __name__ == '__main__':
             y_hat = elastic_net.predict(X_test)
             y_hat_df = pd.DataFrame(y_hat, columns=[test_marker])
 
-            if train_marker == "ER":
+            if len(elastic_net.coef_) == 15:
                 importance = pd.DataFrame(
                     {'Markers': list(X.columns),
                      'Importance': list(elastic_net.coef_),
                      })
-                importance["target"] = test_marker
-                importance["patient"] = patient
-                importance["biopsy"] = test_biopsy
-                importance["experiment"] = experiment_id
-                importance["type"] = mode
-                importance["model"] = "EN"
+                importance["Target"] = test_marker
+                importance["Patient"] = patient
+                importance["Biopsy"] = test_biopsy
+                importance["Experiment"] = experiment_id
+                importance["Type"] = mode
+                importance["Model"] = "EN"
                 importance_per_marker.append(importance)
 
             # y_hat_df.to_csv(Path(save_path, f"{args.marker}_predictions.csv"), index=False, header=False)
 
             results_per_marker.append({
-                "patient": patient,
-                "mean_absolute_error": mean_absolute_error(y_test, y_hat),
-                "root_mean_squared_error": mean_squared_error(y_test, y_hat, squared=False),
-                "marker": train_marker,
-                "target": test_marker,
-                "model": "EN",
-                "experiment": experiment_id,
-                "type": mode,
-                "biopsy": test_biopsy
+                "Patient": patient,
+                "MAE": mean_absolute_error(y_test, y_hat),
+                "RMSE": mean_squared_error(y_test, y_hat, squared=False),
+                "Marker": train_marker,
+                "Target": test_marker,
+                "Model": "EN",
+                "Experiment": experiment_id,
+                "Type": mode,
+                "Biopsy": test_biopsy,
+                "Full Panel": 1 if len(elastic_net.coef_) == 15 else 0
             })
 
     results_per_marker = pd.DataFrame(results_per_marker)
@@ -129,14 +130,14 @@ if __name__ == '__main__':
     # select only
 
     fig = plt.figure(dpi=200, figsize=(10, 10))
-    ax = sns.scatterplot(x="Markers", y="Importance", data=importance_per_marker, hue="target")
+    ax = sns.scatterplot(x="Markers", y="Importance", data=importance_per_marker, hue="Target")
     ax.set_title(f"Importance {test_biopsy}")
     fig.savefig(Path(save_path, f"importance.png"))
 
     results = []
     # for each marker select the 3 most predicitve markers
-    for target in importance_per_marker["target"].unique():
-        most_important_markers = importance_per_marker[importance_per_marker["target"] == target].sort_values(
+    for target in importance_per_marker["Target"].unique():
+        most_important_markers = importance_per_marker[importance_per_marker["Target"] == target].sort_values(
             "Importance", ascending=False)[:3]
 
         X = train_df[most_important_markers["Markers"].values]
@@ -153,21 +154,23 @@ if __name__ == '__main__':
 
         # select mae for target from results_per_marker where train marker is ER
         target_mae_full_panel = \
-            results_per_marker[(results_per_marker["target"] == target) & (results_per_marker["marker"] == "ER")][
-                "mean_absolute_error"].values[0]
+            results_per_marker[(results_per_marker["Target"] == target) & (results_per_marker["Full Panel"] == 1)][
+                "MAE"].values[0]
 
         target_rmse_full_panel = \
-            results_per_marker[(results_per_marker["target"] == target) & (results_per_marker["marker"] == "ER")][
-                "root_mean_squared_error"].values[0]
+            results_per_marker[(results_per_marker["Target"] == target) & (results_per_marker["Full Panel"] == 1)][
+                "RMSE"].values[0]
 
         results.append({
-            "patient": patient,
-            "mean_absolute_error": mean_absolute_error(y_test, y_hat),
-            "root_mean_squared_error": mean_squared_error(y_test, y_hat, squared=False),
-            "target": target,
-            "used_markers": most_important_markers["Markers"].values,
-            "target_mae_full_panel": target_mae_full_panel,
-            "target_rmse_full_panel": target_rmse_full_panel,
+            "Patient": patient,
+            "MAE": mean_absolute_error(y_test, y_hat),
+            "RMSE": mean_squared_error(y_test, y_hat, squared=False),
+            "Target": target,
+            "MOI": most_important_markers["Markers"].values,
+            "MAE_FP": target_mae_full_panel,
+            "RMSE_FP": target_rmse_full_panel,
+            "Biopsy": test_biopsy,
+            "Mode": mode,
         })
 
     results = pd.DataFrame(results)
