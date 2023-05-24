@@ -5,6 +5,7 @@ import numpy as np
 import seaborn as sns
 from pathlib import Path
 import shutil
+from statannotations.Annotator import Annotator
 
 save_path = Path("plots", "en", "quartiles")
 
@@ -15,13 +16,12 @@ modes = ["ip", "exp"]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    # parser.add_argument("-b", "--biopsy", help="The test biopsy", required=True)
-    #parser.add_argument("--mode", choices=["ip", "exp"], required=True, default="ip")
+    parser.add_argument("-metric", choices=["MAE", "RMSE"], help="The metric", default="MAE")
 
     args = parser.parse_args()
-    #mode = args.mode
+    metric: str = args.metric
 
-    #save_path = Path(save_path, mode)
+    # save_path = Path(save_path, mode)
 
     if save_path.exists():
         shutil.rmtree(save_path)
@@ -49,7 +49,8 @@ if __name__ == '__main__':
                 predictions = predictions.rename(columns={0: "prediction"})
 
                 ground_truth = pd.read_csv(
-                    str(Path("data", "tumor_mesmer", "preprocessed", f"{biopsy_name}_preprocessed_dataset.tsv")), sep='\t')
+                    str(Path("data", "tumor_mesmer", "preprocessed", f"{biopsy_name}_preprocessed_dataset.tsv")),
+                    sep='\t')
 
                 # extract the quartiles
                 quartiles = ground_truth.quantile([0.25, 0.5, 0.75])
@@ -77,16 +78,42 @@ if __name__ == '__main__':
                 results.append(pd.DataFrame(
                     {"MAE": [mae_1, mae_2, mae_3, mae_4, mae_all], "Quartile": ["Q1", "Q2", "Q3", "Q4", "All"],
                      "Threshold": [quartiles[marker][0.25], quartiles[marker][0.5], quartiles[marker][0.75],
-                                   quartiles[marker][0.75], "All"], "Marker": marker, "Biopsy": biopsy_name, "Mode": mode}))
+                                   quartiles[marker][0.75], "All"], "Marker": marker, "Biopsy": biopsy_name,
+                     "Mode": mode}))
 
     results = pd.concat(results)
     results.to_csv(str(Path(save_path, f"accuracy.csv")), index=False)
-
+    # change mode column to uppercase
+    results["Mode"] = results["Mode"].str.upper()
     # plot the quartiles
 
     fig = plt.figure(figsize=(10, 10), dpi=200)
-    ax = sns.boxenplot(x="Quartile", y="MAE", hue="Mode", data=results, palette="Set2")
+    ax = sns.boxenplot(x="Quartile", y=metric, hue="Mode", data=results, palette="Set2")
     ax.set_xlabel("Quartile")
-    ax.set_ylabel("MAE")
-    ax.set_title(f"MAE per quartile\nAll Biopsies", fontsize=20)
+    ax.set_ylabel(metric.upper())
+    ax.set_title(f"Elastic Net \n{metric.upper()} per quartile\nAll Biopsies", fontsize=20, y=1.3)
+
+    hue = "Mode"
+    hue_order = ["IP", "EXP"]
+    pairs = [
+        (("Q1", "IP"), ("Q1", "EXP")),
+        (("Q2", "IP"), ("Q2", "EXP")),
+        (("Q3", "IP"), ("Q3", "EXP")),
+        (("Q4", "IP"), ("Q4", "EXP")),
+        (("All", "IP"), ("All", "EXP")),
+        (("Q1", "IP"), ("Q2", "IP")),
+        (("Q2", "IP"), ("Q3", "IP")),
+        (("Q3", "IP"), ("Q4", "IP")),
+        (("Q4", "IP"), ("All", "IP")),
+        (("Q1", "EXP"), ("Q2", "EXP")),
+        (("Q2", "EXP"), ("Q3", "EXP")),
+        (("Q3", "EXP"), ("Q4", "EXP")),
+        (("Q4", "EXP"), ("All", "EXP")),
+    ]
+    order = ["Q1", "Q2", "Q3", "Q4", "All"]
+    annotator = Annotator(ax, pairs, data=results, x="Quartile", y=metric, order=order, hue=hue, hue_order=hue_order,
+                          verbose=1)
+    annotator.configure(test='Mann-Whitney', text_format='star', loc='outside')
+    annotator.apply_and_annotate()
+    plt.tight_layout()
     plt.savefig(str(Path(save_path, f"accuracy.png")))
