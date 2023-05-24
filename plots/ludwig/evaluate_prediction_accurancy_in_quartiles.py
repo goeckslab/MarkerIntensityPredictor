@@ -103,7 +103,9 @@ def create_results_file() -> pd.DataFrame:
                              "Threshold": [quartiles[marker][0.25], quartiles[marker][0.5], quartiles[marker][0.75],
                                            quartiles[marker][0.75], "All"], "Marker": marker,
                              "Biopsy": test_biopsy_name,
-                             "Mode": mode}))
+                             "Mode": mode,
+                             "Load Path": str(Path(marker_results_dir, experiment_run))
+                             }))
 
     results = pd.concat(results)
     results.to_csv(str(Path(save_path, f"accuracy.csv")), index=False)

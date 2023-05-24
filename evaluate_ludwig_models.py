@@ -103,8 +103,5 @@ if __name__ == '__main__':
                         }
                     )
 
-                    # predictions = pd.DataFrame(data=model.predict(dataset=test_dataset), columns=test_dataset.columns)
-                    # predictions.to_csv(str(Path(results_path, experiment, 'predictions.csv')), index=False)
-
     scores = pd.DataFrame(scores)
     scores.to_csv(Path(save_path, f"{test_biopsy_name}_scores.csv"), index=False)
