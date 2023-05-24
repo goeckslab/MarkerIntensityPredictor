@@ -11,7 +11,7 @@ biopsies = ["9 2 1", "9 2 2", "9 3 1", "9 3 2", "9 14 1", "9 14 2", "9 15 1", "9
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
 
-save_path = Path("plots/en_ludwig_ae/en_vs_ludwig")
+save_path = Path("plots/en_ludwig_ae_gnn/en_vs_ludwig")
 
 
 def create_boxen_plot_per_segmentation(data: pd.DataFrame, metric: str, title: str, save_folder: Path, file_name: str,
@@ -22,7 +22,7 @@ def create_boxen_plot_per_segmentation(data: pd.DataFrame, metric: str, title: s
     else:
         fig = plt.figure(figsize=(15, 5), dpi=200)
     # ax = sns.violinplot(data=data, x="Marker", y=score, hue="Type", split=True, cut=0)
-    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Mode")
+    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Network")
 
     # plt.title(title)
     # remove y axis label
@@ -39,27 +39,27 @@ def create_boxen_plot_per_segmentation(data: pd.DataFrame, metric: str, title: s
         ax.set_xticklabels(x_ticks, rotation=0, fontsize=20)
     plt.box(False)
     # remove legend from fig
-    #plt.legend().set_visible(False)
+    # plt.legend().set_visible(False)
 
-    hue = "Mode"
-    hue_order = ["EN", "Ludwig"]
+    hue = "Network"
+    hue_order = ["EN", "Light GBM"]
     pairs = [
-        (("pRB", "EN"), ("pRB", "Ludwig")),
-        (("CD45", "EN"), ("CD45", "Ludwig")),
-        (("CK19", "EN"), ("CK19", "Ludwig")),
-        (("Ki67", "EN"), ("Ki67", "Ludwig")),
-        (("aSMA", "EN"), ("aSMA", "Ludwig")),
-        (("Ecad", "EN"), ("Ecad", "Ludwig")),
-        (("PR", "EN"), ("PR", "Ludwig")),
-        (("CK14", "EN"), ("CK14", "Ludwig")),
-        (("HER2", "EN"), ("HER2", "Ludwig")),
-        (("AR", "EN"), ("AR", "Ludwig")),
-        (("CK17", "EN"), ("CK17", "Ludwig")),
-        (("p21", "EN"), ("p21", "Ludwig")),
-        (("Vimentin", "EN"), ("Vimentin", "Ludwig")),
-        (("pERK", "EN"), ("pERK", "Ludwig")),
-        (("EGFR", "EN"), ("EGFR", "Ludwig")),
-        (("ER", "EN"), ("ER", "Ludwig")),
+        (("pRB", "EN"), ("pRB", "Light GBM")),
+        (("CD45", "EN"), ("CD45", "Light GBM")),
+        (("CK19", "EN"), ("CK19", "Light GBM")),
+        (("Ki67", "EN"), ("Ki67", "Light GBM")),
+        (("aSMA", "EN"), ("aSMA", "Light GBM")),
+        (("Ecad", "EN"), ("Ecad", "Light GBM")),
+        (("PR", "EN"), ("PR", "Light GBM")),
+        (("CK14", "EN"), ("CK14", "Light GBM")),
+        (("HER2", "EN"), ("HER2", "Light GBM")),
+        (("AR", "EN"), ("AR", "Light GBM")),
+        (("CK17", "EN"), ("CK17", "Light GBM")),
+        (("p21", "EN"), ("p21", "Light GBM")),
+        (("Vimentin", "EN"), ("Vimentin", "Light GBM")),
+        (("pERK", "EN"), ("pERK", "Light GBM")),
+        (("EGFR", "EN"), ("EGFR", "Light GBM")),
+        (("ER", "EN"), ("ER", "Light GBM")),
     ]
     order = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
              'pERK', 'EGFR', 'ER']
@@ -92,10 +92,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--markers", nargs='+', help="Markers to be plotted", default=None)
     parser.add_argument("--mode", choices=["ip", "exp"], type=str, default="ip")
+    parser.add_argument("--metric", choices=["mae", "mse"], type=str, default="mae")
 
     args = parser.parse_args()
     mode = args.mode
     markers = args.markers
+    metric: str = args.metric
 
     save_path = Path(save_path, mode)
     if markers:
@@ -106,18 +108,28 @@ if __name__ == '__main__':
     if save_path.exists():
         shutil.rmtree(save_path)
 
+    print(save_path)
     save_path.mkdir(parents=True, exist_ok=True)
 
     en_scores = load_scores(f"data/scores/Mesmer/{'ip' if mode == 'ip' else 'exp'}/EN")
     ludwig_scores = load_scores(f"data/scores/Mesmer/{'ip' if mode == 'ip' else 'exp'}/Ludwig")
 
-    # concat en_score & ludwig_scores to one dataframe
-    scores = pd.concat(en_scores + ludwig_scores, ignore_index=True)
+    en_scores = pd.concat(en_scores, ignore_index=True)
+    # rename mode to network
+    en_scores = en_scores.rename(columns={"Mode": "Network"})
 
-    # duplicate each row in scores
-    scores = pd.concat([scores] * 30, ignore_index=True)
+    ludwig_scores = pd.concat(ludwig_scores, ignore_index=True)
+    # rename mode to network
+    ludwig_scores = ludwig_scores.rename(columns={"Mode": "Network"})
+    # rename ludwig to light gbm
+    ludwig_scores["Network"] = "Light GBM"
 
-    print(scores)
+    # duplicate rows in en scores
+    en_scores = pd.concat([en_scores] * 30, ignore_index=True)
 
-    create_boxen_plot_per_segmentation(data=scores, metric="MAE", title="MAE", save_folder=save_path, file_name="MAE",
+    # combine en and ludwig scores
+    scores = pd.concat([en_scores, ludwig_scores], ignore_index=True)
+
+    create_boxen_plot_per_segmentation(data=scores, metric=metric.upper(), title=metric.upper(), save_folder=save_path,
+                                       file_name=metric.upper(),
                                        ylim=[0, 0.6])

@@ -6,6 +6,7 @@ import seaborn as sns
 from pathlib import Path
 import shutil
 from ludwig.api import LudwigModel
+from statannotations.Annotator import Annotator
 
 save_path = Path("plots", "ludwig", "quartiles")
 
@@ -69,6 +70,7 @@ def create_results_file() -> pd.DataFrame:
                             predictions.to_csv(str(Path(experiment_run, "predictions.csv")), index=False)
 
                         else:
+                            print("Loading predictions...")
                             predictions = pd.read_csv(str(Path(experiment_run, "predictions.csv")))
 
                         # extract the quartiles
@@ -112,9 +114,11 @@ def create_results_file() -> pd.DataFrame:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-sp", "--spatial", choices=[0, 23, 46, 92, 138, 184], default=0, type=int)
+    parser.add_argument("--metric", choices=["MAE", "RMSE"], default="MAE", type=str)
 
     args = parser.parse_args()
     spatial: int = args.spatial
+    metric: str = args.metric
     # mode = args.mode
 
     save_path = Path(save_path, str(spatial))
@@ -124,16 +128,39 @@ if __name__ == '__main__':
 
     save_path.mkdir(parents=True, exist_ok=True)
 
-    if not Path(save_path, "accuracy.csv").exists():
-        print("Creating results file...")
-        results: pd.DataFrame = create_results_file()
-    else:
-        results: pd.DataFrame = pd.read_csv(str(Path(save_path, "accuracy.csv")))
+    print("Creating results file...")
+    results: pd.DataFrame = create_results_file()
+    # change mode to uppercase
+    results["Mode"] = results["Mode"].str.upper()
 
     # plot the quartiles
     fig = plt.figure(figsize=(10, 10), dpi=200)
-    ax = sns.boxenplot(x="Quartile", y="MAE", hue="Mode", data=results, palette="Set2")
+    ax = sns.boxenplot(x="Quartile", y=metric, hue="Mode", data=results, palette="Set2")
     ax.set_xlabel("Quartile")
-    ax.set_ylabel("MAE")
-    ax.set_title(f"MAE per quartile\nAll Biopsies", fontsize=20)
+    ax.set_ylabel(metric.upper())
+    ax.set_title(f"Light GBM \n{metric.upper()} per quartile\nAll Biopsies", fontsize=20, y=1.3)
+
+    hue = "Mode"
+    hue_order = ["IP", "EXP"]
+    pairs = [
+        (("Q1", "IP"), ("Q1", "EXP")),
+        (("Q2", "IP"), ("Q2", "EXP")),
+        (("Q3", "IP"), ("Q3", "EXP")),
+        (("Q4", "IP"), ("Q4", "EXP")),
+        (("All", "IP"), ("All", "EXP")),
+        (("Q1", "IP"), ("Q2", "IP")),
+        (("Q2", "IP"), ("Q3", "IP")),
+        (("Q3", "IP"), ("Q4", "IP")),
+        (("Q4", "IP"), ("All", "IP")),
+        (("Q1", "EXP"), ("Q2", "EXP")),
+        (("Q2", "EXP"), ("Q3", "EXP")),
+        (("Q3", "EXP"), ("Q4", "EXP")),
+        (("Q4", "EXP"), ("All", "EXP")),
+    ]
+    order = ["Q1", "Q2", "Q3", "Q4", "All"]
+    annotator = Annotator(ax, pairs, data=results, x="Quartile", y=metric, order=order, hue=hue, hue_order=hue_order,
+                          verbose=1)
+    annotator.configure(test='Mann-Whitney', text_format='star', loc='outside')
+    annotator.apply_and_annotate()
+    plt.tight_layout()
     plt.savefig(str(Path(save_path, f"accuracy.png")))

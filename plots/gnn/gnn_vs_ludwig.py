@@ -41,7 +41,7 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_n
         fig = plt.figure(figsize=(15, 5), dpi=200)
     # ax = sns.violinplot(data=data, x="Marker", y=metric, hue="Network", split=True, cut=0)
     ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Network",
-                       palette={"GNN Mean": "orange", "GNN Zero": "blue", "Ludwig": "green"})
+                       palette={"GNN Mean": "orange", "GNN Zero": "blue", "Light GBM": "green"})
     # if ae_fe:
     #    plt.title(f"FE AutoEncoder vs FE Ludwig\n Radius: {radius}")
     # else:
@@ -63,40 +63,40 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_n
     # plt.legend().set_visible(False)
 
     hue = "Network"
-    hue_order = ['GNN Mean', 'GNN Zero', 'Ludwig']
+    hue_order = ['GNN Mean', 'GNN Zero', 'Light GBM']
     pairs = [
-        (("pRB", "GNN Mean"), ("pRB", "Ludwig")),
-        (("CD45", "GNN Mean"), ("CD45", "Ludwig")),
-        (("CK19", "GNN Mean"), ("CK19", "Ludwig")),
-        (("Ki67", "GNN Mean"), ("Ki67", "Ludwig")),
-        (("aSMA", "GNN Mean"), ("aSMA", "Ludwig")),
-        (("Ecad", "GNN Mean"), ("Ecad", "Ludwig")),
-        (("PR", "GNN Mean"), ("PR", "Ludwig")),
-        (("CK14", "GNN Mean"), ("CK14", "Ludwig")),
-        (("HER2", "GNN Mean"), ("HER2", "Ludwig")),
-        (("AR", "GNN Mean"), ("AR", "Ludwig")),
-        (("CK17", "GNN Mean"), ("CK17", "Ludwig")),
-        (("p21", "GNN Mean"), ("p21", "Ludwig")),
-        (("Vimentin", "GNN Mean"), ("Vimentin", "Ludwig")),
-        (("pERK", "GNN Mean"), ("pERK", "Ludwig")),
-        (("EGFR", "GNN Mean"), ("EGFR", "Ludwig")),
-        (("ER", "GNN Mean"), ("ER", "Ludwig")),
-        (("pRB", "GNN Zero"), ("pRB", "Ludwig")),
-        (("CD45", "GNN Zero"), ("CD45", "Ludwig")),
-        (("CK19", "GNN Zero"), ("CK19", "Ludwig")),
-        (("Ki67", "GNN Zero"), ("Ki67", "Ludwig")),
-        (("aSMA", "GNN Zero"), ("aSMA", "Ludwig")),
-        (("Ecad", "GNN Zero"), ("Ecad", "Ludwig")),
-        (("PR", "GNN Zero"), ("PR", "Ludwig")),
-        (("CK14", "GNN Zero"), ("CK14", "Ludwig")),
-        (("HER2", "GNN Zero"), ("HER2", "Ludwig")),
-        (("AR", "GNN Zero"), ("AR", "Ludwig")),
-        (("CK17", "GNN Zero"), ("CK17", "Ludwig")),
-        (("p21", "GNN Zero"), ("p21", "Ludwig")),
-        (("Vimentin", "GNN Zero"), ("Vimentin", "Ludwig")),
-        (("pERK", "GNN Zero"), ("pERK", "Ludwig")),
-        (("EGFR", "GNN Zero"), ("EGFR", "Ludwig")),
-        (("ER", "GNN Zero"), ("ER", "Ludwig")),
+        (("pRB", "GNN Mean"), ("pRB", "Light GBM")),
+        (("CD45", "GNN Mean"), ("CD45", "Light GBM")),
+        (("CK19", "GNN Mean"), ("CK19", "Light GBM")),
+        (("Ki67", "GNN Mean"), ("Ki67", "Light GBM")),
+        (("aSMA", "GNN Mean"), ("aSMA", "Light GBM")),
+        (("Ecad", "GNN Mean"), ("Ecad", "Light GBM")),
+        (("PR", "GNN Mean"), ("PR", "Light GBM")),
+        (("CK14", "GNN Mean"), ("CK14", "Light GBM")),
+        (("HER2", "GNN Mean"), ("HER2", "Light GBM")),
+        (("AR", "GNN Mean"), ("AR", "Light GBM")),
+        (("CK17", "GNN Mean"), ("CK17", "Light GBM")),
+        (("p21", "GNN Mean"), ("p21", "Light GBM")),
+        (("Vimentin", "GNN Mean"), ("Vimentin", "Light GBM")),
+        (("pERK", "GNN Mean"), ("pERK", "Light GBM")),
+        (("EGFR", "GNN Mean"), ("EGFR", "Light GBM")),
+        (("ER", "GNN Mean"), ("ER", "Light GBM")),
+        (("pRB", "GNN Zero"), ("pRB", "Light GBM")),
+        (("CD45", "GNN Zero"), ("CD45", "Light GBM")),
+        (("CK19", "GNN Zero"), ("CK19", "Light GBM")),
+        (("Ki67", "GNN Zero"), ("Ki67", "Light GBM")),
+        (("aSMA", "GNN Zero"), ("aSMA", "Light GBM")),
+        (("Ecad", "GNN Zero"), ("Ecad", "Light GBM")),
+        (("PR", "GNN Zero"), ("PR", "Light GBM")),
+        (("CK14", "GNN Zero"), ("CK14", "Light GBM")),
+        (("HER2", "GNN Zero"), ("HER2", "Light GBM")),
+        (("AR", "GNN Zero"), ("AR", "Light GBM")),
+        (("CK17", "GNN Zero"), ("CK17", "Light GBM")),
+        (("p21", "GNN Zero"), ("p21", "Light GBM")),
+        (("Vimentin", "GNN Zero"), ("Vimentin", "Light GBM")),
+        (("pERK", "GNN Zero"), ("pERK", "Light GBM")),
+        (("EGFR", "GNN Zero"), ("EGFR", "Light GBM")),
+        (("ER", "GNN Zero"), ("ER", "Light GBM")),
     ]
     order = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
              'pERK', 'EGFR', 'ER']
@@ -174,18 +174,23 @@ if __name__ == '__main__':
     gnn_mean_scores["Network"] = "GNN Mean"
 
     ludwig_scores: pd.DataFrame = load_fe_scores(root_folder=ludwig_path)
-    ludwig_scores["Network"] = f"Ludwig"
+    ludwig_scores["Network"] = f"Light GBM"
 
     # Select first iteration
     # ae_scores = ae_scores[ae_scores["Iteration"] == 0]
 
+
     # for each marker and biopsy, select only the iteration with the lowest mae
     gnn_zero_scores = gnn_zero_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
-    gnn_zero_scores = gnn_zero_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
+    gnn_zero_scores = gnn_zero_scores.groupby(["Marker", "Biopsy", "FE", "Experiment"]).head(5)
+    gnn_zero_scores = gnn_zero_scores.groupby(["Marker", "Biopsy", "FE", "Experiment"]).mean().reset_index()
+    gnn_zero_scores["Network"] = "GNN Zero"
     create_histogram(data=gnn_zero_scores, file_name=f"gnn_mean_iteration_distribution", save_folder=save_path)
 
     gnn_mean_scores = gnn_mean_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
-    gnn_mean_scores = gnn_mean_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
+    gnn_mean_scores = gnn_mean_scores.groupby(["Marker", "Biopsy", "FE", "Experiment"]).head(5)
+    gnn_mean_scores = gnn_mean_scores.groupby(["Marker", "Biopsy", "FE", "Experiment"]).mean().reset_index()
+    gnn_mean_scores["Network"] = "GNN Mean"
     create_histogram(data=gnn_mean_scores, file_name=f"gnn_zero_iteration_distribution", save_folder=save_path)
 
     # if column combination exists in ludwig scores ranem to type
@@ -193,9 +198,9 @@ if __name__ == '__main__':
         ludwig_scores = ludwig_scores.rename(columns={"Combination": "Type"})
 
     # Select only Marker, MAE, MSE, RMSE and Biopsy
-    ludwig_scores = ludwig_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
-    gnn_mean_scores = gnn_mean_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
-    gnn_zero_scores = gnn_zero_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
+    ludwig_scores = ludwig_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
+    gnn_mean_scores = gnn_mean_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
+    gnn_zero_scores = gnn_zero_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
 
     # combine gnn and fe scores
     scores = pd.concat([gnn_mean_scores, gnn_zero_scores, ludwig_scores], axis=0)

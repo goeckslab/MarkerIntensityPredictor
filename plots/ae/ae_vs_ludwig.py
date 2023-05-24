@@ -41,7 +41,7 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_n
         fig = plt.figure(figsize=(15, 5), dpi=200)
     # ax = sns.violinplot(data=data, x="Marker", y=metric, hue="Network", split=True, cut=0)
     ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Network",
-                       palette={"AE Mean": "orange", "AE Zero": "blue", "Ludwig": "green"})
+                       palette={"AE Mean": "orange", "AE Zero": "blue", "Light GBM": "green"})
     # if ae_fe:
     #    plt.title(f"FE AutoEncoder vs FE Ludwig\n Radius: {radius}")
     # else:
@@ -63,40 +63,40 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_n
     # plt.legend().set_visible(False)
 
     hue = "Network"
-    hue_order = ['AE Mean', "AE Zero", 'Ludwig']
+    hue_order = ['AE Mean', "AE Zero", 'Light GBM']
     pairs = [
-        (("pRB", "AE Mean"), ("pRB", "Ludwig")),
-        (("CD45", "AE Mean"), ("CD45", "Ludwig")),
-        (("CK19", "AE Mean"), ("CK19", "Ludwig")),
-        (("Ki67", "AE Mean"), ("Ki67", "Ludwig")),
-        (("aSMA", "AE Mean"), ("aSMA", "Ludwig")),
-        (("Ecad", "AE Mean"), ("Ecad", "Ludwig")),
-        (("PR", "AE Mean"), ("PR", "Ludwig")),
-        (("CK14", "AE Mean"), ("CK14", "Ludwig")),
-        (("HER2", "AE Mean"), ("HER2", "Ludwig")),
-        (("AR", "AE Mean"), ("AR", "Ludwig")),
-        (("CK17", "AE Mean"), ("CK17", "Ludwig")),
-        (("p21", "AE Mean"), ("p21", "Ludwig")),
-        (("Vimentin", "AE Mean"), ("Vimentin", "Ludwig")),
-        (("pERK", "AE Mean"), ("pERK", "Ludwig")),
-        (("EGFR", "AE Mean"), ("EGFR", "Ludwig")),
-        (("ER", "AE Mean"), ("ER", "Ludwig")),
-        (("pRB", "AE Zero"), ("pRB", "Ludwig")),
-        (("CD45", "AE Zero"), ("CD45", "Ludwig")),
-        (("CK19", "AE Zero"), ("CK19", "Ludwig")),
-        (("Ki67", "AE Zero"), ("Ki67", "Ludwig")),
-        (("aSMA", "AE Zero"), ("aSMA", "Ludwig")),
-        (("Ecad", "AE Zero"), ("Ecad", "Ludwig")),
-        (("PR", "AE Zero"), ("PR", "Ludwig")),
-        (("CK14", "AE Zero"), ("CK14", "Ludwig")),
-        (("HER2", "AE Zero"), ("HER2", "Ludwig")),
-        (("AR", "AE Zero"), ("AR", "Ludwig")),
-        (("CK17", "AE Zero"), ("CK17", "Ludwig")),
-        (("p21", "AE Zero"), ("p21", "Ludwig")),
-        (("Vimentin", "AE Zero"), ("Vimentin", "Ludwig")),
-        (("pERK", "AE Zero"), ("pERK", "Ludwig")),
-        (("EGFR", "AE Zero"), ("EGFR", "Ludwig")),
-        (("ER", "AE Zero"), ("ER", "Ludwig")),
+        (("pRB", "AE Mean"), ("pRB", "Light GBM")),
+        (("CD45", "AE Mean"), ("CD45", "Light GBM")),
+        (("CK19", "AE Mean"), ("CK19", "Light GBM")),
+        (("Ki67", "AE Mean"), ("Ki67", "Light GBM")),
+        (("aSMA", "AE Mean"), ("aSMA", "Light GBM")),
+        (("Ecad", "AE Mean"), ("Ecad", "Light GBM")),
+        (("PR", "AE Mean"), ("PR", "Light GBM")),
+        (("CK14", "AE Mean"), ("CK14", "Light GBM")),
+        (("HER2", "AE Mean"), ("HER2", "Light GBM")),
+        (("AR", "AE Mean"), ("AR", "Light GBM")),
+        (("CK17", "AE Mean"), ("CK17", "Light GBM")),
+        (("p21", "AE Mean"), ("p21", "Light GBM")),
+        (("Vimentin", "AE Mean"), ("Vimentin", "Light GBM")),
+        (("pERK", "AE Mean"), ("pERK", "Light GBM")),
+        (("EGFR", "AE Mean"), ("EGFR", "Light GBM")),
+        (("ER", "AE Mean"), ("ER", "Light GBM")),
+        (("pRB", "AE Zero"), ("pRB", "Light GBM")),
+        (("CD45", "AE Zero"), ("CD45", "Light GBM")),
+        (("CK19", "AE Zero"), ("CK19", "Light GBM")),
+        (("Ki67", "AE Zero"), ("Ki67", "Light GBM")),
+        (("aSMA", "AE Zero"), ("aSMA", "Light GBM")),
+        (("Ecad", "AE Zero"), ("Ecad", "Light GBM")),
+        (("PR", "AE Zero"), ("PR", "Light GBM")),
+        (("CK14", "AE Zero"), ("CK14", "Light GBM")),
+        (("HER2", "AE Zero"), ("HER2", "Light GBM")),
+        (("AR", "AE Zero"), ("AR", "Light GBM")),
+        (("CK17", "AE Zero"), ("CK17", "Light GBM")),
+        (("p21", "AE Zero"), ("p21", "Light GBM")),
+        (("Vimentin", "AE Zero"), ("Vimentin", "Light GBM")),
+        (("pERK", "AE Zero"), ("pERK", "Light GBM")),
+        (("EGFR", "AE Zero"), ("EGFR", "Light GBM")),
+        (("ER", "AE Zero"), ("ER", "Light GBM")),
     ]
     order = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
              'pERK', 'EGFR', 'ER']
@@ -176,19 +176,25 @@ if __name__ == '__main__':
     ae_mean_scores["Network"] = "AE Mean"
 
     ludwig_scores: pd.DataFrame = load_fe_scores(root_folder=ludwig_path)
-    ludwig_scores["Network"] = f"Ludwig"
+    ludwig_scores["Network"] = f"Light GBM"
 
     # Select first iteration
     # ae_scores = ae_scores[ae_scores["Iteration"] == 0]
 
     # for each marker and biopsy, select only the iteration with the lowest mae
     ae_zero_scores = ae_zero_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
-    ae_zero_scores = ae_zero_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
+    ae_zero_scores = ae_zero_scores.groupby(["Marker", "Biopsy"]).head(5)
+    ae_zero_scores = ae_zero_scores.groupby(["Marker", "Biopsy"]).mean().reset_index()
+    ae_zero_scores["Network"] = "AE Zero"
+    ae_zero_scores["Type"] = mode
 
     create_histogram(data=ae_zero_scores, file_name=f"ae_mean_iteration_distribution", save_folder=save_path)
 
     ae_mean_scores = ae_mean_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
-    ae_mean_scores = ae_mean_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
+    ae_mean_scores = ae_mean_scores.groupby(["Marker", "Biopsy"]).head(5)
+    ae_mean_scores = ae_mean_scores.groupby(["Marker", "Biopsy"]).mean().reset_index()
+    ae_mean_scores["Network"] = "AE Mean"
+    ae_mean_scores["Type"] = mode
 
     create_histogram(data=ae_mean_scores, file_name=f"ae_zero_iteration_distribution", save_folder=save_path)
 
@@ -197,9 +203,9 @@ if __name__ == '__main__':
         ludwig_scores = ludwig_scores.rename(columns={"Combination": "Type"})
 
     # Select only Marker, MAE, MSE, RMSE and Biopsy
-    ludwig_scores = ludwig_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
-    ae_mean_scores = ae_mean_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
-    ae_zero_scores = ae_zero_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
+    ludwig_scores = ludwig_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
+    ae_mean_scores = ae_mean_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
+    ae_zero_scores = ae_zero_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
 
     # combine ae and fe scores
     scores = pd.concat([ae_mean_scores, ae_zero_scores, ludwig_scores], axis=0)

@@ -43,6 +43,11 @@ if __name__ == '__main__':
     scores = scores[scores["Type"] == mode]
     scores = scores[scores["Replace Value"] == replace_value]
 
+    scores = scores.sort_values(by=["Marker", "Biopsy", "MAE"])
+    scores = scores.groupby(["Marker", "Biopsy", "FE", "Experiment"]).head(5)
+    scores = scores.groupby(["Marker", "Biopsy", "FE", "Experiment"]).mean().reset_index()
+
+
     temp = scores.groupby(["Marker", "FE"]).mean(numeric_only=True).reset_index()
 
     # rename None in the Fe column to No FE

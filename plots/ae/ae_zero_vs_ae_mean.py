@@ -141,22 +141,26 @@ if __name__ == '__main__':
     mean_scores: pd.DataFrame = load_ae_scores(mode=mode, replace_value="mean", add_noise=add_noise, spatial=spatial)
     mean_scores["Network"] = f"AE Mean"
 
-    # Select first iteration
-    # ae_scores = ae_scores[ae_scores["Iteration"] == 0]
-
-    # for each marker and biopsy, select only the iteration with the lowest mae
+    # select best 5 perforing iterations for each marker and each biopsy and calculate the mean
     zero_scores = zero_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
-    zero_scores = zero_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
+    zero_scores = zero_scores.groupby(["Marker", "Biopsy"]).head(5)
+    zero_scores = zero_scores.groupby(["Marker", "Biopsy"]).mean().reset_index()
+    zero_scores["Network"] = "AE Zero"
+    zero_scores["Replace Value"] = "Zero"
 
+    # select best 5 perforing iterations for each marker and each biopsy and calculate the mean
     mean_scores = mean_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
-    mean_scores = mean_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
+    mean_scores = mean_scores.groupby(["Marker", "Biopsy"]).head(5)
+    mean_scores = mean_scores.groupby(["Marker", "Biopsy"]).mean().reset_index()
+    mean_scores["Network"] = "AE Mean"
+    mean_scores["Replace Value"] = "Mean"
 
     create_histogram(data=zero_scores, file_name=f"ae_zero_iteration_distribution")
     create_histogram(data=mean_scores, file_name=f"ae_mean_iteration_distribution")
 
     # Select only Marker, MAE, MSE, RMSE and Biopsy
-    zero_scores = zero_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
-    mean_scores = mean_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
+    zero_scores = zero_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
+    mean_scores = mean_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
 
     # combine ae and fe scores
     scores = pd.concat([zero_scores, mean_scores], axis=0)

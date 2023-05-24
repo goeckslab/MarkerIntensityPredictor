@@ -139,17 +139,21 @@ if __name__ == '__main__':
 
     # for each marker and biopsy, select only the iteration with the lowest mae
     zero_scores = zero_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
-    zero_scores = zero_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
+    zero_scores = zero_scores.groupby(["Marker", "Biopsy", "FE", "Experiment"]).head(5)
+    zero_scores = zero_scores.groupby(["Marker", "Biopsy", "FE", "Experiment"]).mean().reset_index()
+    zero_scores["Network"] = "GNN Zero"
 
     mean_scores = mean_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
-    mean_scores = mean_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
+    mean_scores = mean_scores.groupby(["Marker", "Biopsy", "FE", "Experiment"]).head(5)
+    mean_scores = mean_scores.groupby(["Marker", "Biopsy", "FE", "Experiment"]).mean().reset_index()
+    mean_scores["Network"] = "GNN Mean"
 
     create_histogram(data=zero_scores, file_name=f"ae_zero_iteration_distribution", save_folder=save_path)
     create_histogram(data=mean_scores, file_name=f"ae_mean_iteration_distribution", save_folder=save_path)
 
     # Select only Marker, MAE, MSE, RMSE and Biopsy
-    zero_scores = zero_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
-    mean_scores = mean_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Type"]]
+    zero_scores = zero_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
+    mean_scores = mean_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
 
     # combine ae and fe scores
     scores = pd.concat([zero_scores, mean_scores], axis=0)
