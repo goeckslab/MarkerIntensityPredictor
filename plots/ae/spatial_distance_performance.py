@@ -43,7 +43,7 @@ if __name__ == '__main__':
     scores = scores[scores["Type"] == mode]
     scores = scores[scores["Replace Value"] == replace_value]
 
-    temp = scores.groupby(["Marker", "FE"]).mean().reset_index()
+    temp = scores.groupby(["Marker", "FE"]).mean(numeric_only=True).reset_index()
 
     # rename None in the Fe column to No FE
     temp.replace(to_replace={"FE": {0: 0}}, inplace=True)
