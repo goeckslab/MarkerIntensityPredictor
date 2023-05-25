@@ -11,4 +11,4 @@
 #SBATCH --mail-type=FAIL,END
 #SBATCH --mail-user=kirchgae@ohsu.edu
 
-sbatch ./plots/ludwig/evaluate_prediction_accurancy_in_quartiles.sh
+python3 ./plots/ludwig/evaluate_prediction_accurancy_in_quartiles.py
