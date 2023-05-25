@@ -20,7 +20,6 @@ if __name__ == '__main__':
     test_biopsy = args.biopsy
     mode = args.mode
     patient = "_".join(test_biopsy.split("_")[:2])
-    print(patient)
 
     experiment_id = 0
     base_path = Path(base_path, mode, test_biopsy, "experiment_run")
@@ -68,6 +67,7 @@ if __name__ == '__main__':
         for train_marker in train_df.columns:
             if train_marker == test_marker:
                 continue
+
             X[train_marker] = train_df[train_marker]
             y = train_df[test_marker]
 
@@ -91,6 +91,17 @@ if __name__ == '__main__':
                 importance["Experiment"] = experiment_id
                 importance["Type"] = mode
                 importance["Model"] = "EN"
+
+                train_cor = train_df.corr()
+                test_cor = test_df.corr()
+
+                # extract train and test cor for each marker and target in importance datatset and add it to the importance dataset
+                for index, row in importance.iterrows():
+                    train_correlation = train_cor[row["Markers"]][row["Target"]]
+                    test_correlation = test_cor[row["Markers"]][row["Target"]]
+                    importance.at[index, "Train Correlation"] = train_correlation
+                    importance.at[index, "Test Correlation"] = test_correlation
+
                 importance_per_marker.append(importance)
 
             # y_hat_df.to_csv(Path(save_path, f"{args.marker}_predictions.csv"), index=False, header=False)
@@ -140,6 +151,9 @@ if __name__ == '__main__':
         most_important_markers = importance_per_marker[importance_per_marker["Target"] == target].sort_values(
             "Importance", ascending=False)[:3]
 
+        most_correlated_markers = importance_per_marker[importance_per_marker["Target"] == target].sort_values(
+            "Train Correlation", ascending=False)[:3]
+
         X = train_df[most_important_markers["Markers"].values]
         y = train_df[target]
 
@@ -175,3 +189,48 @@ if __name__ == '__main__':
 
     results = pd.DataFrame(results)
     results.to_csv(Path(save_path, f"results_top_3.csv"), index=False, header=True)
+
+    results = []
+    # for each marker select the 3 most predicitve markers
+    for target in importance_per_marker["Target"].unique():
+        most_important_markers = importance_per_marker[importance_per_marker["Target"] == target].sort_values(
+            "Importance", ascending=False)[:3]
+
+        cols = [col for col in train_df.columns if col not in most_important_markers["Markers"].values]
+        cols.remove(target)
+
+        X = train_df[cols]
+        y = train_df[target]
+
+        elastic_net = ElasticNetCV(cv=5, random_state=0)
+        elastic_net.fit(X, y)
+
+        X_test = test_df[cols]
+        y_test = test_df[target]
+
+        y_hat = elastic_net.predict(X_test)
+        y_hat_df = pd.DataFrame(y_hat, columns=[target])
+
+        # select mae for target from results_per_marker where train marker is ER
+        target_mae_full_panel = \
+            results_per_marker[(results_per_marker["Target"] == target) & (results_per_marker["Full Panel"] == 1)][
+                "MAE"].values[0]
+
+        target_rmse_full_panel = \
+            results_per_marker[(results_per_marker["Target"] == target) & (results_per_marker["Full Panel"] == 1)][
+                "RMSE"].values[0]
+
+        results.append({
+            "Patient": patient,
+            "MAE": mean_absolute_error(y_test, y_hat),
+            "RMSE": mean_squared_error(y_test, y_hat, squared=False),
+            "Target": target,
+            "MOI": most_important_markers["Markers"].values,
+            "MAE_FP": target_mae_full_panel,
+            "RMSE_FP": target_rmse_full_panel,
+            "Biopsy": test_biopsy,
+            "Mode": mode,
+        })
+
+    results = pd.DataFrame(results)
+    results.to_csv(Path(save_path, f"results_excluded_top_3.csv"), index=False, header=True)
