@@ -11,4 +11,6 @@
 #SBATCH --mail-type=FAIL,END
 #SBATCH --mail-user=kirchgae@ohsu.edu
 
-python3 ./plots/ludwig/evaluate_prediction_accurancy_in_quartiles.py
+spatial=$1
+
+python3 ./plots/ludwig/evaluate_prediction_accurancy_in_quartiles.py --sp ${spatial}
