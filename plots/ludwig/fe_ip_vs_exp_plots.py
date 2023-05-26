@@ -11,8 +11,6 @@ from statannotations.Annotator import Annotator
 
 biopsies = ["9 2 1", "9 2 2", "9 3 1", "9 3 2", "9 14 1", "9 14 2", "9 15 1", "9 15 2"]
 
-ip_folder = Path("ip_plots")
-op_folder = Path("op_plots")
 save_path = Path("plots/ludwig/fe_ip_vs_op")
 
 
@@ -78,7 +76,7 @@ def create_boxen_plot_per_segmentation(data: pd.DataFrame, metric: str, title: s
         fig = plt.figure(figsize=(13, 5), dpi=200)
     else:
         fig = plt.figure(figsize=(15, 5), dpi=200)
-    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Type")
+    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Mode")
 
     # plt.title(title)
     # remove y axis label
@@ -97,25 +95,25 @@ def create_boxen_plot_per_segmentation(data: pd.DataFrame, metric: str, title: s
     # remove legend from fig
     plt.legend().set_visible(False)
 
-    hue = "Type"
-    hue_order = ["IP", "OP"]
+    hue = "Mode"
+    hue_order = ["IP", "EXP"]
     pairs = [
-        (("pRB", "IP"), ("pRB", "OP")),
-        (("CD45", "IP"), ("CD45", "OP")),
-        (("CK19", "IP"), ("CK19", "OP")),
-        (("Ki67", "IP"), ("Ki67", "OP")),
-        (("aSMA", "IP"), ("aSMA", "OP")),
-        (("Ecad", "IP"), ("Ecad", "OP")),
-        (("PR", "IP"), ("PR", "OP")),
-        (("CK14", "IP"), ("CK14", "OP")),
-        (("HER2", "IP"), ("HER2", "OP")),
-        (("AR", "IP"), ("AR", "OP")),
-        (("CK17", "IP"), ("CK17", "OP")),
-        (("p21", "IP"), ("p21", "OP")),
-        (("Vimentin", "IP"), ("Vimentin", "OP")),
-        (("pERK", "IP"), ("pERK", "OP")),
-        (("EGFR", "IP"), ("EGFR", "OP")),
-        (("ER", "IP"), ("ER", "OP")),
+        (("pRB", "IP"), ("pRB", "EXP")),
+        (("CD45", "IP"), ("CD45", "EXP")),
+        (("CK19", "IP"), ("CK19", "EXP")),
+        (("Ki67", "IP"), ("Ki67", "EXP")),
+        (("aSMA", "IP"), ("aSMA", "EXP")),
+        (("Ecad", "IP"), ("Ecad", "EXP")),
+        (("PR", "IP"), ("PR", "EXP")),
+        (("CK14", "IP"), ("CK14", "EXP")),
+        (("HER2", "IP"), ("HER2", "EXP")),
+        (("AR", "IP"), ("AR", "EXP")),
+        (("CK17", "IP"), ("CK17", "EXP")),
+        (("p21", "IP"), ("p21", "EXP")),
+        (("Vimentin", "IP"), ("Vimentin", "EXP")),
+        (("pERK", "IP"), ("pERK", "EXP")),
+        (("EGFR", "IP"), ("EGFR", "EXP")),
+        (("ER", "IP"), ("ER", "EXP")),
     ]
     order = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
              'pERK', 'EGFR', 'ER']
@@ -173,8 +171,6 @@ if __name__ == '__main__':
     if args.markers:
         scores = scores[scores["Marker"].isin(args.markers)]
 
-
-
     # Create bar plot which compares in patient performance of the different segementations for each biopsy
     # The bar plot should be saved in the plots folder
 
@@ -186,17 +182,17 @@ if __name__ == '__main__':
     # Plot mesmer
     mae_performance_data_mesmer = mae_performance_data[mae_performance_data["Segmentation"] == "Mesmer"].copy()
     mae_performance_data_mesmer.drop(columns=["SNR"], inplace=True)
-    plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "MAE", "Mesmer", folder=ip_folder,
-                                              file_name=f"ludwig_ip_{spatial_distance}_mesmer_mae_heatmap")
-    plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "MSE", "Mesmer", folder=ip_folder,
-                                              file_name=f"ludwig_ip_{spatial_distance}_mesmer_mse_heatmap")
-    plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "RMSE", "Mesmer", folder=ip_folder,
-                                              file_name=
-                                              f"ludwig_ip_{spatial_distance}_mesmer_rmse_heatmap")
+    # plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "MAE", "Mesmer", folder=ip_folder,
+    #                                          file_name=f"ludwig_ip_{spatial_distance}_mesmer_mae_heatmap")
+    # plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "MSE", "Mesmer", folder=ip_folder,
+    #                                          file_name=f"ludwig_ip_{spatial_distance}_mesmer_mse_heatmap")
+    # plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "RMSE", "Mesmer", folder=ip_folder,
+    #                                          file_name=
+    #                                          f"ludwig_ip_{spatial_distance}_mesmer_rmse_heatmap")
 
     # Out Patient
 
-    op_mae_scores = scores[scores["Type"] == "OP"].copy()
+    op_mae_scores = scores[scores["Type"] == "EXP"].copy()
 
     mae_performance_data = op_mae_scores.copy()
     mae_performance_data.drop(columns=["Type", "FE", "Mode", "Hyper", "Panel"], inplace=True)
@@ -204,13 +200,13 @@ if __name__ == '__main__':
     # Plot mesmer
     mae_performance_data_mesmer = mae_performance_data[mae_performance_data["Segmentation"] == "Mesmer"].copy()
     mae_performance_data_mesmer.drop(columns=["SNR"], inplace=True)
-    plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "MAE", "Mesmer", folder=op_folder,
-                                              file_name=f"ludwig_op_{spatial_distance}_mesmer_mae_heatmap")
-    plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "MSE", "Mesmer", folder=op_folder,
-                                              file_name=f"ludwig_op_{spatial_distance}_mesmer_mse_heatmap")
-    plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "RMSE", "Mesmer", folder=op_folder,
-                                              file_name=
-                                              f"ludwig_op_{spatial_distance}_mesmer_rmse_heatmap")
+    # plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "MAE", "Mesmer", folder=op_folder,
+    #                                          file_name=f"ludwig_op_{spatial_distance}_mesmer_mae_heatmap")
+    # plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "MSE", "Mesmer", folder=op_folder,
+    #                                          file_name=f"ludwig_op_{spatial_distance}_mesmer_mse_heatmap")
+    # plot_performance_heatmap_per_segmentation(mae_performance_data_mesmer, "RMSE", "Mesmer", folder=op_folder,
+    #                                          file_name=
+    #                                          f"ludwig_op_{spatial_distance}_mesmer_rmse_heatmap")
 
     # Violin plots for out & in patient data for each segmentation
 
@@ -232,9 +228,9 @@ if __name__ == '__main__':
             rmse_file_name = f"{segmentation.lower()}_rmse_boxen"
 
         create_boxen_plot_per_segmentation(data=data_seg, metric="MAE",
-                                           title=f"In & Out patient performance using spatial feature engineering",
+                                           title=f"In & EXP patient performance using spatial feature engineering",
                                            file_name=mae_file_name, save_folder=save_path, ylim=y_lim)
 
         create_boxen_plot_per_segmentation(data=data_seg, metric="RMSE",
-                                           title=f"In & Out patient performance using spatial feature engineering",
+                                           title=f"In & EXP patient performance using spatial feature engineering",
                                            file_name=rmse_file_name, save_folder=save_path, ylim=y_lim)

@@ -13,22 +13,20 @@ from statannotations.Annotator import Annotator
 
 biopsies = ["9 2 1", "9 2 2", "9 3 1", "9 3 2", "9 14 1", "9 14 2", "9 15 1", "9 15 2"]
 
-ludwig_ip_source_path = Path("data/scores/Mesmer/in_patient/Ludwig")
-sp_23_ip_source_path = Path("data/scores/Mesmer/in_patient/Ludwig_sp_23")
-sp_46_ip_source_path = Path("data/scores/Mesmer/in_patient/Ludwig_sp_46")
-sp_92_ip_source_path = Path("data/scores/Mesmer/in_patient/Ludwig_sp_92")
-sp_138_ip_source_path = Path("data/scores/Mesmer/in_patient/Ludwig_sp_138")
-sp_184_ip_source_path = Path("data/scores/Mesmer/in_patient/Ludwig_sp_184")
+ludwig_ip_source_path = Path("data/scores/Mesmer/ip/Ludwig")
+sp_23_ip_source_path = Path("data/scores/Mesmer/ip/Ludwig_sp_23")
+sp_46_ip_source_path = Path("data/scores/Mesmer/ip/Ludwig_sp_46")
+sp_92_ip_source_path = Path("data/scores/Mesmer/ip/Ludwig_sp_92")
+sp_138_ip_source_path = Path("data/scores/Mesmer/ip/Ludwig_sp_138")
+sp_184_ip_source_path = Path("data/scores/Mesmer/ip/Ludwig_sp_184")
 
-ludwig_op_source_path = Path("data/scores/Mesmer/out_patient/Ludwig")
-sp_23_op_source_path = Path("data/scores/Mesmer/out_patient/Ludwig_sp_23")
-sp_46_op_source_path = Path("data/scores/Mesmer/out_patient/Ludwig_sp_46")
-sp_92_op_source_path = Path("data/scores/Mesmer/out_patient/Ludwig_sp_92")
-sp_138_op_source_path = Path("data/scores/Mesmer/out_patient/Ludwig_sp_138")
-sp_184_op_source_path = Path("data/scores/Mesmer/out_patient/Ludwig_sp_184")
+ludwig_op_source_path = Path("data/scores/Mesmer/exp/Ludwig")
+sp_23_op_source_path = Path("data/scores/Mesmer/exp/Ludwig_sp_23")
+sp_46_op_source_path = Path("data/scores/Mesmer/exp/Ludwig_sp_46")
+sp_92_op_source_path = Path("data/scores/Mesmer/exp/Ludwig_sp_92")
+sp_138_op_source_path = Path("data/scores/Mesmer/exp/Ludwig_sp_138")
+sp_184_op_source_path = Path("data/scores/Mesmer/exp/Ludwig_sp_184")
 
-ip_folder = Path("ip_plots")
-op_folder = Path("op_plots")
 save_path = Path("plots/ludwig/fe_vs_no_fe")
 
 
@@ -116,7 +114,7 @@ if __name__ == '__main__':
     parser.add_argument("-m", "--markers", nargs='+', help="Markers to be plotted", default=None)
     parser.add_argument("-sp", "--spatial", type=int, help="Spatial distance", default=46,
                         choices=[23, 46, 92, 138, 184])
-    parser.add_argument("--mode", type=str, default="ip", choices=["ip", "op"])
+    parser.add_argument("--mode", type=str, default="ip", choices=["ip", "exp"])
     parser.add_argument("--metric", type=str, default="MAE", choices=["RMSE", "MAE"])
     args = parser.parse_args()
 
@@ -182,11 +180,15 @@ if __name__ == '__main__':
     # combine both dataframes
     scores = pd.concat([fe_scores, no_fe_scores], axis=0)
     # duplicate each row in scores
-    scores = pd.concat([scores] * 30, ignore_index=True)
+    # scores = pd.concat([scores] * 30, ignore_index=True)
+    # convert Nan to 0
+    scores["FE"] = scores["FE"].fillna(0)
+    # convert fe to int
+    scores["FE"] = scores["FE"].astype(int)
 
     # rename sp_23 to 23 µm
     scores["FE"] = scores["FE"].replace(
-        {"None": "0 µm", "sp_23": "23 µm", "sp_46": "46 µm", "sp_92": "92 µm", "sp_138": "138 µm"})
+        {0: "0 µm", 23: "23 µm", 46: "46 µm", 92: "92 µm", 138: "138 µm"})
 
     print(scores)
 
@@ -204,6 +206,6 @@ if __name__ == '__main__':
         y_lim = [0, 0.6]
 
     create_boxen_plot_per_segmentation(data=scores, score=metric.upper(),
-                                       title=f"In & Out patient performance using spatial feature engineering",
+                                       title=f"In & EXP patient performance using spatial feature engineering",
                                        file_name=file_name, save_folder=save_path, ylim=y_lim, color_palette=my_pal,
                                        spatial_distance=f"{spatial_distance} µm")

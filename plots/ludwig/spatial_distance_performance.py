@@ -6,19 +6,19 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from pandas.api.types import CategoricalDtype
 
-ludwig_ip_source_path = Path("data/scores/Mesmer/in_patient/Ludwig")
-sp_23_ip_source_path = Path("data/scores/Mesmer/in_patient/Ludwig_sp_23")
-sp_46_ip_source_path = Path("data/scores/Mesmer/in_patient/Ludwig_sp_46")
-sp_92_ip_source_path = Path("data/scores/Mesmer/in_patient/Ludwig_sp_92")
-sp_138_ip_source_path = Path("data/scores/Mesmer/in_patient/Ludwig_sp_138")
-sp_184_ip_source_path = Path("data/scores/Mesmer/in_patient/Ludwig_sp_184")
+ludwig_ip_source_path = Path("data/scores/Mesmer/ip/Ludwig")
+sp_23_ip_source_path = Path("data/scores/Mesmer/ip/Ludwig_sp_23")
+sp_46_ip_source_path = Path("data/scores/Mesmer/ip/Ludwig_sp_46")
+sp_92_ip_source_path = Path("data/scores/Mesmer/ip/Ludwig_sp_92")
+sp_138_ip_source_path = Path("data/scores/Mesmer/ip/Ludwig_sp_138")
+sp_184_ip_source_path = Path("data/scores/Mesmer/ip/Ludwig_sp_184")
 
-ludwig_op_source_path = Path("data/scores/Mesmer/out_patient/Ludwig")
-sp_23_op_source_path = Path("data/scores/Mesmer/out_patient/Ludwig_sp_23")
-sp_46_op_source_path = Path("data/scores/Mesmer/out_patient/Ludwig_sp_46")
-sp_92_op_source_path = Path("data/scores/Mesmer/out_patient/Ludwig_sp_92")
-sp_138_op_source_path = Path("data/scores/Mesmer/out_patient/Ludwig_sp_138")
-sp_184_op_source_path = Path("data/scores/Mesmer/out_patient/Ludwig_sp_184")
+ludwig_op_source_path = Path("data/scores/Mesmer/exp/Ludwig")
+sp_23_op_source_path = Path("data/scores/Mesmer/exp/Ludwig_sp_23")
+sp_46_op_source_path = Path("data/scores/Mesmer/exp/Ludwig_sp_46")
+sp_92_op_source_path = Path("data/scores/Mesmer/exp/Ludwig_sp_92")
+sp_138_op_source_path = Path("data/scores/Mesmer/exp/Ludwig_sp_138")
+sp_184_op_source_path = Path("data/scores/Mesmer/exp/Ludwig_sp_184")
 
 save_path = Path("plots/ludwig/fe_vs_no_fe")
 
@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--markers", nargs='+', help="Markers to be plotted", default=None)
-    parser.add_argument("--mode", type=str, default="ip", choices=["ip", "op"])
+    parser.add_argument("--mode", type=str, default="ip", choices=["ip", "exp"])
     parser.add_argument("--metric", type=str, default="MAE", choices=["RMSE", "MAE"])
     args = parser.parse_args()
 
@@ -90,16 +90,8 @@ if __name__ == '__main__':
 
     temp = scores.groupby(["Marker", "FE"]).mean().reset_index()
 
-    # rename None in the Fe column to No FE
-    temp.replace(to_replace={"FE": {"None": "0"}}, inplace=True)
-    temp.replace(to_replace={"FE": {"sp_23": "23"}}, inplace=True)
-    temp.replace(to_replace={"FE": {"sp_46": "46"}}, inplace=True)
-    temp.replace(to_replace={"FE": {"sp_92": "92"}}, inplace=True)
-    temp.replace(to_replace={"FE": {"sp_138": "138"}}, inplace=True)
-    temp.replace(to_replace={"FE": {"sp_184": "184"}}, inplace=True)
-
     cat_size_order = CategoricalDtype(
-        ["0", "23", "46", "92", "138", "184"],
+        [0, 23, 46, 92, 138, 184],
         ordered=True
     )
     temp['FE'] = temp['FE'].astype(cat_size_order)
@@ -114,6 +106,3 @@ if __name__ == '__main__':
     # move legend
     plt.legend(bbox_to_anchor=(1.05, 1))
     plt.savefig(Path(save_path, f"{metric}_spatial_performance.png"), bbox_inches='tight')
-
-
-

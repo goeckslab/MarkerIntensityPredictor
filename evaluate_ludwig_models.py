@@ -95,9 +95,9 @@ if __name__ == '__main__':
                             "MSE": eval_stats[marker]['mean_squared_error'],
                             "RMSE": eval_stats[marker]['root_mean_squared_error'],
                             "Biopsy": test_biopsy_name,
-                            "Type": mode,
+                            "Mode": mode,
                             "FE": spatial_radius if spatial_radius is not None else 0,
-                            "Mode": "Ludwig",
+                            "Network": "Ludwig",
                             "Hyper": 0,
                             "Load Path": str(Path(results_path, experiment, 'model'))
                         }
