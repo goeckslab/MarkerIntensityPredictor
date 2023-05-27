@@ -1,9 +1,0 @@
-combiner:
-  num_fc_layers: 1
-  type: tabnet
-model_type: gbm
-training:
-  early_stop: 10
-  learning_rate: 0.002073171926369454
-  optimizer:
-    type: adam
