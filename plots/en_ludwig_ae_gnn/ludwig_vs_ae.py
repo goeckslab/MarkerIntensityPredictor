@@ -42,24 +42,24 @@ def create_boxen_plot_per_segmentation(data: pd.DataFrame, metric: str, title: s
     # plt.legend().set_visible(False)
 
     hue = "Mode"
-    hue_order = ["Ludwig", "AE"]
+    hue_order = ["Light GBM", "AE"]
     pairs = [
-        (("pRB", "Ludwig"), ("pRB", "AE")),
-        (("CD45", "Ludwig"), ("CD45", "AE")),
-        (("CK19", "Ludwig"), ("CK19", "AE")),
-        (("Ki67", "Ludwig"), ("Ki67", "AE")),
-        (("aSMA", "Ludwig"), ("aSMA", "AE")),
-        (("Ecad", "Ludwig"), ("Ecad", "AE")),
-        (("PR", "Ludwig"), ("PR", "AE")),
-        (("CK14", "Ludwig"), ("CK14", "AE")),
-        (("HER2", "Ludwig"), ("HER2", "AE")),
-        (("AR", "Ludwig"), ("AR", "AE")),
-        (("CK17", "Ludwig"), ("CK17", "AE")),
-        (("p21", "Ludwig"), ("p21", "AE")),
-        (("Vimentin", "Ludwig"), ("Vimentin", "AE")),
-        (("pERK", "Ludwig"), ("pERK", "AE")),
-        (("EGFR", "Ludwig"), ("EGFR", "AE")),
-        (("ER", "Ludwig"), ("ER", "AE")),
+        (("pRB", "Light GBM"), ("pRB", "AE")),
+        (("CD45", "Light GBM"), ("CD45", "AE")),
+        (("CK19", "Light GBM"), ("CK19", "AE")),
+        (("Ki67", "Light GBM"), ("Ki67", "AE")),
+        (("aSMA", "Light GBM"), ("aSMA", "AE")),
+        (("Ecad", "Light GBM"), ("Ecad", "AE")),
+        (("PR", "Light GBM"), ("PR", "AE")),
+        (("CK14", "Light GBM"), ("CK14", "AE")),
+        (("HER2", "Light GBM"), ("HER2", "AE")),
+        (("AR", "Light GBM"), ("AR", "AE")),
+        (("CK17", "Light GBM"), ("CK17", "AE")),
+        (("p21", "Light GBM"), ("p21", "AE")),
+        (("Vimentin", "Light GBM"), ("Vimentin", "AE")),
+        (("pERK", "Light GBM"), ("pERK", "AE")),
+        (("EGFR", "Light GBM"), ("EGFR", "AE")),
+        (("ER", "Light GBM"), ("ER", "AE")),
     ]
     order = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
              'pERK', 'EGFR', 'ER']
@@ -102,7 +102,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--markers", nargs='+', help="Markers to be plotted", default=None)
-    parser.add_argument("--mode", choices=["ip", "op", "exp"], type=str, default="ip")
+    parser.add_argument("--mode", choices=["ip", "exp"], type=str, default="ip")
     parser.add_argument("-rv", "--replace_value", choices=["mean", "zero"], default="mean")
     parser.add_argument("-an", "--an", action="store_true", default=False)
     parser.add_argument("--metric", choices=["mae", "rmse"], default="mae")
@@ -130,11 +130,8 @@ if __name__ == '__main__':
 
     print(mode)
     if mode == 'ip':
-        ludwig_scores = load_scores(f"data/scores/Mesmer/in_patient/Ludwig")
+        ludwig_scores = load_scores(f"data/scores/Mesmer/ip/Ludwig")
         ae_scores = load_ae_scores(mode="ip", replace_value=replace_value, add_noise=add_noise, spatial=0)
-    elif mode == 'op':
-        ludwig_scores = load_scores(f"data/scores/Mesmer/out_patient/Ludwig")
-        ae_scores =  load_ae_scores(mode="op", replace_value=replace_value, add_noise=add_noise, spatial=0)
     elif mode == 'exp':
         ludwig_scores = load_scores(f"data/scores/Mesmer/exp/Ludwig")
         ae_scores = load_ae_scores(mode="exp", replace_value=replace_value, add_noise=add_noise, spatial=0)
