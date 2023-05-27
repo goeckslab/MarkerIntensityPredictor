@@ -28,6 +28,17 @@ if __name__ == '__main__':
                 print(f"Loading path: {Path(root, sub_directory)}")
                 scores = pd.read_csv(Path(root, sub_directory, "scores.csv"))
                 scores["Load Path"] = str(Path(current_path))
+                mode = scores["Type"].iloc[0]
+                network = scores["Mode"].iloc[0]
+
+                # Correct data frame columns
+                scores["Mode"] = mode
+                scores["Network"] = network
+
+                if 'Type' in scores.columns:
+                    # delete column type
+                    del scores["Type"]
+
                 all_scores.append(scores)
 
                 loaded_files += 1
