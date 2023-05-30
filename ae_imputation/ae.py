@@ -103,24 +103,53 @@ def create_noise(shape: [], columns: List[str]):
     return pd.DataFrame(data=np.random.normal(mu, sigma, shape), columns=columns)
 
 
-def append_scores_per_iteration(scores: List, ground_truth: pd.DataFrame, predictions: pd.DataFrame, hp: bool,
-                                type: str, iteration: int, marker: str, spatial_radius: int, experiment_id: int,
-                                replace_value: str, add_noise: bool):
-    scores.append({
-        "Marker": marker,
-        "Biopsy": test_biopsy_name,
-        "MAE": mean_absolute_error(predictions[marker], ground_truth[marker]),
-        "RMSE": mean_squared_error(predictions[marker], ground_truth[marker], squared=False),
-        "HP": int(hp),
-        "Type": type,
-        "Imputation": 1,
-        "Iteration": iteration,
-        "FE": spatial_radius,
-        "Experiment": experiment_id,
-        "Mode": "AE",
-        "Noise": int(add_noise),
-        "Replace Value": replace_value
-    })
+def impute_markers(scores: List, ground_truth: pd.DataFrame, predictions: pd.DataFrame, hp: bool,
+                   mode: str, spatial_radius: int, experiment_id: int,
+                   replace_value: str, add_noise: bool):
+    for marker in train_data.columns:
+        # copy the test data
+        input_data = test_data.copy()
+        if replace_value == "zero":
+            input_data[marker] = 0
+        elif replace_value == "mean":
+            input_data[marker] = input_data[marker].mean()
+
+        marker_prediction = input_data.copy()
+        for iteration in range(iterations):
+            predicted_intensities = ae.decoder.predict(ae.encoder.predict(marker_prediction))
+            predicted_intensities = pd.DataFrame(data=predicted_intensities, columns=ground_truth.columns)
+            predictions[iteration][marker] = predicted_intensities[marker].values
+
+            if not replace_all_markers:
+                imputed_marker = predicted_intensities[marker].values
+                marker_prediction = input_data.copy()
+                marker_prediction[marker] = imputed_marker
+
+                if add_noise:
+                    noise = create_noise(shape=marker_prediction.shape, columns=ground_truth.columns)
+                    marker_prediction[marker] = marker_prediction[marker].values + noise[marker].values
+
+            else:
+                marker_prediction = predicted_intensities.copy()
+                if add_noise:
+                    noise = create_noise(shape=marker_prediction.shape, columns=ground_truth.columns)
+                    marker_prediction = marker_prediction + noise
+
+            scores.append({
+                "Marker": marker,
+                "Biopsy": test_biopsy_name,
+                "MAE": mean_absolute_error(predictions[marker], ground_truth[marker]),
+                "RMSE": mean_squared_error(predictions[marker], ground_truth[marker], squared=False),
+                "HP": int(hp),
+                "Mode": mode,
+                "Imputation": 1,
+                "Iteration": iteration,
+                "FE": spatial_radius,
+                "Experiment": experiment_id,
+                "Network": "AE",
+                "Noise": int(add_noise),
+                "Replace Value": replace_value
+            })
 
 
 def create_results_folder(spatial_radius: str) -> [Path, int]:
@@ -156,7 +185,6 @@ def create_results_folder(spatial_radius: str) -> [Path, int]:
                 experiment_id += 1
                 save_path = Path(str(base_path) + "_" + str(experiment_id))
 
-
     return save_path, experiment_id - 1 if experiment_id != 0 else 0
 
 
@@ -188,22 +216,20 @@ if __name__ == '__main__':
     print("Replace value: ", replace_value)
     print("Add noise: ", add_noise)
 
-    if hp:
-        print("Using hyper parameter tuning")
-        hyperopt_directory = Path("ae/ae_hyperopt")
-        if not hyperopt_directory.exists():
-            hyperopt_directory.mkdir(parents=True, exist_ok=True)
-
     # Load test data
     test_biopsy_name = args.biopsy
     patient: str = "_".join(Path(test_biopsy_name).stem.split("_")[:2])
 
     save_folder, experiment_id = create_results_folder(spatial_radius=spatial)
 
-    hyperopt_project_name = f"{test_biopsy_name}_{patient_type}_hp"
-    if hp and args.override:
-        print("Overriding hyperopt")
-        shutil.rmtree(f"{hyperopt_directory}/{hyperopt_project_name}")
+    if hp:
+        print("Using hyper parameter tuning")
+        hyperopt_project_name = f"{test_biopsy_name}_{patient_type}_hp"
+        hyperopt_directory = Path("ae/ae_hyperopt")
+        hyper_opt_project_directory = Path(hyperopt_directory, hyperopt_project_name)
+        if hyper_opt_project_directory.exists():
+            shutil.rmtree(hyper_opt_project_directory)
+        hyper_opt_project_directory.mkdir(parents=True, exist_ok=True)
 
     # Load train data
     if patient_type == "ip":
@@ -219,7 +245,6 @@ if __name__ == '__main__':
         print(f"Train biopsy being loaded: {train_biopsy_name}")
 
         base_path = "data/tumor_mesmer" if spatial == "0" else f"data/tumor_mesmer_sp_{spatial}"
-
 
         # Load train data
         train_data = pd.read_csv(f'{base_path}/{train_biopsy_name}.csv')
@@ -289,7 +314,11 @@ if __name__ == '__main__':
     for i in range(iterations):
         predictions[i] = pd.DataFrame(columns=test_data.columns)
 
-    if not hp:
+    if hp:
+        # Hyperopt section
+        ae = Hyperopt.run(hyperopt_project_name=hyperopt_project_name, train_data=train_data, val_data=val_data)
+
+    else:
         # Create ae
         callbacks = [EarlyStopping(monitor='val_loss', patience=5)]
         ae = AutoEncoder(input_dim=train_data.shape[1], latent_dim=5)
@@ -297,67 +326,10 @@ if __name__ == '__main__':
         history = ae.fit(train_data, train_data, epochs=100, batch_size=32, shuffle=True,
                          validation_data=(val_data, val_data), callbacks=callbacks)
 
-        for marker in train_data.columns:
-            # copy the test data
-            input_data = test_data.copy()
-            if replace_value == "zero":
-                input_data[marker] = 0
-            elif replace_value == "mean":
-                input_data[marker] = input_data[marker].mean()
-
-            marker_prediction = input_data.copy()
-            for i in range(iterations):
-                predicted_intensities = ae.decoder.predict(ae.encoder.predict(marker_prediction))
-                predicted_intensities = pd.DataFrame(data=predicted_intensities, columns=test_data.columns)
-                predictions[i][marker] = predicted_intensities[marker].values
-
-                if not replace_all_markers:
-                    imputed_marker = predicted_intensities[marker].values
-                    marker_prediction = input_data.copy()
-                    marker_prediction[marker] = imputed_marker
-
-                    if add_noise:
-                        noise = create_noise(shape=marker_prediction.shape, columns=test_data.columns)
-                        marker_prediction[marker] = marker_prediction[marker].values + noise[marker].values
-
-                else:
-                    marker_prediction = predicted_intensities.copy()
-                    if add_noise:
-                        noise = create_noise(shape=marker_prediction.shape, columns=test_data.columns)
-                        marker_prediction = marker_prediction + noise
-
-                append_scores_per_iteration(scores=scores, predictions=marker_prediction, ground_truth=test_data, hp=hp,
-                                            type=patient_type, iteration=i, marker=marker, spatial_radius=spatial,
-                                            experiment_id=experiment_id, replace_value=replace_value, add_noise=add_noise)
-
-    else:
-        # Hyperopt section
-        ae = Hyperopt.run(hyperopt_project_name=hyperopt_project_name, train_data=train_data, val_data=val_data)
-
-        predictions = pd.DataFrame(columns=test_data.columns)
-        for marker in train_data.columns:
-            # copy the test data
-            input_data = test_data.copy()
-            if replace_value == "zero":
-                input_data[marker] = 0
-            elif replace_value == "mean":
-                input_data[marker] = input_data[marker].mean()
-
-            marker_prediction = input_data.copy()
-
-            for i in range(iterations):
-                marker_prediction = ae.predict(marker_prediction)
-                marker_prediction = pd.DataFrame(data=marker_prediction, columns=test_data.columns)
-                predictions[i][marker] = marker_prediction[marker].values
-
-                if not replace_all_markers:
-                    imputed_marker = marker_prediction[marker].values
-                    marker_prediction = input_data.copy()
-                    marker_prediction[marker] = imputed_marker
-
-                append_scores_per_iteration(scores=scores, predictions=marker_prediction, ground_truth=test_data, hp=hp,
-                                            type=patient_type, iteration=i, marker=marker, spatial_radius=int(spatial),
-                                            experiment_id=experiment_id, replace_value=replace_value, add_noise=add_noise)
+    # Predict
+    impute_markers(scores=scores, predictions=predictions, hp=hp, mode=patient_type, spatial_radius=spatial,
+                   experiment_id=experiment_id, replace_value=replace_value, add_noise=add_noise,
+                   ground_truth=test_data)
 
     # Convert to df
     scores = pd.DataFrame(scores)
