@@ -247,8 +247,8 @@ if __name__ == '__main__':
 
     if hp:
         print("Using hyper parameter tuning")
-        hyperopt_project_name = f"{test_biopsy_name}_{patient_type}_hp"
-        hyperopt_directory = Path("ae/ae_hyperopt")
+        hyperopt_project_name = f"{test_biopsy_name}_{patient_type}_{spatial}_hp"
+        hyperopt_directory = Path("ae_imputation/ae_hyperopt")
         hyper_opt_project_directory = Path(hyperopt_directory, hyperopt_project_name)
         if hyper_opt_project_directory.exists():
             shutil.rmtree(hyper_opt_project_directory)
@@ -368,3 +368,6 @@ if __name__ == '__main__':
         for key, value in predictions.items():
             value.to_csv(f"{save_folder}/{key}_hp_predictions.csv",
                          index=False)
+
+    if hp:
+        shutil.rmtree(hyper_opt_project_directory)

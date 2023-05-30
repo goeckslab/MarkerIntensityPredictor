@@ -5,6 +5,8 @@ error_reports/
 gnn/data/*
 gnn/results/*
 
+ae_imputation/ae_hyperopt
+
 
 phenotyping
 Jupyter/**
