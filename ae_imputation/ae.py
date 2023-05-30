@@ -247,7 +247,7 @@ if __name__ == '__main__':
 
     if hp:
         print("Using hyper parameter tuning")
-        hyperopt_project_name = f"{test_biopsy_name}_{patient_type}_{spatial}_hp"
+        hyperopt_project_name = f"{test_biopsy_name}_{patient_type}_{spatial}_{add_noise}_{replace_value}_hp"
         hyperopt_directory = Path("ae_imputation/ae_hyperopt")
         hyper_opt_project_directory = Path(hyperopt_directory, hyperopt_project_name)
         if hyper_opt_project_directory.exists():
