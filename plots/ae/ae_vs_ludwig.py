@@ -16,6 +16,7 @@ def load_ae_scores(mode: str, replace_value: str, add_noise: str, spatial: int) 
     all_scores = all_scores[all_scores["Replace Value"] == replace_value]
     all_scores = all_scores[all_scores["Noise"] == noise]
     all_scores = all_scores[all_scores["FE"] == spatial]
+    all_scores = all_scores[all_scores["HP"] == 0]
     return all_scores
 
 

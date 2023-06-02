@@ -14,8 +14,8 @@ SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', '
 save_path = Path("plots/en_ludwig_ae_gnn/ludwig_vs_ae_vs_gnn")
 
 
-def create_boxen_plot_per_segmentation(data: pd.DataFrame, metric: str, title: str, save_folder: Path, file_name: str,
-                                       ylim: List):
+def create_boxen_plot(data: pd.DataFrame, metric: str, title: str, save_folder: Path, file_name: str,
+                      ylim: List):
     data["Biopsy"] = data["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
     if args.markers:
         fig = plt.figure(figsize=(13, 5), dpi=200)
@@ -42,7 +42,7 @@ def create_boxen_plot_per_segmentation(data: pd.DataFrame, metric: str, title: s
     # plt.legend().set_visible(False)
 
     hue = "Network"
-    hue_order = [ "Light GBM", "AE", "GNN"]
+    hue_order = ["Light GBM", "AE", "GNN"]
     pairs = [
         (("pRB", "Light GBM"), ("pRB", "AE")),
         (("CD45", "Light GBM"), ("CD45", "AE")),
@@ -76,6 +76,22 @@ def create_boxen_plot_per_segmentation(data: pd.DataFrame, metric: str, title: s
         (("pERK", "Light GBM"), ("pERK", "GNN")),
         (("EGFR", "Light GBM"), ("EGFR", "GNN")),
         (("ER", "Light GBM"), ("ER", "GNN")),
+        (("pRB", "AE"), ("pRB", "GNN")),
+        (("CD45", "AE"), ("CD45", "GNN")),
+        (("CK19", "AE"), ("CK19", "GNN")),
+        (("Ki67", "AE"), ("Ki67", "GNN")),
+        (("aSMA", "AE"), ("aSMA", "GNN")),
+        (("Ecad", "AE"), ("Ecad", "GNN")),
+        (("PR", "AE"), ("PR", "GNN")),
+        (("CK14", "AE"), ("CK14", "GNN")),
+        (("HER2", "AE"), ("HER2", "GNN")),
+        (("AR", "AE"), ("AR", "GNN")),
+        (("CK17", "AE"), ("CK17", "GNN")),
+        (("p21", "AE"), ("p21", "GNN")),
+        (("Vimentin", "AE"), ("Vimentin", "GNN")),
+        (("pERK", "AE"), ("pERK", "GNN")),
+        (("EGFR", "AE"), ("EGFR", "GNN")),
+        (("ER", "AE"), ("ER", "GNN")),
 
     ]
     order = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
@@ -106,16 +122,17 @@ def load_scores(load_path: str):
 def load_ae_scores(mode: str, replace_value: str, add_noise: str, spatial: int):
     all_scores = pd.read_csv(Path("data", "scores", "ae", "scores.csv"))
     noise: int = 1 if add_noise == "noise" else 0
-    all_scores = all_scores[all_scores["Type"] == mode]
+    all_scores = all_scores[all_scores["Mode"] == mode]
     all_scores = all_scores[all_scores["Replace Value"] == replace_value]
     all_scores = all_scores[all_scores["Noise"] == noise]
     all_scores = all_scores[all_scores["FE"] == spatial]
+    all_scores = all_scores[all_scores["HP"] == 0]
     return all_scores
 
 
 def load_gnn_scores(mode: str, replace_value: str, spatial: int):
-    all_scores = pd.read_csv(Path("data", "scores", "ae", "scores.csv"))
-    all_scores = all_scores[all_scores["Type"] == mode]
+    all_scores = pd.read_csv(Path("data", "scores", "gnn", "scores.csv"))
+    all_scores = all_scores[all_scores["Mode"] == mode]
     all_scores = all_scores[all_scores["Replace Value"] == replace_value]
     all_scores = all_scores[all_scores["FE"] == spatial]
     return all_scores
@@ -127,10 +144,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--markers", nargs='+', help="Markers to be plotted", default=None)
-    parser.add_argument("--mode", choices=["ip", "op", "exp"], type=str, default="ip")
+    parser.add_argument("--mode", choices=["ip", "exp"], type=str, default="ip")
     parser.add_argument("-rv", "--replace_value", choices=["mean", "zero"], default="mean")
     parser.add_argument("--metric", choices=["mae", "rmse"], default="mae")
-    parser.add_argument("-sp", "--spatial", choices=[0, 23, 46, 92, 138, 184], default=0, type=int)
+    parser.add_argument("-sp", "--spatial", choices=[23, 46, 92, 138, 184], default=23, type=int)
 
     args = parser.parse_args()
     mode = args.mode
@@ -141,6 +158,7 @@ if __name__ == '__main__':
 
     save_path = Path(save_path, mode)
     save_path = Path(save_path, replace_value)
+    save_path = Path(save_path, f"{spatial}")
 
     if markers:
         save_path = Path(save_path, "_".join(markers))
@@ -166,8 +184,9 @@ if __name__ == '__main__':
     else:
         raise ValueError("Mode not recognized")
 
-    ludwig_scores = ludwig_scores.rename(columns={"Mode": "Network"})
+    ludwig_scores = ludwig_scores.groupby(["Marker", "Biopsy"]).head(5).reset_index()
     ludwig_scores["Network"] = "Light GBM"
+    # ludwig_scores = ludwig_scores.groupby(["Marker", "Biopsy"]).mean().reset_index()
 
     en_scores = en_scores.rename(columns={"Mode": "Network"})
     en_scores["Network"] = "EN"
@@ -176,24 +195,26 @@ if __name__ == '__main__':
 
     # Select best performing iteration per marker
     ae_scores = ae_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
-    ae_scores = ae_scores.groupby(["Marker", "Biopsy"]).head(5)
-    ae_scores = ae_scores.groupby(["Marker", "Biopsy"]).mean().reset_index()
+    ae_scores = ae_scores.groupby(["Marker", "Biopsy"]).head(5).reset_index()
+    # ae_scores = ae_scores.groupby(["Marker", "Biopsy"]).mean().reset_index()
     ae_scores["Network"] = f"AE"
 
     gnn_scores = gnn_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
-    gnn_scores = gnn_scores.groupby(["Marker", "Biopsy"]).head(5)
-    gnn_scores = gnn_scores.groupby(["Marker", "Biopsy"]).mean().reset_index()
+    gnn_scores = gnn_scores.groupby(["Marker", "Biopsy"]).head(5).reset_index()
+    # gnn_scores = gnn_scores.groupby(["Marker", "Biopsy"]).mean().reset_index()
     gnn_scores["Network"] = f"GNN"
 
     # Select only Marker, MAE, MSE, RMSE and Biopsy
     ludwig_scores = ludwig_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
     ae_scores = ae_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
     gnn_scores = gnn_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
-   # en_scores = en_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
+    # en_scores = en_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
 
-    # combine ae and fe scores
-    scores = pd.concat([ae_scores, ludwig_scores, gnn_scores], axis=0)
+    # combine ae, light gbm and gnn scores whcih have all the same index
+    scores = pd.concat([ludwig_scores, ae_scores, gnn_scores], ignore_index=True)
+    # reset index
+    scores = scores.reset_index(drop=True)
 
-    create_boxen_plot_per_segmentation(data=scores, metric=metric.upper(), title=metric.upper(), save_folder=save_path,
-                                       file_name=metric.upper(),
-                                       ylim=[0, 0.6])
+    create_boxen_plot(data=scores, metric=metric.upper(), title=metric.upper(), save_folder=save_path,
+                      file_name=metric.upper(),
+                      ylim=[0, 0.6])

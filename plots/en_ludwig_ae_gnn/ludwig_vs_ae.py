@@ -11,7 +11,7 @@ biopsies = ["9 2 1", "9 2 2", "9 3 1", "9 3 2", "9 14 1", "9 14 2", "9 15 1", "9
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
 
-save_path = Path("plots/en_ludwig_ae/ludwig_vs_ae")
+save_path = Path("plots/en_ludwig_ae_gnn/ludwig_vs_ae")
 
 
 def create_boxen_plot_per_segmentation(data: pd.DataFrame, metric: str, title: str, save_folder: Path, file_name: str,
@@ -22,7 +22,7 @@ def create_boxen_plot_per_segmentation(data: pd.DataFrame, metric: str, title: s
     else:
         fig = plt.figure(figsize=(15, 5), dpi=200)
     # ax = sns.violinplot(data=data, x="Marker", y=score, hue="Type", split=True, cut=0)
-    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Mode")
+    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Network")
 
     # plt.title(title)
     # remove y axis label
@@ -41,7 +41,7 @@ def create_boxen_plot_per_segmentation(data: pd.DataFrame, metric: str, title: s
     # remove legend from fig
     # plt.legend().set_visible(False)
 
-    hue = "Mode"
+    hue = "Network"
     hue_order = ["Light GBM", "AE"]
     pairs = [
         (("pRB", "Light GBM"), ("pRB", "AE")),
@@ -89,10 +89,11 @@ def load_scores(load_path: str):
 def load_ae_scores(mode: str, replace_value: str, add_noise: str, spatial: int):
     all_scores = pd.read_csv(Path("data", "scores", "ae", "scores.csv"))
     noise: int = 1 if add_noise == "noise" else 0
-    all_scores = all_scores[all_scores["Type"] == mode]
+    all_scores = all_scores[all_scores["Mode"] == mode]
     all_scores = all_scores[all_scores["Replace Value"] == replace_value]
     all_scores = all_scores[all_scores["Noise"] == noise]
     all_scores = all_scores[all_scores["FE"] == spatial]
+    all_scores = all_scores[all_scores["HP"] == 0]
     return all_scores
 
 
@@ -128,7 +129,6 @@ if __name__ == '__main__':
 
     save_path.mkdir(parents=True, exist_ok=True)
 
-    print(mode)
     if mode == 'ip':
         ludwig_scores = load_scores(f"data/scores/Mesmer/ip/Ludwig")
         ae_scores = load_ae_scores(mode="ip", replace_value=replace_value, add_noise=add_noise, spatial=0)
@@ -141,16 +141,20 @@ if __name__ == '__main__':
     # Select best performing iteration per marker
     ae_scores = ae_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
     ae_scores = ae_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
-    ae_scores["Mode"] = "AE"
+    ae_scores["Network"] = "AE"
 
     # Select only Marker, MAE, MSE, RMSE and Biopsy
-    ludwig_scores = ludwig_scores[["Marker", "MAE", "RMSE", "Biopsy", "Type", "Mode"]]
-    ae_scores = ae_scores[["Marker", "MAE", "RMSE", "Biopsy", "Type", "Mode"]]
+    ludwig_scores = ludwig_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Mode"]]
+    ae_scores = ae_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Mode"]]
+
+    ludwig_scores["Network"] = "Light GBM"
 
     # combine ae and fe scores
     scores = pd.concat([ae_scores, ludwig_scores], axis=0)
+
+    print(scores)
     # duplicate each row in scores
-    scores = pd.concat(scores, ignore_index=True)
+    # scores = pd.concat(scores, ignore_index=True)
 
     create_boxen_plot_per_segmentation(data=scores, metric=metric.upper(), title=metric.upper(), save_folder=save_path,
                                        file_name=metric.upper(),

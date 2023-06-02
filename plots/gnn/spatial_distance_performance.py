@@ -12,7 +12,7 @@ save_path = Path("plots/gnn/spatial_distance_performance")
 def load_gnn_scores(mode: str, replace_value: str, add_noise: str) -> pd.DataFrame:
     all_scores = pd.read_csv(Path("data", "scores", "gnn", "scores.csv"))
     noise: int = 1 if add_noise == "noise" else 0
-    all_scores = all_scores[all_scores["Type"] == mode]
+    all_scores = all_scores[all_scores["Mode"] == mode]
     all_scores = all_scores[all_scores["Replace Value"] == replace_value]
     all_scores = all_scores[all_scores["Noise"] == noise]
     return all_scores
@@ -56,8 +56,15 @@ if __name__ == '__main__':
     scores = scores.sort_values(by=["Marker", "Biopsy", "MAE"])
     scores = scores.groupby(["Marker", "Biopsy"]).first().reset_index()
 
+    scores.replace(to_replace={"FE": {0: 0}}, inplace=True)
+    scores.replace(to_replace={"FE": {23: 15}}, inplace=True)
+    scores.replace(to_replace={"FE": {46: 30}}, inplace=True)
+    scores.replace(to_replace={"FE": {92: 60}}, inplace=True)
+    scores.replace(to_replace={"FE": {138: 90}}, inplace=True)
+    scores.replace(to_replace={"FE": {184: 120}}, inplace=True)
+
     cat_size_order = CategoricalDtype(
-        [23, 46, 92, 138, 184],
+        [0, 15, 30, 60, 90, 120],
         ordered=True
     )
     scores['FE'] = scores['FE'].astype(cat_size_order)
@@ -81,5 +88,6 @@ if __name__ == '__main__':
     # Change x axis
     plt.xlabel("Marker")
     plt.title("Spatial Distance Performance\nPerformance for each marker")
+    plt.xticks([0, 15, 30, 60, 90, 120], [0, 15, 30, 60, 90, 120])
     plt.savefig(Path(save_path, f"{metric}_spatial_performance_boxen.png"), bbox_inches='tight')
     plt.close('all')

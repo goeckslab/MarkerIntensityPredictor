@@ -9,13 +9,14 @@ from pathlib import Path
 save_path = Path("plots/ae/plots")
 
 
-def load_ae_scores(mode: str, replace_value: str, add_noise: str, spatial: int):
+def load_ae_scores(mode: str, replace_value: str, add_noise: str, spatial: int, hyper: int):
     all_scores = pd.read_csv(Path("data", "scores", "ae", "scores.csv"))
     noise: int = 1 if add_noise == "noise" else 0
     all_scores = all_scores[all_scores["Type"] == mode]
     all_scores = all_scores[all_scores["Replace Value"] == replace_value]
     all_scores = all_scores[all_scores["Noise"] == noise]
     all_scores = all_scores[all_scores["FE"] == spatial]
+    all_scores = all_scores[all_scores["HP"] == hyper]
     return all_scores
 
 
@@ -108,6 +109,8 @@ if __name__ == '__main__':
     parser.add_argument("-m", "--markers", nargs='+')
     parser.add_argument("--metric", type=str, choices=["MAE", "RMSE"], default="MAE")
     parser.add_argument("-an", "--an", action="store_true", default=False)
+    parser.add_argument("-hp", "--hyper", action="store_true", required=False, default=False,
+                        help="Should hyper parameter tuning be used?")
     args = parser.parse_args()
 
     spatial: int = args.spatial
@@ -115,6 +118,7 @@ if __name__ == '__main__':
     mode = args.mode
     add_noise: str = "noise" if args.an else "no_noise"
     markers = args.markers
+    hyper = args.hyper
 
     save_path = Path(save_path, "ae_zero_vs_ae_mean")
     save_path = Path(save_path, mode)
@@ -125,10 +129,12 @@ if __name__ == '__main__':
     else:
         save_path = Path(save_path, "all_markers")
 
-    if add_noise:
-        save_folder = Path(save_path, "noise")
+    save_folder = Path(save_path, add_noise)
+
+    if hyper:
+        save_folder = Path(save_folder, "hyper")
     else:
-        save_folder = Path(save_path, "no_noise")
+        save_folder = Path(save_folder, "no_hyper")
 
     if save_folder.exists():
         shutil.rmtree(save_folder)
@@ -136,9 +142,11 @@ if __name__ == '__main__':
     print("Creating new folder")
     save_folder.mkdir(parents=True)
 
-    zero_scores: pd.DataFrame = load_ae_scores(mode=mode, replace_value="zero", add_noise=add_noise, spatial=spatial)
+    zero_scores: pd.DataFrame = load_ae_scores(mode=mode, replace_value="zero", add_noise=add_noise, spatial=spatial,
+                                               hyper=hyper)
     zero_scores["Network"] = "AE Zero"
-    mean_scores: pd.DataFrame = load_ae_scores(mode=mode, replace_value="mean", add_noise=add_noise, spatial=spatial)
+    mean_scores: pd.DataFrame = load_ae_scores(mode=mode, replace_value="mean", add_noise=add_noise, spatial=spatial,
+                                               hyper=hyper)
     mean_scores["Network"] = f"AE Mean"
 
     # select best 5 perforing iterations for each marker and each biopsy and calculate the mean
