@@ -17,6 +17,10 @@ from typing import List, Dict
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
 
+SHARED_SPATIAL_FEATURES = ['pRB_mean', "CD45_mean", "CK19_mean", "Ki67_mean", "aSMA_mean", "Ecad_mean", "PR_mean",
+                           "CK14_mean", "HER2_mean", "AR_mean", "CK17_mean", "p21_mean", "Vimentin_mean", "pERK_mean",
+                           "EGFR_mean", "ER_mean"]
+
 
 def clean_column_names(df: pd.DataFrame):
     if "ERK-1" in df.columns:
@@ -107,7 +111,7 @@ def impute_markers(scores: List, ground_truth: pd.DataFrame, all_predictions: Di
                    mode: str, spatial_radius: int, experiment_id: int,
                    replace_value: str, add_noise: bool):
     try:
-        for marker in train_data.columns:
+        for marker in SHARED_MARKERS:
             # copy the test data
             input_data = test_data.copy()
             if replace_value == "zero":
@@ -293,12 +297,14 @@ if __name__ == '__main__':
 
         assert len(train_data) == 6, f"There should be 6 train datasets, loaded {len(train_data)}"
         train_data = pd.concat(train_data)
-        train_data = train_data[SHARED_MARKERS].copy()
+
+        # select shared markers as well as spatial shared features from the train data
+        train_data = train_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
 
         # Load test data
         test_data = pd.read_csv(Path(f'{base_path}/{test_biopsy_name}.csv'))
         test_data = clean_column_names(test_data)
-        test_data = test_data[SHARED_MARKERS].copy()
+        test_data = test_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
 
     else:
         raise ValueError(f"Unknown patient type: {patient_type}")
