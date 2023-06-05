@@ -268,7 +268,6 @@ if __name__ == '__main__':
         print(f"Train biopsy being loaded: {train_biopsy_name}")
 
         base_path = "data/tumor_mesmer" if spatial == "0" else f"data/tumor_mesmer_sp_{spatial}"
-
         # Load train data
         train_data = pd.read_csv(f'{base_path}/{train_biopsy_name}.csv')
         train_data = clean_column_names(train_data)
@@ -277,36 +276,16 @@ if __name__ == '__main__':
         test_data = pd.read_csv(f'{base_path}/{test_biopsy_name}.csv')
         test_data = clean_column_names(test_data)
         test_data = test_data[SHARED_MARKERS].copy()
-    elif patient_type == "op":
-        # Load noisy train data
-        train_data = []
-        search_dir = "data/tumor_mesmer" if spatial == "0" else f"data/tumor_mesmer_sp_{spatial}"
-        for file in os.listdir(search_dir):
-            file_name = Path(file).stem
-            if file.endswith(".csv") and file_name != test_biopsy_name:
-                print("Loading train file: " + file)
-                data = pd.read_csv(Path(search_dir, file))
-                data = clean_column_names(data)
-                train_data.append(data)
-
-        assert len(train_data) == 7, f"There should be 7 train datasets, loaded {len(train_data)}"
-        train_data = pd.concat(train_data)
-        train_data = train_data[SHARED_MARKERS].copy()
-
-        # Load test data
-        test_data = pd.read_csv(f'data/tumor_mesmer/{test_biopsy_name}.csv')
-        test_data = clean_column_names(test_data)
-        test_data = test_data[SHARED_MARKERS].copy()
 
     elif patient_type == "exp":
         # Load noisy train data
         train_data = []
-        search_dir = "data/tumor_mesmer" if spatial == "0" else f"data/tumor_mesmer_sp_{spatial}"
-        for file in os.listdir(search_dir):
+        base_path = "data/tumor_mesmer" if spatial == "0" else f"data/tumor_mesmer_sp_{spatial}"
+        for file in os.listdir(base_path):
             file_name = Path(file).stem
             if file.endswith(".csv") and patient not in file_name:
                 print("Loading train file: " + file)
-                data = pd.read_csv(Path(search_dir, file))
+                data = pd.read_csv(Path(base_path, file))
                 data = clean_column_names(data)
                 train_data.append(data)
 
@@ -315,7 +294,7 @@ if __name__ == '__main__':
         train_data = train_data[SHARED_MARKERS].copy()
 
         # Load test data
-        test_data = pd.read_csv(f'data/tumor_mesmer/{test_biopsy_name}.csv')
+        test_data = pd.read_csv(Path(f'{base_path}/{test_biopsy_name}.csv'))
         test_data = clean_column_names(test_data)
         test_data = test_data[SHARED_MARKERS].copy()
 
