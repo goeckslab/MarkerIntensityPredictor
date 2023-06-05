@@ -109,7 +109,7 @@ def create_noise(shape: [], columns: List[str]):
 
 def impute_markers(scores: List, ground_truth: pd.DataFrame, all_predictions: Dict, hp: bool,
                    mode: str, spatial_radius: int, experiment_id: int,
-                   replace_value: str, add_noise: bool):
+                   replace_value: str, add_noise: bool, iterations: int):
     try:
         for marker in SHARED_MARKERS:
             # copy the test data
@@ -160,7 +160,7 @@ def impute_markers(scores: List, ground_truth: pd.DataFrame, all_predictions: Di
                     "Replace Value": replace_value
                 })
 
-                return scores, all_predictions
+        return scores, all_predictions
     except Exception as ex:
         print(ex)
         print("Ground truth:")
@@ -339,7 +339,7 @@ if __name__ == '__main__':
     # Predict
     impute_markers(scores=scores, all_predictions=predictions, hp=hp, mode=patient_type, spatial_radius=spatial,
                    experiment_id=experiment_id, replace_value=replace_value, add_noise=add_noise,
-                   ground_truth=test_data.copy())
+                   ground_truth=test_data.copy(), iterations=iterations)
 
     # Convert to df
     scores = pd.DataFrame(scores)
