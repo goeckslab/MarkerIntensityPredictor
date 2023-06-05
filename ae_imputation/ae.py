@@ -188,6 +188,8 @@ def create_results_folder(spatial_radius: str, hp: bool) -> [Path, int]:
     save_folder = Path(save_folder, test_biopsy_name)
     if hp:
         save_folder = Path(save_folder, "hp")
+    else:
+        save_folder = Path(save_folder, "no_hp")
     save_folder = Path(save_folder, spatial_radius)
 
     experiment_id = 0
