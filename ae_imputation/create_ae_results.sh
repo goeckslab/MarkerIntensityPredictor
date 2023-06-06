@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --job-name=auto_encoder
-#SBATCH --time=5-00:00:00
+#SBATCH --time=7-00:00:00
 #SBATCH --partition=exacloud
 #SBATCH --qos=long_jobs
 #SBATCH --ntasks=1

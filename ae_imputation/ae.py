@@ -277,11 +277,23 @@ if __name__ == '__main__':
         # Load train data
         train_data = pd.read_csv(f'{base_path}/{train_biopsy_name}.csv')
         train_data = clean_column_names(train_data)
-        train_data = train_data[SHARED_MARKERS].copy()
+
+        if spatial != "0":
+            print("Selecting marker and spatial information")
+            train_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
+        else:
+            print("Selecting marker")
+            train_data = train_data[SHARED_MARKERS].copy()
 
         test_data = pd.read_csv(f'{base_path}/{test_biopsy_name}.csv')
         test_data = clean_column_names(test_data)
-        test_data = test_data[SHARED_MARKERS].copy()
+
+        if spatial != "0":
+            test_data = test_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
+            assert test_data.shape[1] == 32, "Test data not complete"
+        else:
+            test_data = test_data[SHARED_MARKERS].copy()
+            assert test_data.shape[1] == 16, "Test data not complete"
 
     elif patient_type == "exp":
         # Load noisy train data
@@ -298,13 +310,26 @@ if __name__ == '__main__':
         assert len(train_data) == 6, f"There should be 6 train datasets, loaded {len(train_data)}"
         train_data = pd.concat(train_data)
 
-        # select shared markers as well as spatial shared features from the train data
-        train_data = train_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
+        if spatial != "0":
+            print("Selecting marker and spatial information")
+            # select shared markers as well as spatial shared features from the train data
+            train_data = train_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
+        else:
+            print("Selecting marker")
+            train_data = train_data[SHARED_MARKERS].copy()
 
         # Load test data
         test_data = pd.read_csv(Path(f'{base_path}/{test_biopsy_name}.csv'))
         test_data = clean_column_names(test_data)
-        test_data = test_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
+
+        if spatial != "0":
+            test_data = test_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
+            assert test_data.shape[1] == 32, "Test data not complete"
+        else:
+            test_data = test_data[SHARED_MARKERS].copy()
+            assert test_data.shape[1] == 16, "Test data not complete"
+
+
 
     else:
         raise ValueError(f"Unknown patient type: {patient_type}")
