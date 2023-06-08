@@ -61,14 +61,46 @@ class Hyperopt:
         return autoencoder
 
     @staticmethod
-    def run(hyperopt_project_name: str, train_data, val_data):
-        tuner = kt.Hyperband(Hyperopt.build_model,
-                             objective="val_loss",
-                             max_epochs=50,
-                             factor=3,
-                             directory=hyperopt_directory,
-                             project_name=hyperopt_project_name,
-                             hyperband_iterations=2)
+    def build_spatial_model(hp):
+        input_layer = Input(shape=(32,))
+
+        # Encoder
+        encoded = Dense(units=hp.Int('enc_1', min_value=8, max_value=16, step=2), activation='relu')(input_layer)
+        encoded = Dense(units=hp.Int('enc_2', min_value=5, max_value=8, step=1), activation='relu')(encoded)
+
+        latent_space = Dense(units=hp.Int('latent_space', min_value=5, max_value=10, step=2))(encoded)
+
+        # Decoder
+        decoded = Dense(units=hp.Int('dec_1', min_value=5, max_value=8, step=1), activation='relu')(latent_space)
+        decoded = Dense(units=hp.Int('dec_2', min_value=8, max_value=16, step=2), activation='relu')(decoded)
+        decoded = Dense(units=32, activation='relu')(decoded)
+
+        # Autoencoder
+        autoencoder = Model(inputs=input_layer, outputs=decoded)
+        hp_learning_rate = hp.Choice('learning_rate', values=[1e-2, 1e-3, 1e-4])
+        # Compile the model
+        autoencoder.compile(optimizer=Adam(learning_rate=hp_learning_rate), loss=MeanSquaredError())
+
+        return autoencoder
+
+    @staticmethod
+    def run(hyperopt_project_name: str, train_data, val_data, spatial: bool):
+        if spatial:
+            tuner = kt.Hyperband(Hyperopt.build_spatial_model,
+                                 objective="val_loss",
+                                 max_epochs=50,
+                                 factor=3,
+                                 directory=hyperopt_directory,
+                                 project_name=hyperopt_project_name,
+                                 hyperband_iterations=2)
+        else:
+            tuner = kt.Hyperband(Hyperopt.build_model,
+                                 objective="val_loss",
+                                 max_epochs=50,
+                                 factor=3,
+                                 directory=hyperopt_directory,
+                                 project_name=hyperopt_project_name,
+                                 hyperband_iterations=2)
         stop_early = EarlyStopping(monitor='val_loss', patience=5)
         tuner.search(train_data, train_data, epochs=50, validation_data=(val_data, val_data),
                      callbacks=[stop_early])
@@ -221,8 +253,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--biopsy", type=str, required=True,
                         help="Provide the biopsy name in the following format: 9_2_1. No suffix etc")
-    parser.add_argument("-m", "--mode", required=True, choices=["ip", "op", "exp"], default="ip")
-    parser.add_argument("-sp", "--spatial", required=False, default="0", type=str)
+    parser.add_argument("-m", "--mode", required=True, choices=["ip", "exp"], default="ip")
+    parser.add_argument("-sp", "--spatial", required=False, default="0", choices=["0", "23", "46", "92", "138", "184"],
+                        type=str)
     parser.add_argument("-hp", "--hyper", action="store_true", required=False, default=False,
                         help="Should hyper parameter tuning be used?")
     parser.add_argument("-o", "--override", action='store_true', default=False, help="Override existing hyperopt")
@@ -351,7 +384,8 @@ if __name__ == '__main__':
 
     if hp:
         # Hyperopt section
-        ae = Hyperopt.run(hyperopt_project_name=hyperopt_project_name, train_data=train_data, val_data=val_data)
+        ae = Hyperopt.run(hyperopt_project_name=hyperopt_project_name, train_data=train_data, val_data=val_data,
+                          spatial=False if spatial == "0" else True)
 
     else:
         # Create ae
