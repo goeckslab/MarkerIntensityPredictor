@@ -2,6 +2,7 @@ import os, argparse
 from pathlib import Path
 from ludwig.api import LudwigModel
 import pandas as pd
+import random
 
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
@@ -87,21 +88,26 @@ if __name__ == '__main__':
                         model = LudwigModel.load(str(Path(results_path, experiment, 'model')))
                     except:
                         continue
-                    eval_stats, _, _ = model.evaluate(dataset=test_dataset)
-                    scores.append(
-                        {
-                            "Marker": marker,
-                            "MAE": eval_stats[marker]['mean_absolute_error'],
-                            "MSE": eval_stats[marker]['mean_squared_error'],
-                            "RMSE": eval_stats[marker]['root_mean_squared_error'],
-                            "Biopsy": test_biopsy_name,
-                            "Mode": mode,
-                            "FE": spatial_radius if spatial_radius is not None else 0,
-                            "Network": "Ludwig",
-                            "Hyper": 0,
-                            "Load Path": str(Path(results_path, experiment, 'model'))
-                        }
-                    )
+
+                    for i in range(1, 301):
+                        # sample new dataset from test_data
+                        test_data_sample = test_dataset.sample(frac=0.7, random_state=random.randint(0, 100000),
+                                                               replace=True)
+                        eval_stats, _, _ = model.evaluate(dataset=test_data_sample)
+                        scores.append(
+                            {
+                                "Marker": marker,
+                                "MAE": eval_stats[marker]['mean_absolute_error'],
+                                "MSE": eval_stats[marker]['mean_squared_error'],
+                                "RMSE": eval_stats[marker]['root_mean_squared_error'],
+                                "Biopsy": test_biopsy_name,
+                                "Mode": mode,
+                                "FE": spatial_radius if spatial_radius is not None else 0,
+                                "Network": "Ludwig",
+                                "Hyper": 0,
+                                "Load Path": str(Path(results_path, experiment, 'model'))
+                            }
+                        )
 
     scores = pd.DataFrame(scores)
     scores.to_csv(Path(save_path, f"{test_biopsy_name}_scores.csv"), index=False)

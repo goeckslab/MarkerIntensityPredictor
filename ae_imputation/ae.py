@@ -1,3 +1,5 @@
+import random
+
 from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.models import Model, Sequential
 import os, argparse
@@ -13,6 +15,8 @@ from tensorflow.keras.callbacks import EarlyStopping
 import keras_tuner as kt
 import shutil
 from typing import List, Dict
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
@@ -139,9 +143,9 @@ def create_noise(shape: [], columns: List[str]):
     return pd.DataFrame(data=np.random.normal(mu, sigma, shape), columns=columns)
 
 
-def impute_markers(scores: List, ground_truth: pd.DataFrame, all_predictions: Dict, hp: bool,
+def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict, hp: bool,
                    mode: str, spatial_radius: int, experiment_id: int,
-                   replace_value: str, add_noise: bool, iterations: int):
+                   replace_value: str, add_noise: bool, iterations: int, store_predictions: bool, subset: int):
     try:
         for marker in SHARED_MARKERS:
             # copy the test data
@@ -158,8 +162,9 @@ def impute_markers(scores: List, ground_truth: pd.DataFrame, all_predictions: Di
                 else:
                     predicted_intensities = ae.decoder.predict(ae.encoder.predict(marker_prediction))
 
-                predicted_intensities = pd.DataFrame(data=predicted_intensities, columns=ground_truth.columns)
-                all_predictions[iteration][marker] = predicted_intensities[marker].values
+                predicted_intensities = pd.DataFrame(data=predicted_intensities, columns=test_data.columns)
+                if store_predictions:
+                    all_predictions[iteration][marker] = predicted_intensities[marker].values
 
                 if not replace_all_markers:
                     imputed_marker = predicted_intensities[marker].values
@@ -167,26 +172,26 @@ def impute_markers(scores: List, ground_truth: pd.DataFrame, all_predictions: Di
                     marker_prediction[marker] = imputed_marker
 
                     if add_noise:
-                        noise = create_noise(shape=marker_prediction.shape, columns=ground_truth.columns)
+                        noise = create_noise(shape=marker_prediction.shape, columns=test_data.columns)
                         marker_prediction[marker] = marker_prediction[marker].values + noise[marker].values
 
                 else:
                     marker_prediction = predicted_intensities.copy()
                     if add_noise:
-                        noise = create_noise(shape=marker_prediction.shape, columns=ground_truth.columns)
+                        noise = create_noise(shape=marker_prediction.shape, columns=test_data.columns)
                         marker_prediction = marker_prediction + noise
 
                 scores.append({
                     "Marker": marker,
                     "Biopsy": test_biopsy_name,
-                    "MAE": mean_absolute_error(marker_prediction[marker], ground_truth[marker]),
-                    "RMSE": mean_squared_error(marker_prediction[marker], ground_truth[marker], squared=False),
+                    "MAE": mean_absolute_error(marker_prediction[marker], test_data[marker]),
+                    "RMSE": mean_squared_error(marker_prediction[marker], test_data[marker], squared=False),
                     "HP": int(hp),
                     "Mode": mode,
                     "Imputation": 1,
                     "Iteration": iteration,
                     "FE": spatial_radius,
-                    "Experiment": experiment_id,
+                    "Experiment": int(f"{experiment_id}{subset}"),
                     "Network": "AE",
                     "Noise": int(add_noise),
                     "Replace Value": replace_value
@@ -195,8 +200,8 @@ def impute_markers(scores: List, ground_truth: pd.DataFrame, all_predictions: Di
         return scores, all_predictions
     except Exception as ex:
         print(ex)
-        print("Ground truth:")
-        print(ground_truth)
+        print("Test truth:")
+        print(test_data)
         print("Predictions:")
         print(predictions)
         print(mode)
@@ -395,13 +400,31 @@ if __name__ == '__main__':
         history = ae.fit(train_data, train_data, epochs=100, batch_size=32, shuffle=True,
                          validation_data=(val_data, val_data), callbacks=callbacks)
 
-    # Predict
+    # Sample with replacement to increase the number of predictions
+    for i in range(1, 901):
+        # sample new dataset from test_data
+        test_data_sample = test_data.sample(frac=0.7, random_state=random.randint(0, 100000), replace=True)
+
+        # plot distribution of test_data_sample and test_data
+        # fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+        # sns.histplot(test_data_sample, ax=ax[0])
+        # sns.histplot(test_data, ax=ax[1])
+        # plt.show()
+
+        # Predict
+        impute_markers(scores=scores, all_predictions=predictions, hp=hp, mode=patient_type, spatial_radius=spatial,
+                       experiment_id=experiment_id, replace_value=replace_value, add_noise=add_noise,
+                       iterations=iterations,
+                       store_predictions=False, test_data=test_data_sample, subset=i)
+
     impute_markers(scores=scores, all_predictions=predictions, hp=hp, mode=patient_type, spatial_radius=spatial,
                    experiment_id=experiment_id, replace_value=replace_value, add_noise=add_noise,
-                   ground_truth=test_data.copy(), iterations=iterations)
+                   iterations=iterations,
+                   store_predictions=True, test_data=test_data, subset=0)
 
     # Convert to df
     scores = pd.DataFrame(scores)
+    print(scores.shape)
 
     # Save results
     if not hp:

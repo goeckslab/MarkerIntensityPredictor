@@ -1,8 +1,10 @@
+import random
+from sklearn.neighbors import BallTree
 import torch
 from torch.nn import Linear
 from torch_geometric.data import Data
 from torch_geometric.nn import GCNConv
-from typing import List
+from typing import List, Dict
 from scipy.spatial.distance import cdist
 import numpy as np
 import pandas as pd
@@ -11,6 +13,23 @@ import os, argparse
 from pathlib import Path
 from tqdm import tqdm
 from sklearn.metrics import mean_squared_error, mean_absolute_error
+
+MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
+           'pERK', 'EGFR', 'ER']
+
+
+def clean_column_names(df: pd.DataFrame):
+    if "ERK-1" in df.columns:
+        # Rename ERK to pERK
+        df = df.rename(columns={"ERK-1": "pERK"})
+
+    if "E-cadherin" in df.columns:
+        df = df.rename(columns={"E-cadherin": "Ecad"})
+
+    if "Rb" in df.columns:
+        df = df.rename(columns={"Rb": "pRB"})
+
+    return df
 
 
 class GCNAutoencoder(torch.nn.Module):
@@ -79,7 +98,7 @@ def create_results_folder(spatial_radius: str, patient_type: str, replace_mode: 
 def append_scores_per_iteration(scores: List, test_biopsy_name: str, ground_truth: pd.DataFrame,
                                 predictions: pd.DataFrame, hp: bool,
                                 type: str, iteration: int, marker: str, spatial_radius: int, experiment_id: int,
-                                replace_value: str):
+                                replace_value: str, subset: int):
     scores.append({
         "Marker": marker,
         "Biopsy": test_biopsy_name,
@@ -90,7 +109,7 @@ def append_scores_per_iteration(scores: List, test_biopsy_name: str, ground_trut
         "Imputation": 1,
         "Iteration": iteration,
         "FE": spatial_radius,
-        "Experiment": experiment_id,
+        "Experiment": int(f"{experiment_id}{subset}"),
         "Mode": "GNN",
         "Noise": 0,
         "Replace Value": replace_value
@@ -106,6 +125,54 @@ def train(data: Data):
     return loss, h
 
 
+def impute_marker(test_data: Data, subset: int, scores: List, all_predictions: Dict,
+                  store_predictions: bool, columns: List, replace_value: str, iterations: int, biopsy_name: str):
+    for marker in columns:
+        input_data = pd.DataFrame(test_data.x, columns=columns).copy()
+        if replace_value == "zero":
+            input_data[marker] = 0
+        elif replace_value == "mean":
+            input_data[marker] = input_data[marker].mean()
+
+        marker_prediction = input_data.copy()
+
+        for iteration in tqdm(range(iterations)):
+            with torch.no_grad():
+                # convert data to tensor
+                marker_prediction = torch.tensor(marker_prediction.values, dtype=torch.float)
+                predicted_intensities, h = model(marker_prediction, test_data.edge_index)
+                predicted_intensities = pd.DataFrame(data=predicted_intensities, columns=columns)
+
+                if store_predictions:
+                    all_predictions[iteration][marker] = predicted_intensities[marker].values
+
+                # Extract the reconstructed marker
+                imputed_marker = predicted_intensities[marker].values
+                # copy the original dataset and replace the marker in question with the imputed data
+                marker_prediction = input_data.copy()
+                marker_prediction[marker] = imputed_marker
+
+                append_scores_per_iteration(scores=scores, test_biopsy_name=biopsy_name, predictions=marker_prediction,
+                                            ground_truth=pd.DataFrame(test_data.x, columns=columns),
+                                            hp=False, type=mode, iteration=i, marker=marker,
+                                            spatial_radius=spatial_radius, experiment_id=experiment_id,
+                                            replace_value=replace_value, subset=subset)
+
+
+def calculate_edge_indexes(dataset: pd.DataFrame, spatial: int) -> torch.Tensor:
+    exp_tree = BallTree(dataset[['X_centroid', 'Y_centroid']], leaf_size=2)
+
+    ids = exp_tree.query_radius(dataset[['X_centroid', 'Y_centroid']], r=spatial)
+
+    # convert indexes to a list of lists
+    edge_index = []
+    for i in range(len(ids)):
+        for j in range(len(ids[i])):
+            edge_index.append([i, ids[i][j]])
+
+    return torch.tensor(edge_index, dtype=torch.long).t()
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-rm", "--replace_mode", action="store", type=str, choices=["mean", "zero"], default="zero")
@@ -115,8 +182,8 @@ if __name__ == '__main__':
     parser.add_argument("-b", "--biopsy", action="store", type=str, required=True, help="The biopsy to run")
 
     args = parser.parse_args()
-
-    folder = Path("gnn", "data", args.mode)
+    prepared_data_folder = Path("gnn", "data", args.mode)
+    raw_data_folder = Path("data", "tumor_mesmer")
     spatial_radius = args.spatial
     biopsy_name = args.biopsy
     mode = args.mode
@@ -125,48 +192,63 @@ if __name__ == '__main__':
     iterations = args.iterations
 
     if mode == "ip":
-        print(str(Path(folder, biopsy_name, str(spatial_radius))))
-        test_set = pd.read_csv(str(Path(folder, biopsy_name, str(spatial_radius), f"test_set.csv")), header=0)
-        test_edge_index = torch.load(str(Path(folder, biopsy_name, str(spatial_radius), f"test_edge_index.pt")))
-        train_set = pd.read_csv(str(Path(folder, biopsy_name, str(spatial_radius), f"train_set.csv")), header=0)
-        train_edge_index = torch.load(str(Path(folder, biopsy_name, str(spatial_radius), f"train_edge_index.pt")))
-    else:
-        test_set = pd.read_csv(str(Path(folder, f"{biopsy_name}_scaled.csv")),
-                               header=0)
-        test_edge_index = torch.load(
-            str(Path(folder, str(spatial_radius), f"{biopsy_name}_edge_index.pt")))
-        train_set = pd.read_csv(str(Path(folder, f"{patient}_excluded_scaled.csv")), header=0)
+        print(str(Path(raw_data_folder, biopsy_name)))
+        raw_test_set: pd.DataFrame = pd.read_csv(str(Path(raw_data_folder, f"{biopsy_name}.csv")), header=0)
+        raw_test_set: pd.DataFrame = clean_column_names(raw_test_set)
+        train_set = pd.read_csv(str(Path(prepared_data_folder, biopsy_name, str(spatial_radius), f"train_set.csv")),
+                                header=0)
         train_edge_index = torch.load(
-            str(Path("gnn", "data", "exp", str(spatial_radius), f"{patient}_excluded_edge_index.pt")))
+            str(Path(prepared_data_folder, biopsy_name, str(spatial_radius), f"train_edge_index.pt")))
+
+        # normalize data
+        test_set: pd.DataFrame = raw_test_set[MARKERS]
+        test_data: pd.DataFrame = np.log10(test_set + 1)
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        test_set: pd.DataFrame = pd.DataFrame(scaler.fit_transform(test_set),
+                                              columns=test_set.columns)
+
+
+
+    else:
+        train_set = pd.read_csv(str(Path(prepared_data_folder,  f"{patient}_excluded_scaled.csv")),
+                                header=0)
+        train_edge_index = torch.load(
+            str(Path(prepared_data_folder, str(spatial_radius), f"{patient}_excluded_edge_index.pt")))
+
+        raw_test_set = pd.read_csv(str(Path(raw_data_folder, f"{biopsy_name}.csv")), header=0)
+        raw_test_set = clean_column_names(raw_test_set)
+
+        # normalize data
+        test_set: pd.DataFrame = raw_test_set[MARKERS]
+        test_set: pd.DataFrame = np.log10(test_set + 1)
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        test_set: pd.DataFrame = pd.DataFrame(scaler.fit_transform(test_set),
+                                              columns=test_set.columns)
 
     save_folder, experiment_id = create_results_folder(spatial_radius, mode, replace_value, biopsy_name)
-
-    train_node_features = torch.tensor(train_set.values, dtype=torch.float)
-    num_train_cells = train_set.shape[0]
-    train_mask = np.full(num_train_cells, False)
-
-    test_node_features = torch.tensor(test_set.values, dtype=torch.float)
-    num_test_cells = test_set.shape[0]
-    test_mask = np.full(num_test_cells, True)
-
-    train_data = Data(x=train_node_features, train_mask=train_mask, edge_index=train_edge_index,
-                      y=train_set['CD45'].values)
-    test_data = Data(x=test_node_features, train_mask=test_mask, edge_index=test_edge_index,
-                     y=test_set['CD45'].values)
 
     model = GCNAutoencoder(num_features=len(train_set.columns))  # Create new network.
     criterion = torch.nn.L1Loss()  # Define loss criterion.
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)  # Define optimizer.
     out = []
 
-    print("Training model....")
+    train_node_features = torch.tensor(train_set.values, dtype=torch.float)
+    num_train_cells = train_set.shape[0]
+    train_mask = np.full(num_train_cells, False)
+    train_data: Data = Data(x=train_node_features, train_mask=train_mask, edge_index=train_edge_index,
+                            y=train_set['CD45'].values)
+
+    print("Training model...")
     for epoch in range(100):
         if epoch % 10 == 0:
             print("Epoch: ", epoch)
         loss, h = train(train_data)
 
+    print("Training complete.")
     # Evaluate model performance on test set.
     model.eval()
+
+    print("Evaluating...")
 
     scores = []
     predictions = {}
@@ -174,39 +256,43 @@ if __name__ == '__main__':
     for i in range(iterations):
         predictions[i] = pd.DataFrame(columns=test_set.columns)
 
-    for marker in test_set.columns:
-        input_data = pd.DataFrame(test_data.x, columns=test_set.columns).copy()
-        if replace_value == "zero":
-            input_data[marker] = 0
-        elif replace_value == "mean":
-            input_data[marker] = input_data[marker].mean()
+    # Evaluate on subset
+    for i in range(1, 901):
+        test_data_sample: pd.DataFrame = test_set.sample(frac=0.7, random_state=random.randint(0, 100000),
+                                                         replace=True)
 
-        marker_prediction = input_data.copy()
+        # select X_centroid and Y_centroid from raw data, by selecting only the cells of the tes_data_sample index
+        raw_test_subset = raw_test_set.loc[test_data_sample.index, ['X_centroid', 'Y_centroid']]
 
-        for i in tqdm(range(iterations)):
-            with torch.no_grad():
-                # convert data to tensor
-                marker_prediction = torch.tensor(marker_prediction.values, dtype=torch.float)
-                predicted_intensities, h = model(marker_prediction, test_data.edge_index)
-                predicted_intensities = pd.DataFrame(data=predicted_intensities, columns=test_set.columns)
-                predictions[i][marker] = predicted_intensities[marker].values
+        test_sample_node_features = torch.tensor(test_data_sample.values, dtype=torch.float)
+        test_sample_mask = np.full(test_data_sample.shape[0], True)
 
-                # Extract the reconstructed marker
-                imputed_marker = predicted_intensities[marker].values
-                # copy the original dataset and replace the marker in question with the imputed data
-                marker_prediction = input_data.copy()
-                marker_prediction[marker] = imputed_marker
+        test_data_sample_edge_index = calculate_edge_indexes(raw_test_subset, spatial_radius)
 
-                append_scores_per_iteration(scores=scores, test_biopsy_name=biopsy_name, predictions=marker_prediction,
-                                            ground_truth=test_set,
-                                            hp=False, type=mode, iteration=i, marker=marker,
-                                            spatial_radius=spatial_radius, experiment_id=experiment_id,
-                                            replace_value=replace_value)
+        train_data: Data = Data(x=train_node_features, train_mask=train_mask, edge_index=train_edge_index,
+                                y=train_set['CD45'].values)
+        test_data: Data = Data(x=test_sample_node_features, train_mask=test_sample_mask,
+                               edge_index=test_data_sample_edge_index,
+                               y=test_data_sample['CD45'].values)
+
+        impute_marker(test_data=test_data, subset=i, scores=scores, all_predictions=predictions,
+                      store_predictions=False, columns=test_data_sample.columns, replace_value=replace_value,
+                      iterations=iterations, biopsy_name=biopsy_name)
+
+    # Evaluate on full test set
+    test_node_features = torch.tensor(test_set.values, dtype=torch.float)
+    test_mask = np.full(test_set.shape[0], True)
+    test_edge_index = calculate_edge_indexes(raw_test_set, spatial_radius)
+
+    test_data: Data = Data(x=test_node_features, train_mask=test_mask, edge_index=test_edge_index,
+                           y=test_set['CD45'].values)
+
+    impute_marker(test_data=test_data, subset=0, scores=scores, all_predictions=predictions, store_predictions=True,
+                  columns=test_set.columns, replace_value=replace_value, iterations=iterations,
+                  biopsy_name=biopsy_name)
 
     # Convert to df
     scores = pd.DataFrame(scores)
-
-    print(predictions.keys())
 
     # Save data
     scores.to_csv(f"{save_folder}/scores.csv", index=False)
