@@ -3,17 +3,20 @@ from pathlib import Path
 from ludwig.api import LudwigModel
 import pandas as pd
 import random
+from tqdm import tqdm
 
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
 
 
-def create_scores_dir(combination: str, radius: int) -> Path:
+def create_scores_dir(combination: str, radius: int, hyper:bool) -> Path:
     scores_directory = Path("data/scores/Mesmer")
     scores_directory = Path(scores_directory, combination)
 
     if radius is not None:
         scores_directory = Path(scores_directory, f"Ludwig_sp_{radius}")
+    elif hyper:
+        scores_directory = Path(scores_directory, f"Ludwig_hyper")
     else:
         scores_directory = Path(scores_directory, f"Ludwig")
 
@@ -33,11 +36,13 @@ if __name__ == '__main__':
     parser.add_argument('-sp', '--spatial', type=int, required=False, default=None, help="The radius",
                         choices=[23, 46, 92, 138, 184])
     parser.add_argument('--mode', type=str, choices=['ip', 'exp'], help="The mode", default='ip')
+    parser.add_argument('--hyper', action="store_true", help="Use hyperopt", default=False)
     args = parser.parse_args()
 
     spatial_radius: int = args.spatial
     mode = args.mode
     biopsy: str = args.biopsy
+    hyper: bool = args.hyper
 
     if mode == "ip":
         # change last number of biopsy to 1 if it is 2
@@ -52,7 +57,10 @@ if __name__ == '__main__':
         if spatial_radius is None:
             test_dataset: pd.DataFrame = pd.read_csv(
                 Path("data", "tumor_mesmer", "preprocessed", f"{test_biopsy_name}_preprocessed_dataset.tsv"), sep='\t')
-            base_path = Path("mesmer", "tumor_in_patient", biopsy)
+            if not hyper:
+                base_path = Path("mesmer", "tumor_in_patient", biopsy)
+            else:
+                base_path = Path("mesmer", "tumor_in_patient_hyper", biopsy)
         else:
             test_dataset: pd.DataFrame = pd.read_csv(
                 Path("data", f"tumor_mesmer_sp_{spatial_radius}", "preprocessed",
@@ -67,7 +75,10 @@ if __name__ == '__main__':
         if spatial_radius is None:
             test_dataset: pd.DataFrame = pd.read_csv(
                 Path("data", "tumor_mesmer", "preprocessed", f"{test_biopsy_name}_preprocessed_dataset.tsv"), sep='\t')
-            base_path = Path("mesmer", "tumor_exp_patient", biopsy)
+            if not hyper:
+                base_path = Path("mesmer", "tumor_exp_patient", biopsy)
+            else:
+                base_path = Path("mesmer", "tumor_exp_patient_hyper", biopsy)
         else:
             test_dataset: pd.DataFrame = pd.read_csv(
                 Path("data", f"tumor_mesmer_sp_{spatial_radius}", "preprocessed",
@@ -76,7 +87,9 @@ if __name__ == '__main__':
 
     scores = []
 
-    save_path = create_scores_dir(combination=mode, radius=spatial_radius)
+    save_path = create_scores_dir(combination=mode, radius=spatial_radius, hyper=hyper)
+    print(save_path)
+    input()
 
     for marker in SHARED_MARKERS:
         results_path = Path(base_path, marker, "results")
@@ -89,9 +102,10 @@ if __name__ == '__main__':
                     except:
                         continue
 
-                    for i in range(1, 301):
+                    for i in tqdm(range(1, 301)):
+                        random_seed = random.randint(0, 100000)
                         # sample new dataset from test_data
-                        test_data_sample = test_dataset.sample(frac=0.7, random_state=random.randint(0, 100000),
+                        test_data_sample = test_dataset.sample(frac=0.7, random_state=random_seed,
                                                                replace=True)
                         eval_stats, _, _ = model.evaluate(dataset=test_data_sample)
                         scores.append(
@@ -104,10 +118,12 @@ if __name__ == '__main__':
                                 "Mode": mode,
                                 "FE": spatial_radius if spatial_radius is not None else 0,
                                 "Network": "Ludwig",
-                                "Hyper": 0,
-                                "Load Path": str(Path(results_path, experiment, 'model'))
+                                "Hyper": hyper,
+                                "Load Path": str(Path(results_path, experiment, 'model')),
+                                "Random Seed": random_seed,
                             }
                         )
+                        print(scores)
 
     scores = pd.DataFrame(scores)
     scores.to_csv(Path(save_path, f"{test_biopsy_name}_scores.csv"), index=False)
