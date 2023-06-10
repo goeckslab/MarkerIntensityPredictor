@@ -88,8 +88,6 @@ if __name__ == '__main__':
     scores = []
 
     save_path = create_scores_dir(combination=mode, radius=spatial_radius, hyper=hyper)
-    print(save_path)
-    input()
 
     for marker in SHARED_MARKERS:
         results_path = Path(base_path, marker, "results")
