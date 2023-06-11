@@ -100,7 +100,7 @@ if __name__ == '__main__':
                     except:
                         continue
 
-                    for i in tqdm(range(1, 301)):
+                    for i in tqdm(range(1, 101)):
                         random_seed = random.randint(0, 100000)
                         # sample new dataset from test_data
                         test_data_sample = test_dataset.sample(frac=0.7, random_state=random_seed,

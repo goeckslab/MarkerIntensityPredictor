@@ -257,7 +257,7 @@ if __name__ == '__main__':
         predictions[i] = pd.DataFrame(columns=test_set.columns)
 
     # Evaluate on subset
-    for i in range(1, 301):
+    for i in range(1, 101):
         test_data_sample: pd.DataFrame = test_set.sample(frac=0.7, random_state=random.randint(0, 100000),
                                                          replace=True)
 

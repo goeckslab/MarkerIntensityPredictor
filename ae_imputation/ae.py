@@ -401,7 +401,7 @@ if __name__ == '__main__':
                          validation_data=(val_data, val_data), callbacks=callbacks)
 
     # Sample with replacement to increase the number of predictions
-    for i in range(1, 301):
+    for i in range(1, 101):
         # sample new dataset from test_data
         test_data_sample = test_data.sample(frac=0.7, random_state=random.randint(0, 100000), replace=True)
 
