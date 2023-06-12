@@ -105,7 +105,8 @@ if __name__ == '__main__':
                     models = None
                     try:
                         model = LudwigModel.load(str(Path(results_path, experiment, 'model')))
-                    except:
+                    except BaseException as ex:
+                        print(ex)
                         continue
 
                     for i in tqdm(range(1, 401)):
