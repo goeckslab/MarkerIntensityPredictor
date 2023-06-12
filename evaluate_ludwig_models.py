@@ -66,6 +66,8 @@ if __name__ == '__main__':
                 base_path = Path("mesmer", "tumor_in_patient", biopsy)
             else:
                 base_path = Path("mesmer", "tumor_in_patient_hyper", biopsy)
+
+
         else:
             test_dataset: pd.DataFrame = pd.read_csv(
                 Path("data", f"tumor_mesmer_sp_{spatial_radius}", "preprocessed",
@@ -90,6 +92,7 @@ if __name__ == '__main__':
                      f"{test_biopsy_name}_preprocessed_dataset.tsv"), sep='\t')
             base_path = Path("mesmer", f"tumor_exp_patient_sp_{spatial_radius}", biopsy)
 
+    print(f"Base path: {base_path}")
     scores = []
 
     save_path = create_scores_dir(combination=mode, radius=spatial_radius, hyper=hyper)
@@ -126,7 +129,6 @@ if __name__ == '__main__':
                                 "Random Seed": random_seed,
                             }
                         )
-                        print(scores)
 
     scores = pd.DataFrame(scores)
     scores.to_csv(Path(save_path, f"{test_biopsy_name}_scores.csv"), index=False)
