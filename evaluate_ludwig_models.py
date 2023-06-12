@@ -9,7 +9,7 @@ SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', '
                   'pERK', 'EGFR', 'ER']
 
 
-def create_scores_dir(combination: str, radius: int, hyper:bool) -> Path:
+def create_scores_dir(combination: str, radius: int, hyper: bool) -> Path:
     scores_directory = Path("data/scores/Mesmer")
     scores_directory = Path(scores_directory, combination)
 
@@ -43,6 +43,11 @@ if __name__ == '__main__':
     mode = args.mode
     biopsy: str = args.biopsy
     hyper: bool = args.hyper
+
+    print(f"Mode: {mode}")
+    print(f"Biopsy: {biopsy}")
+    print(f"Radius: {spatial_radius}")
+    print(f"Hyper: {hyper}")
 
     if mode == "ip":
         # change last number of biopsy to 1 if it is 2
@@ -100,7 +105,7 @@ if __name__ == '__main__':
                     except:
                         continue
 
-                    for i in tqdm(range(1, 101)):
+                    for i in tqdm(range(1, 401)):
                         random_seed = random.randint(0, 100000)
                         # sample new dataset from test_data
                         test_data_sample = test_dataset.sample(frac=0.7, random_state=random_seed,
