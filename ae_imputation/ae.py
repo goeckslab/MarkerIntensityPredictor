@@ -401,9 +401,7 @@ if __name__ == '__main__':
         history = ae.fit(train_data, train_data, epochs=100, batch_size=32, shuffle=True,
                          validation_data=(val_data, val_data), callbacks=callbacks)
 
-    # Sample with replacement to increase the number of predictions
-    sampling = 101 if hp else 201
-    for i in tqdm(range(1, sampling)):
+    for i in tqdm(range(1, 101)):
         # sample new dataset from test_data
         test_data_sample = test_data.sample(frac=0.7, random_state=random.randint(0, 100000), replace=True)
 
