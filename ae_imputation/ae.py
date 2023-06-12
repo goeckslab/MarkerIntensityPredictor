@@ -17,6 +17,7 @@ import shutil
 from typing import List, Dict
 import matplotlib.pyplot as plt
 import seaborn as sns
+from tqdm import tqdm
 
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
@@ -401,7 +402,7 @@ if __name__ == '__main__':
                          validation_data=(val_data, val_data), callbacks=callbacks)
 
     # Sample with replacement to increase the number of predictions
-    for i in range(1, 101):
+    for i in tqdm(range(1, 101)):
         # sample new dataset from test_data
         test_data_sample = test_data.sample(frac=0.7, random_state=random.randint(0, 100000), replace=True)
 
@@ -424,7 +425,6 @@ if __name__ == '__main__':
 
     # Convert to df
     scores = pd.DataFrame(scores)
-    print(scores.shape)
 
     # Save results
     if not hp:
