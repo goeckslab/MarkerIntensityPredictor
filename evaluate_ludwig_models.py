@@ -109,7 +109,7 @@ if __name__ == '__main__':
                         print(ex)
                         continue
 
-                    for i in tqdm(range(1, 401)):
+                    for i in tqdm(range(1, 501)):
                         random_seed = random.randint(0, 100000)
                         # sample new dataset from test_data
                         test_data_sample = test_dataset.sample(frac=0.7, random_state=random_seed,
@@ -132,4 +132,11 @@ if __name__ == '__main__':
                         )
 
     scores = pd.DataFrame(scores)
-    scores.to_csv(Path(save_path, f"{test_biopsy_name}_scores.csv"), index=False)
+    file_name = f"{test_biopsy_name}_scores.csv"
+
+    # Merge existing scores
+    if Path(save_path, file_name).exists():
+        temp_scores = pd.read_csv(Path(save_path, file_name))
+        scores = pd.concat([temp_scores, scores], ignore_index=True)
+
+    scores.to_csv(Path(save_path, file_name), index=False)
