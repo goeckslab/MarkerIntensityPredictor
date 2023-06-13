@@ -3,7 +3,6 @@
 mode=$1
 replace_value=$2
 iterations=$3
-spatial=$4
 
 biopsies=('9_2_1' '9_2_2' '9_3_1' '9_3_2' '9_14_1' '9_14_2' '9_15_1' '9_15_2')
 
