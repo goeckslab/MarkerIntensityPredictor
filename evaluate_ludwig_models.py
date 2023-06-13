@@ -136,6 +136,8 @@ if __name__ == '__main__':
 
     # Merge existing scores
     if Path(save_path, file_name).exists():
+        print("Found existing scores...")
+        print("Merging...")
         temp_scores = pd.read_csv(Path(save_path, file_name))
         scores = pd.concat([temp_scores, scores], ignore_index=True)
 
