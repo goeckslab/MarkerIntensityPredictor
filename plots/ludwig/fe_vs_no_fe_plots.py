@@ -30,15 +30,15 @@ sp_184_op_source_path = Path("data/scores/Mesmer/exp/Ludwig_sp_184")
 save_path = Path("plots/ludwig/fe_vs_no_fe")
 
 
-def create_boxen_plot_per_segmentation(data: pd.DataFrame, score: str, title: str, save_folder: Path, file_name: str,
-                                       ylim: List, color_palette, spatial_distance: str):
+def create_boxen_plot(data: pd.DataFrame, metric: str, title: str, save_folder: Path, file_name: str,
+                      ylim: List, color_palette, spatial_distance: str):
     data["Biopsy"] = data["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
     if args.markers:
         fig = plt.figure(figsize=(13, 5), dpi=200)
     else:
         fig = plt.figure(figsize=(15, 5), dpi=200)
     # ax = sns.violinplot(data=data, x="Marker", y=score, hue="FE", split=True, cut=0, palette=color_palette)
-    ax = sns.boxenplot(data=data, x="Marker", y=score, hue="FE", palette=color_palette)
+    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="FE", palette=color_palette)
 
     # plt.title(title)
     # remove y axis label
@@ -115,13 +115,11 @@ if __name__ == '__main__':
     parser.add_argument("-sp", "--spatial", type=int, help="Spatial distance", default=46,
                         choices=[23, 46, 92, 138, 184])
     parser.add_argument("--mode", type=str, default="ip", choices=["ip", "exp"])
-    parser.add_argument("--metric", type=str, default="MAE", choices=["RMSE", "MAE"])
     args = parser.parse_args()
 
     # load mesmer mae scores from data mesmer folder and all subfolders
     spatial_distance = args.spatial
     mode: str = args.mode
-    metric: str = args.metric
     markers = args.markers
 
     save_path = Path(save_path, mode)
@@ -188,9 +186,7 @@ if __name__ == '__main__':
 
     # rename sp_23 to 23 µm
     scores["FE"] = scores["FE"].replace(
-        {0: "0 µm", 23: "23 µm", 46: "46 µm", 92: "92 µm", 138: "138 µm"})
-
-    print(scores)
+        {0: "0 µm", 23: "23 µm", 46: "46 µm", 92: "92 µm", 138: "138 µm", 184: "184 µm"})
 
     if args.markers:
         scores = scores[scores["Marker"].isin(args.markers)]
@@ -198,14 +194,17 @@ if __name__ == '__main__':
     # Create bar plot which compares in patient performance of the different segementations for each biopsy
     # The bar plot should be saved in the plots folder
 
-    file_name = f"{spatial_distance}_{metric}_vs_no_fe"
-
     if args.markers:
         y_lim = [0, 0.3]
     else:
         y_lim = [0, 0.6]
 
-    create_boxen_plot_per_segmentation(data=scores, score=metric.upper(),
-                                       title=f"In & EXP patient performance using spatial feature engineering",
-                                       file_name=file_name, save_folder=save_path, ylim=y_lim, color_palette=my_pal,
-                                       spatial_distance=f"{spatial_distance} µm")
+    create_boxen_plot(data=scores, metric="MAE",
+                      title=f"In & EXP patient performance using spatial feature engineering",
+                      file_name="MAE", save_folder=save_path, ylim=y_lim, color_palette=my_pal,
+                      spatial_distance=f"{spatial_distance} µm")
+
+    create_boxen_plot(data=scores, metric="RMSE",
+                      title=f"In & EXP patient performance using spatial feature engineering",
+                      file_name="RMSE", save_folder=save_path, ylim=y_lim, color_palette=my_pal,
+                      spatial_distance=f"{spatial_distance} µm")

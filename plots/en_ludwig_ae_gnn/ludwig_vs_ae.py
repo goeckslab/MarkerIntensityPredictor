@@ -14,8 +14,8 @@ SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', '
 save_path = Path("plots/en_ludwig_ae_gnn/ludwig_vs_ae")
 
 
-def create_boxen_plot_per_segmentation(data: pd.DataFrame, metric: str, title: str, save_folder: Path, file_name: str,
-                                       ylim: List):
+def create_boxen_plot(data: pd.DataFrame, metric: str, title: str, save_folder: Path, file_name: str,
+                      ylim: List):
     data["Biopsy"] = data["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
     if args.markers:
         fig = plt.figure(figsize=(13, 5), dpi=200)
@@ -156,6 +156,7 @@ if __name__ == '__main__':
     # duplicate each row in scores
     # scores = pd.concat(scores, ignore_index=True)
 
-    create_boxen_plot_per_segmentation(data=scores, metric=metric.upper(), title=metric.upper(), save_folder=save_path,
-                                       file_name=metric.upper(),
-                                       ylim=[0, 0.6])
+    create_boxen_plot(data=scores, metric="MAE", title="MAE", save_folder=save_path,
+                      file_name="MAE", ylim=[0, 0.6])
+    create_boxen_plot(data=scores, metric="RMSE", title="RMSE", save_folder=save_path,
+                      file_name="RMSE", ylim=[0, 0.6])

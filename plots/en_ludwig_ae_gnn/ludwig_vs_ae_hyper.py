@@ -11,7 +11,7 @@ biopsies = ["9 2 1", "9 2 2", "9 3 1", "9 3 2", "9 14 1", "9 14 2", "9 15 1", "9
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
 
-save_path = Path("plots/en_ludwig_ae_gnn/en_vs_ludwig")
+save_path = Path("plots/en_ludwig_ae_gnn/ludwig_vs_ae")
 
 
 def create_boxen_plot(data: pd.DataFrame, metric: str, title: str, save_folder: Path, file_name: str,
@@ -42,24 +42,24 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, title: str, save_folder: 
     # plt.legend().set_visible(False)
 
     hue = "Network"
-    hue_order = ["EN", "Light GBM"]
+    hue_order = ["Light GBM", "AE"]
     pairs = [
-        (("pRB", "EN"), ("pRB", "Light GBM")),
-        (("CD45", "EN"), ("CD45", "Light GBM")),
-        (("CK19", "EN"), ("CK19", "Light GBM")),
-        (("Ki67", "EN"), ("Ki67", "Light GBM")),
-        (("aSMA", "EN"), ("aSMA", "Light GBM")),
-        (("Ecad", "EN"), ("Ecad", "Light GBM")),
-        (("PR", "EN"), ("PR", "Light GBM")),
-        (("CK14", "EN"), ("CK14", "Light GBM")),
-        (("HER2", "EN"), ("HER2", "Light GBM")),
-        (("AR", "EN"), ("AR", "Light GBM")),
-        (("CK17", "EN"), ("CK17", "Light GBM")),
-        (("p21", "EN"), ("p21", "Light GBM")),
-        (("Vimentin", "EN"), ("Vimentin", "Light GBM")),
-        (("pERK", "EN"), ("pERK", "Light GBM")),
-        (("EGFR", "EN"), ("EGFR", "Light GBM")),
-        (("ER", "EN"), ("ER", "Light GBM")),
+        (("pRB", "Light GBM"), ("pRB", "AE")),
+        (("CD45", "Light GBM"), ("CD45", "AE")),
+        (("CK19", "Light GBM"), ("CK19", "AE")),
+        (("Ki67", "Light GBM"), ("Ki67", "AE")),
+        (("aSMA", "Light GBM"), ("aSMA", "AE")),
+        (("Ecad", "Light GBM"), ("Ecad", "AE")),
+        (("PR", "Light GBM"), ("PR", "AE")),
+        (("CK14", "Light GBM"), ("CK14", "AE")),
+        (("HER2", "Light GBM"), ("HER2", "AE")),
+        (("AR", "Light GBM"), ("AR", "AE")),
+        (("CK17", "Light GBM"), ("CK17", "AE")),
+        (("p21", "Light GBM"), ("p21", "AE")),
+        (("Vimentin", "Light GBM"), ("Vimentin", "AE")),
+        (("pERK", "Light GBM"), ("pERK", "AE")),
+        (("EGFR", "Light GBM"), ("EGFR", "AE")),
+        (("ER", "Light GBM"), ("ER", "AE")),
     ]
     order = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
              'pERK', 'EGFR', 'ER']
@@ -74,15 +74,26 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, title: str, save_folder: 
 
 
 def load_scores(load_path: str):
+    print(load_path)
     scores = []
     for root, dirs, files in os.walk(load_path):
         for name in files:
-            if Path(name).suffix == ".csv":
+            if "scores.csv" in name:
                 scores.append(pd.read_csv(os.path.join(root, name), sep=",", header=0))
 
     assert len(scores) == 8, "Not all biopsies have been processed"
 
-    return scores
+    return pd.concat(scores)
+
+
+def load_ae_scores(mode: str, replace_value: str):
+    all_scores = pd.read_csv(Path("data", "scores", "ae", "scores.csv"))
+    all_scores = all_scores[all_scores["Mode"] == mode]
+    all_scores = all_scores[all_scores["Replace Value"] == replace_value]
+    all_scores = all_scores[all_scores["Noise"] == 0]
+    all_scores = all_scores[all_scores["FE"] == 0]
+    all_scores = all_scores[all_scores["HP"] == 1]
+    return all_scores
 
 
 if __name__ == '__main__':
@@ -92,12 +103,18 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--markers", nargs='+', help="Markers to be plotted", default=None)
     parser.add_argument("--mode", choices=["ip", "exp"], type=str, default="ip")
+    parser.add_argument("-rv", "--replace_value", choices=["mean", "zero"], default="mean")
 
     args = parser.parse_args()
     mode = args.mode
     markers = args.markers
+    replace_value = args.replace_value
+    metric: str = args.metric
 
     save_path = Path(save_path, mode)
+    save_path = Path(save_path, "Hyper")
+    save_path = Path(save_path, replace_value)
+
     if markers:
         save_path = Path(save_path, "_".join(markers))
     else:
@@ -106,34 +123,36 @@ if __name__ == '__main__':
     if save_path.exists():
         shutil.rmtree(save_path)
 
-    print(save_path)
     save_path.mkdir(parents=True, exist_ok=True)
 
-    en_scores = load_scores(f"data/scores/Mesmer/{'ip' if mode == 'ip' else 'exp'}/EN")
-    ludwig_scores = load_scores(f"data/scores/Mesmer/{'ip' if mode == 'ip' else 'exp'}/Ludwig")
+    if mode == 'ip':
+        ludwig_scores = load_scores(f"data/scores/Mesmer/ip/Ludwig_hyper")
+        ae_scores = load_ae_scores(mode="ip", replace_value=replace_value)
+    elif mode == 'exp':
+        ludwig_scores = load_scores(f"data/scores/Mesmer/exp/Ludwig_hyper")
+        ae_scores = load_ae_scores(mode="exp", replace_value=replace_value)
+    else:
+        raise ValueError("Mode not recognized")
 
-    en_scores = pd.concat(en_scores, ignore_index=True)
+    # Select best performing iteration per marker
+    ae_scores = ae_scores.sort_values(by=["Marker", "Biopsy", "MAE"])
+    ae_scores = ae_scores.groupby(["Marker", "Biopsy"]).first().reset_index()
+    ae_scores["Network"] = "AE"
 
-    # rename mode to network
-    en_scores = en_scores.rename(columns={"Mode": "Network"})
+    # Select only Marker, MAE, MSE, RMSE and Biopsy
+    ludwig_scores = ludwig_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Mode"]]
+    ae_scores = ae_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network", "Mode"]]
 
-    ludwig_scores = pd.concat(ludwig_scores, ignore_index=True)
-    # rename mode to network
-    ludwig_scores = ludwig_scores.rename(columns={"Mode": "Network"})
-    # rename ludwig to light gbm
     ludwig_scores["Network"] = "Light GBM"
 
-    # duplicate rows in en scores
-    en_scores = pd.concat([en_scores] * 30, ignore_index=True, axis=0)
+    # combine ae and fe scores
+    scores = pd.concat([ae_scores, ludwig_scores], axis=0)
 
-    # combine en and ludwig scores
-    scores = pd.concat([en_scores, ludwig_scores], ignore_index=True, axis=0)
-    # scores = pd.concat([scores] * 30, ignore_index=True)
+    print(scores)
+    # duplicate each row in scores
+    # scores = pd.concat(scores, ignore_index=True)
 
     create_boxen_plot(data=scores, metric="MAE", title="MAE", save_folder=save_path,
-                      file_name="MAE",
-                      ylim=[0, 0.6])
-
+                      file_name="MAE", ylim=[0, 0.6])
     create_boxen_plot(data=scores, metric="RMSE", title="RMSE", save_folder=save_path,
-                      file_name="RMSE",
-                      ylim=[0, 0.6])
+                      file_name="RMSE", ylim=[0, 0.6])

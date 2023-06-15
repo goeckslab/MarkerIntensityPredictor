@@ -22,14 +22,13 @@ def load_scores(load_path: str) -> pd.DataFrame:
     return scores
 
 
-def load_ae_scores(mode: str, replace_value: str, add_noise: str, spatial: int):
+def load_ae_scores(mode: str, replace_value: str):
     all_scores = pd.read_csv(Path("data", "scores", "ae", "scores.csv"))
-    noise: int = 1 if add_noise == "noise" else 0
     all_scores = all_scores[all_scores["Mode"] == mode]
     all_scores = all_scores[all_scores["Replace Value"] == replace_value]
-    all_scores = all_scores[all_scores["Noise"] == noise]
-    all_scores = all_scores[all_scores["FE"] == spatial]
-    all_scores = all_scores[all_scores["HP"] == 0]
+    all_scores = all_scores[all_scores["Noise"] == 0]
+    all_scores = all_scores[all_scores["FE"] == 0]
+    all_scores = all_scores[all_scores["HP"] == 1]
     return all_scores
 
 
@@ -95,15 +94,15 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, title: str, save_folder: 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--markers", nargs='+', help="Markers to be plotted", default=None)
-    parser.add_argument("-n", "--network", choices=["EN", "Ludwig", "AE"], help="Network to be plotted",
-                        default="EN")
+    parser.add_argument("-n", "--network", choices=["Ludwig", "AE"], help="Network to be plotted",
+                        default="Ludwig")
 
     args = parser.parse_args()
     markers = args.markers
     network = args.network
 
     save_path = Path(save_path)
-    save_path = Path(save_path, network, "ip_vs_exp")
+    save_path = Path(save_path, network, "ip_vs_exp_hyper")
     if markers:
         save_path = Path(save_path, "_".join(markers))
     else:
@@ -115,32 +114,21 @@ if __name__ == '__main__':
     print(save_path)
     save_path.mkdir(parents=True, exist_ok=True)
 
-    if network == "EN":
+    if network == "Ludwig":
         # Load scores
-        ip_scores = load_scores("data/scores/Mesmer/ip/EN")
+        ip_scores = load_scores("data/scores/Mesmer/ip/Ludwig_hyper")
         ip_scores["Mode"] = "IP"
-        ip_scores["Network"] = "EN"
-
-        exp_scores = load_scores("data/scores/Mesmer/exp/EN")
-        exp_scores["Mode"] = "EXP"
-        exp_scores["Network"] = "EN"
-    elif network == "Ludwig":
-        # Load scores
-        ip_scores = load_scores("data/scores/Mesmer/ip/Ludwig")
-        ip_scores["Mode"] = "IP"
-        exp_scores = load_scores("data/scores/Mesmer/exp/Ludwig")
+        exp_scores = load_scores("data/scores/Mesmer/exp/Ludwig_hyper")
         exp_scores["Mode"] = "EXP"
 
     else:
-        ip_scores = load_ae_scores(replace_value="mean", add_noise="no_noise", spatial=0, mode="ip")
+        ip_scores = load_ae_scores(replace_value="mean", mode="ip")
         ip_scores["Mode"] = "IP"
-        exp_scores = load_ae_scores(replace_value="mean", add_noise="no_noise", spatial=0, mode="exp")
+        exp_scores = load_ae_scores(replace_value="mean", mode="exp")
         exp_scores["Mode"] = "EXP"
 
     # Combine ip and exp scores
     scores: pd.DataFrame = pd.concat([ip_scores, exp_scores], ignore_index=True)
-    if network == "EN":
-        scores = pd.concat([scores] * 30)
 
     if network == "AE":
         # remove outliers greater than 3 std for the MAE column
