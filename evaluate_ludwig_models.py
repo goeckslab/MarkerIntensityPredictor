@@ -37,17 +37,20 @@ if __name__ == '__main__':
                         choices=[23, 46, 92, 138, 184])
     parser.add_argument('--mode', type=str, choices=['ip', 'exp'], help="The mode", default='ip')
     parser.add_argument('--hyper', action="store_true", help="Use hyperopt", default=False)
+    parser.add_argument("--iterations", "-i", type=int, default=2, help="The number of iterations")
     args = parser.parse_args()
 
     spatial_radius: int = args.spatial
     mode = args.mode
     biopsy: str = args.biopsy
     hyper: bool = args.hyper
+    iterations: int = args.iterations
 
     print(f"Mode: {mode}")
     print(f"Biopsy: {biopsy}")
     print(f"Radius: {spatial_radius}")
     print(f"Hyper: {hyper}")
+    print(f"Iterations: {iterations}")
 
     if mode == "ip":
         # change last number of biopsy to 1 if it is 2
@@ -109,7 +112,7 @@ if __name__ == '__main__':
                         print(ex)
                         continue
 
-                    for i in tqdm(range(1, 501)):
+                    for i in tqdm(range(1, iterations)):
                         random_seed = random.randint(0, 100000)
                         # sample new dataset from test_data
                         test_data_sample = test_dataset.sample(frac=0.7, random_state=random_seed,
