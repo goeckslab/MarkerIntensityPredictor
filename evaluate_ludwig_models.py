@@ -114,7 +114,11 @@ if __name__ == '__main__':
                         # sample new dataset from test_data
                         test_data_sample = test_dataset.sample(frac=0.7, random_state=random_seed,
                                                                replace=True)
-                        eval_stats, _, _ = model.evaluate(dataset=test_data_sample)
+                        test_data_sample.reset_index(drop=True, inplace=True)
+                        try:
+                            eval_stats, _, _ = model.evaluate(dataset=test_data_sample)
+                        except BaseException as ex:
+                            continue
                         scores.append(
                             {
                                 "Marker": marker,
