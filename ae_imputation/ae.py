@@ -49,7 +49,7 @@ class Hyperopt:
         # Encoder
         encoded = Dense(units=hp.Int('enc_1', min_value=8, max_value=16, step=2), activation='relu')(input_layer)
 
-        latent_space = Dense(units=hp.Int('latent_space', min_value=5, max_value=10, step=2))(encoded)
+        latent_space = Dense(units=hp.Int('latent_space', min_value=5, max_value=8, step=2))(encoded)
 
         # Decoder
         decoded = Dense(units=hp.Int('dec_2', min_value=8, max_value=16, step=2), activation='relu')(latent_space)
@@ -70,7 +70,7 @@ class Hyperopt:
         # Encoder
         encoded = Dense(units=hp.Int('enc_1', min_value=8, max_value=16, step=2), activation='relu')(input_layer)
 
-        latent_space = Dense(units=hp.Int('latent_space', min_value=5, max_value=10, step=2))(encoded)
+        latent_space = Dense(units=hp.Int('latent_space', min_value=5, max_value=8, step=2))(encoded)
 
         # Decoder
         decoded = Dense(units=hp.Int('dec_2', min_value=8, max_value=16, step=2), activation='relu')(latent_space)
