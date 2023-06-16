@@ -134,42 +134,61 @@ def save_scores(save_folder: str, file_name: str, scores: List[Dict]):
 
 def impute_marker(test_data: Data, subset: int, scores: List, all_predictions: Dict, file_name: str, save_folder: str,
                   store_predictions: bool, columns: List, replace_value: str, iterations: int, biopsy_name: str):
-    for marker in columns:
-        input_data = pd.DataFrame(test_data.x, columns=columns).copy()
-        if replace_value == "zero":
-            input_data[marker] = 0
-        elif replace_value == "mean":
-            input_data[marker] = input_data[marker].mean()
+    try:
+        for marker in columns:
+            input_data = pd.DataFrame(test_data.x, columns=columns).copy()
+            if replace_value == "zero":
+                input_data[marker] = 0
+            elif replace_value == "mean":
+                input_data[marker] = input_data[marker].mean()
 
-        marker_prediction = input_data.copy()
+            marker_prediction = input_data.copy()
 
-        for iteration in tqdm(range(iterations)):
-            with torch.no_grad():
-                # convert data to tensor
-                marker_prediction = torch.tensor(marker_prediction.values, dtype=torch.float)
-                predicted_intensities, h = model(marker_prediction, test_data.edge_index)
-                predicted_intensities = pd.DataFrame(data=predicted_intensities, columns=columns)
+            for iteration in tqdm(range(iterations)):
+                with torch.no_grad():
+                    # convert data to tensor
+                    marker_prediction = torch.tensor(marker_prediction.values, dtype=torch.float)
+                    predicted_intensities, h = model(marker_prediction, test_data.edge_index)
+                    predicted_intensities = pd.DataFrame(data=predicted_intensities, columns=columns)
 
-                if store_predictions:
-                    all_predictions[iteration][marker] = predicted_intensities[marker].values
+                    if store_predictions:
+                        all_predictions[iteration][marker] = predicted_intensities[marker].values
 
-                # Extract the reconstructed marker
-                imputed_marker = predicted_intensities[marker].values
-                # copy the original dataset and replace the marker in question with the imputed data
-                marker_prediction = input_data.copy()
-                marker_prediction[marker] = imputed_marker
+                    # Extract the reconstructed marker
+                    imputed_marker = predicted_intensities[marker].values
+                    # copy the original dataset and replace the marker in question with the imputed data
+                    marker_prediction = input_data.copy()
+                    marker_prediction[marker] = imputed_marker
 
-                append_scores_per_iteration(scores=scores, test_biopsy_name=biopsy_name, predictions=marker_prediction,
-                                            ground_truth=pd.DataFrame(test_data.x, columns=columns),
-                                            hp=False, type=mode, iteration=i, marker=marker,
-                                            spatial_radius=spatial_radius, experiment_id=experiment_id,
-                                            replace_value=replace_value, subset=subset)
+                    append_scores_per_iteration(scores=scores, test_biopsy_name=biopsy_name,
+                                                predictions=marker_prediction,
+                                                ground_truth=pd.DataFrame(test_data.x, columns=columns),
+                                                hp=False, type=mode, iteration=i, marker=marker,
+                                                spatial_radius=spatial_radius, experiment_id=experiment_id,
+                                                replace_value=replace_value, subset=subset)
 
-                if iteration % 20 == 0:
-                    print(f"Finished iteration {iteration} for marker {marker}.")
-                    print("Performing temp save...")
-                    save_scores(save_folder=save_folder, file_name=file_name, scores=scores)
-                    scores = []
+                    if iteration % 20 == 0:
+                        print(f"Finished iteration {iteration} for marker {marker}.")
+                        print("Performing temp save...")
+                        save_scores(save_folder=save_folder, file_name=file_name, scores=scores)
+                        scores = []
+    except KeyboardInterrupt as ex:
+        print("Keyboard interrupt detected.")
+        print("Saving scores...")
+        if len(scores) > 0:
+            save_scores(scores=scores, save_folder=save_folder, file_name=file_name)
+        raise
+    except BaseException as ex:
+        print(ex)
+        print("Test truth:")
+        print(test_data)
+        print("Predictions:")
+        print(predictions)
+        print(mode)
+        print(spatial_radius)
+        print(experiment_id)
+        print(replace_value)
+        raise
 
 
 def calculate_edge_indexes(dataset: pd.DataFrame, spatial: int) -> torch.Tensor:

@@ -208,6 +208,14 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
                     scores = []
 
         return scores, all_predictions
+
+    except KeyboardInterrupt as ex:
+        print("Keyboard interrupt detected.")
+        print("Saving scores...")
+        if len(scores) > 0:
+            save_scores(scores=scores, save_folder=save_folder, file_name=file_name)
+        raise
+
     except Exception as ex:
         print(ex)
         print("Test truth:")

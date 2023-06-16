@@ -116,59 +116,62 @@ if __name__ == '__main__':
     file_name = f"{test_biopsy_name}_scores.csv"
     print("Save path: ", save_path)
     print("File name: ", file_name)
-
-    for marker in SHARED_MARKERS:
-        results_path = Path(base_path, marker, "results")
-        for root, marker_sub_directories, files in os.walk(str(results_path)):
-            if "experiment_run" in marker_sub_directories:
-                for experiment in marker_sub_directories:
-                    models = None
-                    try:
-                        model = LudwigModel.load(str(Path(results_path, experiment, 'model')))
-                    except KeyboardInterrupt as ex:
-                        print("Keyboard interrupt")
-                        sys.exit(0)
-                    except BaseException as ex:
-                        print(ex)
-                        continue
-
-                    for i in tqdm(range(1, iterations)):
-
-                        random_seed = random.randint(0, 100000)
-                        # sample new dataset from test_data
-                        test_data_sample = test_dataset.sample(frac=0.7, random_state=random_seed,
-                                                               replace=True)
-                        test_data_sample.reset_index(drop=True, inplace=True)
+    try:
+        for marker in SHARED_MARKERS:
+            results_path = Path(base_path, marker, "results")
+            for root, marker_sub_directories, files in os.walk(str(results_path)):
+                if "experiment_run" in marker_sub_directories:
+                    for experiment in marker_sub_directories:
+                        models = None
                         try:
-                            eval_stats, _, _ = model.evaluate(dataset=test_data_sample)
+                            model = LudwigModel.load(str(Path(results_path, experiment, 'model')))
                         except KeyboardInterrupt as ex:
-                            print("Keyboard interrupt")
-                            sys.exit(0)
+                            raise
                         except BaseException as ex:
+                            print(ex)
                             continue
-                        scores.append(
-                            {
-                                "Marker": marker,
-                                "MAE": eval_stats[marker]['mean_absolute_error'],
-                                "MSE": eval_stats[marker]['mean_squared_error'],
-                                "RMSE": eval_stats[marker]['root_mean_squared_error'],
-                                "Biopsy": test_biopsy_name,
-                                "Mode": mode,
-                                "FE": spatial_radius if spatial_radius is not None else 0,
-                                "Network": "Ludwig",
-                                "Hyper": hyper,
-                                "Load Path": str(Path(results_path, experiment, 'model')),
-                                "Random Seed": random_seed,
-                            }
-                        )
 
-                        if i % 20 == 0:
-                            save_scores(scores=scores, save_folder=save_path, file_name=file_name)
-                            scores = []
+                        for i in tqdm(range(1, iterations)):
 
-                    # Save scores after each experiment
-                    save_scores(scores=scores, save_folder=save_path, file_name=file_name)
-                    scores = []
+                            random_seed = random.randint(0, 100000)
+                            # sample new dataset from test_data
+                            test_data_sample = test_dataset.sample(frac=0.7, random_state=random_seed,
+                                                                   replace=True)
+                            test_data_sample.reset_index(drop=True, inplace=True)
+                            try:
+                                eval_stats, _, _ = model.evaluate(dataset=test_data_sample)
+                            except KeyboardInterrupt as ex:
+                                raise
+                            except BaseException as ex:
+                                continue
+                            scores.append(
+                                {
+                                    "Marker": marker,
+                                    "MAE": eval_stats[marker]['mean_absolute_error'],
+                                    "MSE": eval_stats[marker]['mean_squared_error'],
+                                    "RMSE": eval_stats[marker]['root_mean_squared_error'],
+                                    "Biopsy": test_biopsy_name,
+                                    "Mode": mode,
+                                    "FE": spatial_radius if spatial_radius is not None else 0,
+                                    "Network": "Ludwig",
+                                    "Hyper": hyper,
+                                    "Load Path": str(Path(results_path, experiment, 'model')),
+                                    "Random Seed": random_seed,
+                                }
+                            )
 
-    if len(scores) > 0:
-        save_scores(scores=scores, save_folder=save_path, file_name=file_name)
+                            if i % 20 == 0:
+                                save_scores(scores=scores, save_folder=save_path, file_name=file_name)
+                                scores = []
+
+                        # Save scores after each experiment
+                        save_scores(scores=scores, save_folder=save_path, file_name=file_name)
+                        scores = []
+
+        if len(scores) > 0:
+            save_scores(scores=scores, save_folder=save_path, file_name=file_name)
+    except KeyboardInterrupt as ex:
+        print("Detected Keyboard interrupt...")
+        print("Saving scores....")
+        if len(scores) > 0:
+            save_scores(scores=scores, save_folder=save_path, file_name=file_name)
