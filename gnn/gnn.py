@@ -311,7 +311,7 @@ if __name__ == '__main__':
 
         impute_marker(test_data=test_data, subset=i, scores=scores, all_predictions=predictions,
                       store_predictions=False, columns=test_data_sample.columns, replace_value=replace_value,
-                      iterations=iterations, biopsy_name=biopsy_name)
+                      iterations=iterations, biopsy_name=biopsy_name, save_folder=save_folder, file_name=score_file_name)
 
     # Evaluate on full test set
     test_node_features = torch.tensor(test_set.values, dtype=torch.float)
