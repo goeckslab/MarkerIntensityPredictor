@@ -4,6 +4,7 @@ from ludwig.api import LudwigModel
 import pandas as pd
 import random
 from tqdm import tqdm
+import sys
 
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
@@ -99,6 +100,9 @@ if __name__ == '__main__':
     scores = []
 
     save_path = create_scores_dir(combination=mode, radius=spatial_radius, hyper=hyper)
+    file_name = f"{test_biopsy_name}_scores.csv"
+    print("Save path: ", save_path)
+    print("File name: ", file_name)
 
     for marker in SHARED_MARKERS:
         results_path = Path(base_path, marker, "results")
@@ -108,11 +112,15 @@ if __name__ == '__main__':
                     models = None
                     try:
                         model = LudwigModel.load(str(Path(results_path, experiment, 'model')))
+                    except KeyboardInterrupt as ex:
+                        print("Keyboard interrupt")
+                        sys.exit(0)
                     except BaseException as ex:
                         print(ex)
                         continue
 
                     for i in tqdm(range(1, iterations)):
+
                         random_seed = random.randint(0, 100000)
                         # sample new dataset from test_data
                         test_data_sample = test_dataset.sample(frac=0.7, random_state=random_seed,
@@ -120,6 +128,9 @@ if __name__ == '__main__':
                         test_data_sample.reset_index(drop=True, inplace=True)
                         try:
                             eval_stats, _, _ = model.evaluate(dataset=test_data_sample)
+                        except KeyboardInterrupt as ex:
+                            print("Keyboard interrupt")
+                            sys.exit(0)
                         except BaseException as ex:
                             continue
                         scores.append(
@@ -138,8 +149,19 @@ if __name__ == '__main__':
                             }
                         )
 
+                        if i % 2 == 0:
+                            scores = pd.DataFrame(scores)
+                            if Path(save_path, file_name).exists():
+                                print(f"Temp saving scores for marker {marker}...")
+                                print("Found existing scores...")
+                                print("Merging...")
+                                temp_scores = pd.read_csv(Path(save_path, file_name))
+                                scores = pd.concat([temp_scores, scores], ignore_index=True)
+
+                            scores.to_csv(Path(save_path, file_name), index=False)
+                            scores = []
+
     scores = pd.DataFrame(scores)
-    file_name = f"{test_biopsy_name}_scores.csv"
 
     # Merge existing scores
     if Path(save_path, file_name).exists():
@@ -148,4 +170,5 @@ if __name__ == '__main__':
         temp_scores = pd.read_csv(Path(save_path, file_name))
         scores = pd.concat([temp_scores, scores], ignore_index=True)
 
+    print("Final save...")
     scores.to_csv(Path(save_path, file_name), index=False)
