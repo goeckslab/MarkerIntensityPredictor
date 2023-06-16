@@ -125,7 +125,14 @@ def train(data: Data):
     return loss, h
 
 
-def impute_marker(test_data: Data, subset: int, scores: List, all_predictions: Dict,
+def save_scores(save_folder: str, file_name: str, scores: List[Dict]):
+    if Path(f"{save_folder}/{file_name}").exists():
+        temp_df = pd.read_csv(f"{save_folder}/{file_name}")
+        scores = pd.concat([temp_df, pd.DataFrame(scores)])
+    pd.DataFrame(scores).to_csv(f"{save_folder}/{file_name}", index=False)
+
+
+def impute_marker(test_data: Data, subset: int, scores: List, all_predictions: Dict, file_name: str, save_folder: str,
                   store_predictions: bool, columns: List, replace_value: str, iterations: int, biopsy_name: str):
     for marker in columns:
         input_data = pd.DataFrame(test_data.x, columns=columns).copy()
@@ -157,6 +164,12 @@ def impute_marker(test_data: Data, subset: int, scores: List, all_predictions: D
                                             hp=False, type=mode, iteration=i, marker=marker,
                                             spatial_radius=spatial_radius, experiment_id=experiment_id,
                                             replace_value=replace_value, subset=subset)
+
+                if iteration % 20 == 0:
+                    print(f"Finished iteration {iteration} for marker {marker}.")
+                    print("Performing temp save...")
+                    save_scores(save_folder=save_folder, file_name=file_name, scores=scores)
+                    scores = []
 
 
 def calculate_edge_indexes(dataset: pd.DataFrame, spatial: int) -> torch.Tensor:
@@ -191,6 +204,8 @@ if __name__ == '__main__':
     replace_value = args.replace_mode
     iterations = args.iterations
 
+    score_file_name = "scores.csv"
+
     if mode == "ip":
         print(str(Path(raw_data_folder, biopsy_name)))
         raw_test_set: pd.DataFrame = pd.read_csv(str(Path(raw_data_folder, f"{biopsy_name}.csv")), header=0)
@@ -210,7 +225,7 @@ if __name__ == '__main__':
 
 
     else:
-        train_set = pd.read_csv(str(Path(prepared_data_folder,  f"{patient}_excluded_scaled.csv")),
+        train_set = pd.read_csv(str(Path(prepared_data_folder, f"{patient}_excluded_scaled.csv")),
                                 header=0)
         train_edge_index = torch.load(
             str(Path(prepared_data_folder, str(spatial_radius), f"{patient}_excluded_edge_index.pt")))
@@ -289,13 +304,16 @@ if __name__ == '__main__':
 
     impute_marker(test_data=test_data, subset=0, scores=scores, all_predictions=predictions, store_predictions=True,
                   columns=test_set.columns, replace_value=replace_value, iterations=iterations,
-                  biopsy_name=biopsy_name)
+                  biopsy_name=biopsy_name, save_folder=save_folder, file_name=score_file_name)
 
     # Convert to df
     scores = pd.DataFrame(scores)
 
     # Save data
-    scores.to_csv(f"{save_folder}/scores.csv", index=False)
+    if Path(f"{save_folder}/{score_file_name}").exists():
+        scores = pd.concat([pd.read_csv(f"{save_folder}/{score_file_name}"), scores], axis=0)
+
+    scores.to_csv(f"{save_folder}/{score_file_name}", index=False)
     for key, value in predictions.items():
         value.to_csv(f"{save_folder}/{key}_predictions.csv",
                      index=False)

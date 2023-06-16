@@ -140,8 +140,15 @@ def create_noise(shape: [], columns: List[str]):
     return pd.DataFrame(data=np.random.normal(mu, sigma, shape), columns=columns)
 
 
+def save_scores(save_folder: str, file_name: str, scores: List[Dict]):
+    if Path(f"{save_folder}/{file_name}").exists():
+        temp_df = pd.read_csv(f"{save_folder}/{file_name}")
+        scores = pd.concat([temp_df, pd.DataFrame(scores)])
+    pd.DataFrame(scores).to_csv(f"{save_folder}/{file_name}", index=False)
+
+
 def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict, hp: bool,
-                   mode: str, spatial_radius: int, experiment_id: int,
+                   mode: str, spatial_radius: int, experiment_id: int, save_folder: str, file_name: str,
                    replace_value: str, add_noise: bool, iterations: int, store_predictions: bool, subset: int):
     try:
         for marker in SHARED_MARKERS:
@@ -193,6 +200,12 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
                     "Noise": int(add_noise),
                     "Replace Value": replace_value
                 })
+
+                if iteration % 20 == 0:
+                    print(f"Finished iteration {iteration} for marker {marker}.")
+                    print("Performing temp save...")
+                    save_scores(save_folder=save_folder, file_name=file_name, scores=scores)
+                    scores = []
 
         return scores, all_predictions
     except Exception as ex:
@@ -283,6 +296,8 @@ if __name__ == '__main__':
     # Load test data
     test_biopsy_name = args.biopsy
     patient: str = "_".join(Path(test_biopsy_name).stem.split("_")[:2])
+    scores_file_name = "scores.csv" if not hp else "hp_scores.csv"
+    print(scores_file_name)
 
     save_folder, experiment_id = create_results_folder(spatial_radius=spatial, hp=hp)
 
@@ -411,24 +426,32 @@ if __name__ == '__main__':
         impute_markers(scores=scores, all_predictions=predictions, hp=hp, mode=patient_type, spatial_radius=spatial,
                        experiment_id=experiment_id, replace_value=replace_value, add_noise=add_noise,
                        iterations=iterations,
-                       store_predictions=False, test_data=test_data_sample, subset=i)
+                       store_predictions=False, test_data=test_data_sample, subset=i, file_name=scores_file_name,
+                       save_folder=save_folder)
 
     impute_markers(scores=scores, all_predictions=predictions, hp=hp, mode=patient_type, spatial_radius=spatial,
                    experiment_id=experiment_id, replace_value=replace_value, add_noise=add_noise,
                    iterations=iterations,
-                   store_predictions=True, test_data=test_data, subset=0)
+                   store_predictions=True, test_data=test_data, subset=0, file_name=scores_file_name,
+                   save_folder=save_folder)
 
     # Convert to df
     scores = pd.DataFrame(scores)
 
     # Save results
     if not hp:
-        scores.to_csv(f"{save_folder}/scores.csv", index=False)
+        if Path(f"{save_folder}/{scores_file_name}").exists():
+            scores = pd.concat([pd.read_csv(f"{save_folder}/{scores_file_name}"), scores], axis=0)
+
+        scores.to_csv(f"{save_folder}/{scores_file_name}", index=False)
         for key, value in predictions.items():
             value.to_csv(f"{save_folder}/{key}_predictions.csv",
                          index=False)
     else:
-        scores.to_csv(f"{save_folder}/hp_scores.csv", index=False)
+        if Path(f"{save_folder}/{scores_file_name}.csv").exists():
+            scores = pd.concat([pd.read_csv(f"{save_folder}/{scores_file_name}"), scores], axis=0)
+
+        scores.to_csv(f"{save_folder}/{scores_file_name}", index=False)
         for key, value in predictions.items():
             value.to_csv(f"{save_folder}/{key}_hp_predictions.csv",
                          index=False)

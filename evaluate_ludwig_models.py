@@ -149,7 +149,7 @@ if __name__ == '__main__':
                             }
                         )
 
-                        if i % 2 == 0:
+                        if i % 20 == 0:
                             scores = pd.DataFrame(scores)
                             if Path(save_path, file_name).exists():
                                 print(f"Temp saving scores for marker {marker}...")
