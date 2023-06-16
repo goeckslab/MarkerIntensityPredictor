@@ -5,6 +5,7 @@ import pandas as pd
 import random
 from tqdm import tqdm
 import sys
+from typing import List
 
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
@@ -27,6 +28,18 @@ def create_scores_dir(combination: str, radius: int, hyper: bool) -> Path:
         scores_directory.mkdir(parents=True, exist_ok=True)
 
     return scores_directory
+
+
+def save_scores(save_folder: Path, file_name: str, scores: List):
+    print(f"Temp saving scores")
+    scores = pd.DataFrame(scores)
+    if Path(save_path, file_name).exists():
+        print("Found existing scores...")
+        print("Merging...")
+        temp_scores = pd.read_csv(Path(save_path, file_name))
+        scores = pd.concat([temp_scores, scores], ignore_index=True)
+
+    scores.to_csv(Path(save_folder, file_name), index=False)
 
 
 if __name__ == '__main__':
@@ -150,25 +163,12 @@ if __name__ == '__main__':
                         )
 
                         if i % 20 == 0:
-                            scores = pd.DataFrame(scores)
-                            if Path(save_path, file_name).exists():
-                                print(f"Temp saving scores for marker {marker}...")
-                                print("Found existing scores...")
-                                print("Merging...")
-                                temp_scores = pd.read_csv(Path(save_path, file_name))
-                                scores = pd.concat([temp_scores, scores], ignore_index=True)
-
-                            scores.to_csv(Path(save_path, file_name), index=False)
+                            save_scores(scores=scores, save_folder=save_path, file_name=file_name)
                             scores = []
 
-    scores = pd.DataFrame(scores)
+                    # Save scores after each experiment
+                    save_scores(scores=scores, save_folder=save_path, file_name=file_name)
+                    scores = []
 
-    # Merge existing scores
-    if Path(save_path, file_name).exists():
-        print("Found existing scores...")
-        print("Merging...")
-        temp_scores = pd.read_csv(Path(save_path, file_name))
-        scores = pd.concat([temp_scores, scores], ignore_index=True)
-
-    print("Final save...")
-    scores.to_csv(Path(save_path, file_name), index=False)
+    if len(scores) > 0:
+        save_scores(scores=scores, save_folder=save_path, file_name=file_name)
