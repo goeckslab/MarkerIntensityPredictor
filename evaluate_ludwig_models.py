@@ -51,7 +51,7 @@ if __name__ == '__main__':
                         choices=[23, 46, 92, 138, 184])
     parser.add_argument('--mode', type=str, choices=['ip', 'exp'], help="The mode", default='ip')
     parser.add_argument('--hyper', action="store_true", help="Use hyperopt", default=False)
-    parser.add_argument("--iterations", "-i", type=int, default=301, help="The number of iterations")
+    parser.add_argument("--iterations", "-i", type=int, default=101, help="The number of iterations")
     args = parser.parse_args()
 
     spatial_radius: int = args.spatial
