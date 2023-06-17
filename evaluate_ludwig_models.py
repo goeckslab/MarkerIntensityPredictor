@@ -164,9 +164,10 @@ if __name__ == '__main__':
                                 save_scores(scores=scores, save_folder=save_path, file_name=file_name)
                                 scores = []
 
-                        # Save scores after each experiment
-                        save_scores(scores=scores, save_folder=save_path, file_name=file_name)
-                        scores = []
+                        if len(scores) > 0:
+                            # Save scores after each experiment
+                            save_scores(scores=scores, save_folder=save_path, file_name=file_name)
+                            scores = []
 
         if len(scores) > 0:
             save_scores(scores=scores, save_folder=save_path, file_name=file_name)
