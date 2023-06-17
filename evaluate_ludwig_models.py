@@ -36,8 +36,12 @@ def save_scores(save_folder: Path, file_name: str, scores: List):
     if Path(save_path, file_name).exists():
         print("Found existing scores...")
         print("Merging...")
-        temp_scores = pd.read_csv(Path(save_path, file_name))
-        scores = pd.concat([temp_scores, scores], ignore_index=True)
+        try:
+            temp_scores = pd.read_csv(Path(save_path, file_name))
+            scores = pd.concat([temp_scores, scores], ignore_index=True)
+        except:
+            # continue without doing anything
+            pass
 
     scores.to_csv(Path(save_folder, file_name), index=False)
 
