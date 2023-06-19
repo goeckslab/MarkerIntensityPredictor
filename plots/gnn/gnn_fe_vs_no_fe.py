@@ -16,6 +16,113 @@ biopsies = ["9 2 1", "9 2 2", "9 3 1", "9 3 2", "9 14 1", "9 14 2", "9 15 1", "9
 save_path = Path("plots/gnn/fe_vs_no_fe")
 
 
+def create_boxen_plot_all_spatial(data: pd.DataFrame, metric: str, title: str, save_folder: Path, file_name: str,
+                                  ylim: List, color_palette):
+    data["Biopsy"] = data["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
+    if args.markers:
+        fig = plt.figure(figsize=(13, 5), dpi=200)
+    else:
+        fig = plt.figure(figsize=(15, 5), dpi=200)
+    # ax = sns.violinplot(data=data, x="Marker", y=score, hue="FE", split=True, cut=0, palette=color_palette)
+    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="FE", palette=color_palette)
+
+    # plt.title(title)
+    # remove y axis label
+    plt.ylabel("")
+    plt.xlabel("")
+    # plt.legend(loc='upper center')
+    plt.ylim(ylim[0], ylim[1])
+
+    y_ticks = [item.get_text() for item in fig.axes[0].get_yticklabels()]
+    x_ticks = [item.get_text() for item in fig.axes[0].get_xticklabels()]
+    # set y ticks of fig
+    if args.markers:
+        ax.set_yticklabels(y_ticks, rotation=0, fontsize=20)
+        ax.set_xticklabels(x_ticks, rotation=0, fontsize=20)
+    plt.box(False)
+    # remove legend from fig
+    # plt.legend().set_visible(False)
+
+    hue = "FE"
+    hue_order = ["23 µm", "46 µm", "92 µm", "184 µm"]
+    pairs = [
+        (("pRB", "46 µm"), ("pRB", "23 µm")),
+        (("CD45", "46 µm"), ("CD45", "23 µm")),
+        (("CK19", "46 µm"), ("CK19", "23 µm")),
+        (("Ki67", "46 µm"), ("Ki67", "23 µm")),
+        (("aSMA", "46 µm"), ("aSMA", "23 µm")),
+        (("Ecad", "46 µm"), ("Ecad", "23 µm")),
+        (("PR", "46 µm"), ("PR", "23 µm")),
+        (("CK14", "46 µm"), ("CK14", "23 µm")),
+        (("HER2", "46 µm"), ("HER2", "23 µm")),
+        (("AR", "46 µm"), ("AR", "23 µm")),
+        (("CK17", "46 µm"), ("CK17", "23 µm")),
+        (("p21", "46 µm"), ("p21", "23 µm")),
+        (("Vimentin", "46 µm"), ("Vimentin", "23 µm")),
+        (("pERK", "46 µm"), ("pERK", "23 µm")),
+        (("EGFR", "46 µm"), ("EGFR", "23 µm")),
+        (("ER", "46 µm"), ("ER", "23 µm")),
+        (("pRB", "92 µm"), ("pRB", "23 µm")),
+        (("CD45", "92 µm"), ("CD45", "23 µm")),
+        (("CK19", "92 µm"), ("CK19", "23 µm")),
+        (("Ki67", "92 µm"), ("Ki67", "23 µm")),
+        (("aSMA", "92 µm"), ("aSMA", "23 µm")),
+        (("Ecad", "92 µm"), ("Ecad", "23 µm")),
+        (("PR", "92 µm"), ("PR", "23 µm")),
+        (("CK14", "92 µm"), ("CK14", "23 µm")),
+        (("HER2", "92 µm"), ("HER2", "23 µm")),
+        (("AR", "92 µm"), ("AR", "23 µm")),
+        (("CK17", "92 µm"), ("CK17", "23 µm")),
+        (("p21", "92 µm"), ("p21", "23 µm")),
+        (("Vimentin", "92 µm"), ("Vimentin", "23 µm")),
+        (("pERK", "92 µm"), ("pERK", "23 µm")),
+        (("EGFR", "92 µm"), ("EGFR", "23 µm")),
+        (("ER", "92 µm"), ("ER", "23 µm")),
+        # (("pRB", "138 µm"), ("pRB", "23 µm")),
+        # (("CD45", "138 µm"), ("CD45", "23 µm")),
+        # (("CK19", "138 µm"), ("CK19", "23 µm")),
+        # (("Ki67", "138 µm"), ("Ki67", "23 µm")),
+        # (("aSMA", "138 µm"), ("aSMA", "23 µm")),
+        # (("Ecad", "138 µm"), ("Ecad", "23 µm")),
+        # (("PR", "138 µm"), ("PR", "23 µm")),
+        # (("CK14", "138 µm"), ("CK14", "23 µm")),
+        # (("HER2", "138 µm"), ("HER2", "23 µm")),
+        # (("AR", "138 µm"), ("AR", "23 µm")),
+        # (("CK17", "138 µm"), ("CK17", "23 µm")),
+        # (("p21", "138 µm"), ("p21", "23 µm")),
+        # (("Vimentin", "138 µm"), ("Vimentin", "23 µm")),
+        # (("pERK", "138 µm"), ("pERK", "23 µm")),
+        # (("EGFR", "138 µm"), ("EGFR", "23 µm")),
+        # (("ER", "138 µm"), ("ER", "23 µm")),
+        (("pRB", "184 µm"), ("pRB", "23 µm")),
+        (("CD45", "184 µm"), ("CD45", "23 µm")),
+        (("CK19", "184 µm"), ("CK19", "23 µm")),
+        (("Ki67", "184 µm"), ("Ki67", "23 µm")),
+        (("aSMA", "184 µm"), ("aSMA", "23 µm")),
+        (("Ecad", "184 µm"), ("Ecad", "23 µm")),
+        (("PR", "184 µm"), ("PR", "23 µm")),
+        (("CK14", "184 µm"), ("CK14", "23 µm")),
+        (("HER2", "184 µm"), ("HER2", "23 µm")),
+        (("AR", "184 µm"), ("AR", "23 µm")),
+        (("CK17", "184 µm"), ("CK17", "23 µm")),
+        (("p21", "184 µm"), ("p21", "23 µm")),
+        (("Vimentin", "184 µm"), ("Vimentin", "23 µm")),
+        (("pERK", "184 µm"), ("pERK", "23 µm")),
+        (("EGFR", "184 µm"), ("EGFR", "23 µm")),
+        (("ER", "184 µm"), ("ER", "23 µm")),
+    ]
+    order = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
+             'pERK', 'EGFR', 'ER']
+    annotator = Annotator(ax, pairs, data=data, x="Marker", y=metric, order=order, hue=hue, hue_order=hue_order,
+                          verbose=1)
+    annotator.configure(test='Mann-Whitney', text_format='star', loc='outside')
+    annotator.apply_and_annotate()
+
+    plt.tight_layout()
+    plt.savefig(f"{save_folder}/{file_name}.png")
+    plt.close('all')
+
+
 def create_boxen_plot(data: pd.DataFrame, title: str, save_folder: Path, file_name: str,
                       ylim: List, color_palette, spatial_distance: str, metric: str):
     data["Biopsy"] = data["Biopsy"].apply(lambda x: f"{x.replace('_', ' ')}").values
@@ -122,12 +229,12 @@ if __name__ == '__main__':
     base_scores = gnn_scores[gnn_scores["FE"] == 23]
     base_scores = base_scores.groupby(["Marker", "Biopsy", "Experiment"]).head(5).reset_index()
     # calculate mean of scores
-    #base_scores = base_scores.groupby(["Marker", "Biopsy", "Experiment"]).mean().reset_index()
+    # base_scores = base_scores.groupby(["Marker", "Biopsy", "Experiment"]).mean().reset_index()
 
     compare_scores = gnn_scores[gnn_scores["FE"] == spatial_distance]
     compare_scores = compare_scores.groupby(["Marker", "Biopsy", "Experiment"]).head(5).reset_index()
     # calculate mean of scores
-    #compare_scores = compare_scores.groupby(["Marker", "Biopsy", "Experiment"]).mean().reset_index()
+    # compare_scores = compare_scores.groupby(["Marker", "Biopsy", "Experiment"]).mean().reset_index()
     my_pal = {"23 µm": "yellow", "46 µm": "purple", "92 µm": "green", "138 µm": "blue", "184 µm": "red"}
 
     # combine both dataframes
@@ -161,3 +268,17 @@ if __name__ == '__main__':
                       title=f"In & EXP patient performance using spatial feature engineering",
                       file_name="RMSE", save_folder=save_path, ylim=y_lim, color_palette=my_pal,
                       spatial_distance=f"{spatial_distance} µm", metric="RMSE")
+
+    gnn_scores["FE"] = gnn_scores["FE"].replace(
+        {0: "0 µm", 23: "23 µm", 46: "46 µm", 92: "92 µm", 138: "138 µm", 184: "184 µm"})
+    # slect only 23, 92 and 184
+    scores = gnn_scores[gnn_scores["FE"].isin(["23 µm", "46 µm", "92 µm", "184 µm"])]
+
+    # sort by FE, first 0µm, then 23µm, then 92µm, then 184µm
+    scores["FE"] = pd.Categorical(scores['FE'], ["23 µm", "46 µm", "92 µm", "184 µm"])
+    scores.sort_values(by=["FE"], inplace=True)
+
+
+    create_boxen_plot_all_spatial(data=scores, metric="MAE",
+                                  title=f"In & EXP patient performance using spatial feature engineering",
+                                  file_name="MAE_all", save_folder=save_path, ylim=y_lim, color_palette=my_pal)

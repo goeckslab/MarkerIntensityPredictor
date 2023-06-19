@@ -103,7 +103,7 @@ def create_boxen_plot_all_spatial(data: pd.DataFrame, metric: str, title: str, s
     # plt.legend().set_visible(False)
 
     hue = "FE"
-    hue_order = ["0 µm", "23 µm", "46 µm", "92 µm", "138 µm", "184 µm"]
+    hue_order = ["0 µm", "23 µm", "92 µm",  "184 µm"]
     pairs = [
         (("pRB", "23 µm"), ("pRB", "0 µm")),
         (("CD45", "23 µm"), ("CD45", "0 µm")),
@@ -121,22 +121,22 @@ def create_boxen_plot_all_spatial(data: pd.DataFrame, metric: str, title: str, s
         (("pERK", "23 µm"), ("pERK", "0 µm")),
         (("EGFR", "23 µm"), ("EGFR", "0 µm")),
         (("ER", "23 µm"), ("ER", "0 µm")),
-        (("pRB", "46 µm"), ("pRB", "0 µm")),
-        (("CD45", "46 µm"), ("CD45", "0 µm")),
-        (("CK19", "46 µm"), ("CK19", "0 µm")),
-        (("Ki67", "46 µm"), ("Ki67", "0 µm")),
-        (("aSMA", "46 µm"), ("aSMA", "0 µm")),
-        (("Ecad", "46 µm"), ("Ecad", "0 µm")),
-        (("PR", "46 µm"), ("PR", "0 µm")),
-        (("CK14", "46 µm"), ("CK14", "0 µm")),
-        (("HER2", "46 µm"), ("HER2", "0 µm")),
-        (("AR", "46 µm"), ("AR", "0 µm")),
-        (("CK17", "46 µm"), ("CK17", "0 µm")),
-        (("p21", "46 µm"), ("p21", "0 µm")),
-        (("Vimentin", "46 µm"), ("Vimentin", "0 µm")),
-        (("pERK", "46 µm"), ("pERK", "0 µm")),
-        (("EGFR", "46 µm"), ("EGFR", "0 µm")),
-        (("ER", "46 µm"), ("ER", "0 µm")),
+        # (("pRB", "46 µm"), ("pRB", "0 µm")),
+        # (("CD45", "46 µm"), ("CD45", "0 µm")),
+        # (("CK19", "46 µm"), ("CK19", "0 µm")),
+        # (("Ki67", "46 µm"), ("Ki67", "0 µm")),
+        # (("aSMA", "46 µm"), ("aSMA", "0 µm")),
+        # (("Ecad", "46 µm"), ("Ecad", "0 µm")),
+        # (("PR", "46 µm"), ("PR", "0 µm")),
+        # (("CK14", "46 µm"), ("CK14", "0 µm")),
+        # (("HER2", "46 µm"), ("HER2", "0 µm")),
+        # (("AR", "46 µm"), ("AR", "0 µm")),
+        # (("CK17", "46 µm"), ("CK17", "0 µm")),
+        # (("p21", "46 µm"), ("p21", "0 µm")),
+        # (("Vimentin", "46 µm"), ("Vimentin", "0 µm")),
+        # (("pERK", "46 µm"), ("pERK", "0 µm")),
+        # (("EGFR", "46 µm"), ("EGFR", "0 µm")),
+        # (("ER", "46 µm"), ("ER", "0 µm")),
         (("pRB", "92 µm"), ("pRB", "0 µm")),
         (("CD45", "92 µm"), ("CD45", "0 µm")),
         (("CK19", "92 µm"), ("CK19", "0 µm")),
@@ -153,22 +153,22 @@ def create_boxen_plot_all_spatial(data: pd.DataFrame, metric: str, title: str, s
         (("pERK", "92 µm"), ("pERK", "0 µm")),
         (("EGFR", "92 µm"), ("EGFR", "0 µm")),
         (("ER", "92 µm"), ("ER", "0 µm")),
-        (("pRB", "138 µm"), ("pRB", "0 µm")),
-        (("CD45", "138 µm"), ("CD45", "0 µm")),
-        (("CK19", "138 µm"), ("CK19", "0 µm")),
-        (("Ki67", "138 µm"), ("Ki67", "0 µm")),
-        (("aSMA", "138 µm"), ("aSMA", "0 µm")),
-        (("Ecad", "138 µm"), ("Ecad", "0 µm")),
-        (("PR", "138 µm"), ("PR", "0 µm")),
-        (("CK14", "138 µm"), ("CK14", "0 µm")),
-        (("HER2", "138 µm"), ("HER2", "0 µm")),
-        (("AR", "138 µm"), ("AR", "0 µm")),
-        (("CK17", "138 µm"), ("CK17", "0 µm")),
-        (("p21", "138 µm"), ("p21", "0 µm")),
-        (("Vimentin", "138 µm"), ("Vimentin", "0 µm")),
-        (("pERK", "138 µm"), ("pERK", "0 µm")),
-        (("EGFR", "138 µm"), ("EGFR", "0 µm")),
-        (("ER", "138 µm"), ("ER", "0 µm")),
+        # (("pRB", "138 µm"), ("pRB", "0 µm")),
+        # (("CD45", "138 µm"), ("CD45", "0 µm")),
+        # (("CK19", "138 µm"), ("CK19", "0 µm")),
+        # (("Ki67", "138 µm"), ("Ki67", "0 µm")),
+        # (("aSMA", "138 µm"), ("aSMA", "0 µm")),
+        # (("Ecad", "138 µm"), ("Ecad", "0 µm")),
+        # (("PR", "138 µm"), ("PR", "0 µm")),
+        # (("CK14", "138 µm"), ("CK14", "0 µm")),
+        # (("HER2", "138 µm"), ("HER2", "0 µm")),
+        # (("AR", "138 µm"), ("AR", "0 µm")),
+        # (("CK17", "138 µm"), ("CK17", "0 µm")),
+        # (("p21", "138 µm"), ("p21", "0 µm")),
+        # (("Vimentin", "138 µm"), ("Vimentin", "0 µm")),
+        # (("pERK", "138 µm"), ("pERK", "0 µm")),
+        # (("EGFR", "138 µm"), ("EGFR", "0 µm")),
+        # (("ER", "138 µm"), ("ER", "0 µm")),
         (("pRB", "184 µm"), ("pRB", "0 µm")),
         (("CD45", "184 µm"), ("CD45", "0 µm")),
         (("CK19", "184 µm"), ("CK19", "0 µm")),
@@ -256,7 +256,7 @@ if __name__ == '__main__':
     compare_scores = compare_scores.groupby(["Marker", "Biopsy", "Experiment"]).head(5)
     compare_scores = compare_scores.groupby(["Marker", "Biopsy", "Experiment"]).mean().reset_index()
 
-    my_pal = {"0 µm": "grey", "23 µm": "yellow", "46 µm": "purple", "92 µm": "green", "138 µm": "blue", "184 µm": "red"}
+    my_pal = {"0 µm": "grey", "23 µm": "magenta", "46 µm": "purple", "92 µm": "green", "138 µm": "yellow", "184 µm": "blue"}
 
     # combine both dataframes
     scores = pd.concat([base_scores, compare_scores], axis=0)
@@ -283,8 +283,10 @@ if __name__ == '__main__':
     if args.markers:
         y_lim = [0, 0.3]
     else:
-        y_lim = [0, 0.8]
+        y_lim = [0, 0.5]
 
+    scores = scores[scores["MAE"] < scores["MAE"].mean() + 3 * scores["MAE"].std()]
+    scores = scores[scores["RMSE"] < scores["RMSE"].mean() + 3 * scores["RMSE"].std()]
     create_boxen_plot(data=scores, metric="MAE",
                       title=f"In & EXP patient performance using spatial feature engineering",
                       file_name="MAE", save_folder=save_path, ylim=y_lim, color_palette=my_pal,
@@ -295,6 +297,17 @@ if __name__ == '__main__':
                       file_name="RMSE", save_folder=save_path, ylim=y_lim, color_palette=my_pal,
                       spatial_distance=f"{spatial_distance} µm")
 
-    create_boxen_plot_all_spatial(data=ae_scores, metric="MAE",
+    # slect only 23, 92 and 184
+    scores = ae_scores[ae_scores["FE"].isin(["0 µm", "23 µm", "92 µm", "184 µm"])]
+
+    # sort by FE, first 0µm, then 23µm, then 92µm, then 184µm
+    scores["FE"] = pd.Categorical(scores['FE'], ["0 µm", "23 µm", "92 µm", "184 µm"])
+    scores.sort_values(by=["FE"], inplace=True)
+
+    # remove 3 stds for MAE and RMSE
+    scores = scores[scores["MAE"] < scores["MAE"].mean() + 3 * scores["MAE"].std()]
+    scores = scores[scores["RMSE"] < scores["RMSE"].mean() + 3 * scores["RMSE"].std()]
+
+    create_boxen_plot_all_spatial(data=scores, metric="MAE",
                                   title=f"In & EXP patient performance using spatial feature engineering",
                                   file_name="MAE_all", save_folder=save_path, ylim=y_lim, color_palette=my_pal)
