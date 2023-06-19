@@ -148,5 +148,5 @@ if __name__ == '__main__':
         # remove outliers greater than 3 std for the RMSE column
         scores = scores[np.abs(scores["RMSE"] - scores["RMSE"].mean()) <= (3 * scores["RMSE"].std())]
 
-    create_boxen_plot(data=scores, metric="MAE", title="MAE", save_folder=save_path, file_name="MAE", ylim=[0, 1])
-    create_boxen_plot(data=scores, metric="RMSE", title="RMSE", save_folder=save_path, file_name="RMSE", ylim=[0, 1])
+    create_boxen_plot(data=scores, metric="MAE", title="MAE", save_folder=save_path, file_name="MAE", ylim=[0, 0.4])
+    create_boxen_plot(data=scores, metric="RMSE", title="RMSE", save_folder=save_path, file_name="RMSE", ylim=[0, 0.4])

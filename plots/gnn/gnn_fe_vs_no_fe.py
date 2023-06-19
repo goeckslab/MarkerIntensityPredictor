@@ -278,7 +278,6 @@ if __name__ == '__main__':
     scores["FE"] = pd.Categorical(scores['FE'], ["23 µm", "46 µm", "92 µm", "184 µm"])
     scores.sort_values(by=["FE"], inplace=True)
 
-
     create_boxen_plot_all_spatial(data=scores, metric="MAE",
                                   title=f"In & EXP patient performance using spatial feature engineering",
                                   file_name="MAE_all", save_folder=save_path, ylim=y_lim, color_palette=my_pal)

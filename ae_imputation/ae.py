@@ -140,11 +140,11 @@ def create_noise(shape: [], columns: List[str]):
     return pd.DataFrame(data=np.random.normal(mu, sigma, shape), columns=columns)
 
 
-def save_scores(save_folder: str, file_name: str, scores: List[Dict]):
+def save_scores(save_folder: str, file_name: str, new_scores: pd.DataFrame):
     if Path(f"{save_folder}/{file_name}").exists():
         temp_df = pd.read_csv(f"{save_folder}/{file_name}")
-        scores = pd.concat([temp_df, pd.DataFrame(scores)])
-    pd.DataFrame(scores).to_csv(f"{save_folder}/{file_name}", index=False)
+        new_scores = pd.concat([temp_df, pd.DataFrame(new_scores)])
+    new_scores.to_csv(f"{save_folder}/{file_name}", index=False)
 
 
 def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict, hp: bool,
@@ -152,6 +152,7 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
                    replace_value: str, add_noise: bool, iterations: int, store_predictions: bool, subset: int):
     try:
         for marker in SHARED_MARKERS:
+            print(f"Imputing marker {marker}")
             # copy the test data
             input_data = test_data.copy()
             if replace_value == "zero":
@@ -204,7 +205,7 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
                 if iteration % 20 == 0:
                     print(f"Finished iteration {iteration} for marker {marker}.")
                     print("Performing temp save...")
-                    save_scores(save_folder=save_folder, file_name=file_name, scores=scores)
+                    save_scores(save_folder=save_folder, file_name=file_name, new_scores=pd.DataFrame(scores))
                     scores = []
 
         return scores, all_predictions
@@ -213,7 +214,7 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
         print("Keyboard interrupt detected.")
         print("Saving scores...")
         if len(scores) > 0:
-            save_scores(scores=scores, save_folder=save_folder, file_name=file_name)
+            save_scores(new_scores=pd.DataFrame(scores), save_folder=save_folder, file_name=file_name)
         raise
 
     except Exception as ex:
