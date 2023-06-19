@@ -203,12 +203,15 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
                 })
 
                 if iteration % 20 == 0:
-                    print(f"Finished iteration {iteration} for marker {marker}.")
                     print("Performing temp save...")
                     save_scores(save_folder=save_folder, file_name=file_name, new_scores=pd.DataFrame(scores))
                     scores = []
 
-        return scores, all_predictions
+        if len(scores) > 0:
+            print("Saving remaining scores...")
+            save_scores(save_folder=save_folder, file_name=file_name, new_scores=pd.DataFrame(scores))
+            scores = []
+        return all_predictions
 
     except KeyboardInterrupt as ex:
         print("Keyboard interrupt detected.")
@@ -438,29 +441,19 @@ if __name__ == '__main__':
                        store_predictions=False, test_data=test_data_sample, subset=i, file_name=scores_file_name,
                        save_folder=save_folder)
 
-    impute_markers(scores=scores, all_predictions=predictions, hp=hp, mode=patient_type, spatial_radius=spatial,
-                   experiment_id=experiment_id, replace_value=replace_value, add_noise=add_noise,
-                   iterations=iterations,
-                   store_predictions=True, test_data=test_data, subset=0, file_name=scores_file_name,
-                   save_folder=save_folder)
-
-    # Convert to df
-    scores = pd.DataFrame(scores)
+    predictions = impute_markers(scores=scores, all_predictions=predictions, hp=hp, mode=patient_type,
+                                 spatial_radius=spatial,
+                                 experiment_id=experiment_id, replace_value=replace_value, add_noise=add_noise,
+                                 iterations=iterations,
+                                 store_predictions=True, test_data=test_data, subset=0, file_name=scores_file_name,
+                                 save_folder=save_folder)
 
     # Save results
     if not hp:
-        if Path(f"{save_folder}/{scores_file_name}").exists():
-            scores = pd.concat([pd.read_csv(f"{save_folder}/{scores_file_name}"), scores], axis=0)
-
-        scores.to_csv(f"{save_folder}/{scores_file_name}", index=False)
         for key, value in predictions.items():
             value.to_csv(f"{save_folder}/{key}_predictions.csv",
                          index=False)
     else:
-        if Path(f"{save_folder}/{scores_file_name}.csv").exists():
-            scores = pd.concat([pd.read_csv(f"{save_folder}/{scores_file_name}"), scores], axis=0)
-
-        scores.to_csv(f"{save_folder}/{scores_file_name}", index=False)
         for key, value in predictions.items():
             value.to_csv(f"{save_folder}/{key}_hp_predictions.csv",
                          index=False)
