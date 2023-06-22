@@ -73,8 +73,8 @@ def prepare_lbgm_scores(save_path: Path):
             scores.append(load_lgbm_scores(exp_path, "EXP", "LGBM"))
 
         # load hyper scores
-        #scores.append(load_lgbm_scores("data/scores/Mesmer/ip/Ludwig_hyper", "IP", "LGBM"))
-        #scores.append(load_lgbm_scores("data/scores/Mesmer/exp/Ludwig_hyper", "EXP", "LGBM"))
+        # scores.append(load_lgbm_scores("data/scores/Mesmer/ip/Ludwig_hyper", "IP", "LGBM"))
+        # scores.append(load_lgbm_scores("data/scores/Mesmer/exp/Ludwig_hyper", "EXP", "LGBM"))
 
         scores = pd.concat(scores, axis=0).sort_values(by=["Marker"])
         # replace _ with '' for biopsy column
@@ -133,7 +133,7 @@ def prepare_gnn_scores(save_path: Path):
 if __name__ == '__main__':
 
     # create new scores folder
-    save_path = Path("data/cleaned_scores")
+    save_path = Path("data/cleaned_data/scores")
     if save_path.exists():
         shutil.rmtree(save_path)
     save_path.mkdir(parents=True, exist_ok=True)
