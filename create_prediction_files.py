@@ -1,6 +1,6 @@
 import pandas as pd
 from pathlib import Path
-import os, shutil
+import os, shutil, argparse
 from typing import Dict, List
 
 MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
@@ -14,6 +14,11 @@ LGBM_PATHS = [
 AE_PATHS = [
     Path("ae_imputation", "ip", "zero"),
     Path("ae_imputation", "exp", "zero"),
+]
+
+EN_PATHS = [
+    Path("mesmer", "tumor_in_patient_en"),
+    Path("mesmer", "tumor_exp_patient_en"),
 ]
 
 
@@ -120,7 +125,80 @@ def create_lgbm_predictions():
 
 
 def create_en_predictions():
-    pass
+    predictions = pd.DataFrame()
+    for folder_path in EN_PATHS:
+        mode = "IP" if "in_patient" in str(folder_path) else "EXP"
+        # print(folder_path)
+        for directory in os.listdir(folder_path):
+            if not Path(folder_path, directory).is_dir():
+                continue
+            biopsy_path = Path(folder_path, directory)
+            if mode == "EXP":
+                biopsy = str(biopsy_path).split('/')[-1]
+            else:
+                biopsy = str(biopsy_path).split('/')[-1]
+                if biopsy[-1] == '1':
+                    biopsy = biopsy[:-1] + '2'
+                else:
+                    biopsy = biopsy[:-1] + '1'
+
+            print(f"Loading biosy: {biopsy}...")
+            biopsy_predictions = pd.DataFrame(columns=MARKERS)
+            for marker in MARKERS:
+                print(f"Loading marker {marker} for biopsy {biopsy}...")
+                marker_dir = Path(biopsy_path, biopsy, marker)
+                for experiment_run in os.listdir(marker_dir):
+                    if not Path(marker_dir, experiment_run).is_dir():
+                        continue
+                    experiment_run_dir = Path(marker_dir, experiment_run)
+                    try:
+                        experiment_id: int = int(str(experiment_run_dir).split('/')[-1].split('_')[-1])
+                    except BaseException as ex:
+                        print(ex)
+                        print(experiment_run_dir)
+                    try:
+                        # load json file using json library
+                        marker_predictions = pd.read_csv(Path(experiment_run_dir, f"{marker}_predictions.csv"),
+                                                         header=None)
+
+                        biopsy_predictions[marker] = marker_predictions[0].values
+                        biopsy_predictions["Experiment"] = experiment_id
+                        biopsy_predictions["Biopsy"] = biopsy
+
+                    except KeyboardInterrupt:
+                        exit()
+                    except BaseException as ex:
+                        print(ex)
+                        print(experiment_run_dir)
+                        print(experiment_id)
+                        raise
+            print(f"Merging predictions for biopsy {biopsy}...")
+            predictions = pd.concat([predictions, biopsy_predictions], ignore_index=True)
+
+    for mode in predictions["Mode"].unique():
+        mode_df = predictions[predictions["Mode"] == mode]
+        for biopsy in mode_df["Biopsy"].unique():
+            # sum up all experiments for this biopsy
+            biopsy_df = mode_df[mode_df["Biopsy"] == biopsy]
+            mean_predictions = pd.DataFrame(columns=MARKERS)
+
+            for experiment in biopsy_df["Experiment"].unique():
+                if len(mean_predictions) == 0:
+                    mean_predictions = biopsy_df[biopsy_df["Experiment"] == experiment][MARKERS]
+                else:
+                    mean_predictions = mean_predictions + biopsy_df[biopsy_df["Experiment"] == experiment][MARKERS]
+
+            # divide by number of experiments
+            mean_predictions = mean_predictions / len(biopsy_df["Experiment"].unique())
+            mean_predictions["Biopsy"] = biopsy
+            mean_predictions["Mode"] = mode
+            print(mean_predictions)
+            input()
+            all_mean_predictions = pd.concat([all_mean_predictions, mean_predictions], ignore_index=True)
+
+    # remove Experiment column from df
+    all_mean_predictions = all_mean_predictions.drop(columns=["Experiment"])
+    all_mean_predictions.to_csv(Path(save_path, "en_predictions.csv"), index=False)
 
 
 def create_ae_predictions():
@@ -194,10 +272,20 @@ def create_ae_predictions():
 
 if __name__ == '__main__':
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--elastic_net", "-en", action="store_true", default=False)
+
+    args = parser.parse_args()
+
     save_path = Path("data/cleaned_data/predictions")
     if save_path.exists():
         shutil.rmtree(save_path)
     save_path.mkdir(parents=True, exist_ok=True)
 
-    create_lgbm_predictions()
-    create_ae_predictions()
+    if args.elastic_net:
+        print("Creating elastic net predictions...")
+        create_en_predictions()
+    else:
+        print("Creating lgbm & ae predictions...")
+        create_lgbm_predictions()
+        create_ae_predictions()
