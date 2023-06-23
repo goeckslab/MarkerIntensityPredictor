@@ -1,4 +1,4 @@
-import os, shutil
+import os, shutil, random
 import numpy as np
 from sklearn.linear_model import ElasticNetCV
 import argparse
@@ -8,6 +8,7 @@ import json
 from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error, mean_absolute_error
 
 base_path = Path("experiment_run")
+l1_ratios = [0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -18,12 +19,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     experiment_id = 0
-    # save_path = Path(str(base_path) + "_" + str(experiment_id))
-    save_path = Path(str(base_path))
+    save_path = Path(str(base_path) + "_" + str(experiment_id))
     while Path(save_path).exists():
-        # save_path = Path(str(base_path) + "_" + str(experiment_id))
-        # experiment_id += 1
-        shutil.rmtree(save_path)
+        experiment_id += 1
+        save_path = Path(str(base_path) + "_" + str(experiment_id))
 
     save_path.mkdir(parents=True, exist_ok=True)
 
@@ -33,7 +32,9 @@ if __name__ == '__main__':
     X = train_df.drop(columns=[args.marker])
     y = train_df[args.marker]
 
-    elastic_net = ElasticNetCV(cv=5, random_state=0)
+    # generate random number between 0 and 1
+    l1_ratio = random.choice(l1_ratios)
+    elastic_net = ElasticNetCV(cv=5, random_state=random.randint(0,10000), l1_ratio=l1_ratio)
     elastic_net.fit(X, y)
 
     X_test = test_df.drop(columns=[args.marker])
@@ -45,13 +46,16 @@ if __name__ == '__main__':
     y_hat_df.to_csv(Path(save_path, f"{args.marker}_predictions.csv"), index=False, header=False)
 
     data = {
-        "patient": " ".join(Path(args.test).stem.split("_")[0:3]),
+        "biopsy": " ".join(Path(args.test).stem.split("_")[0:3]),
+        "mode": "EXP",
         "mean_squared_error": mean_squared_error(y_test, y_hat),
         "mean_absolute_error": mean_absolute_error(y_test, y_hat),
         "root_mean_squared_error": mean_squared_error(y_test, y_hat, squared=False),
         "mape": mean_absolute_percentage_error(y_test, y_hat),
         "marker": args.marker,
         "model": "elastic_net",
+        "l1_ratio": l1_ratio,
+        "experiment_id": experiment_id
         # "rmspe": np.sqrt(np.mean(np.square(((y_test - y_hat_df[args.marker]) / y_test)), axis=0))
     }
 
