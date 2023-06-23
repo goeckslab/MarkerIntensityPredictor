@@ -138,7 +138,7 @@ if __name__ == '__main__':
         shutil.rmtree(save_path)
     save_path.mkdir(parents=True, exist_ok=True)
 
-    prepare_en_scores(save_path=save_path)
+    #prepare_en_scores(save_path=save_path)
     prepare_lbgm_scores(save_path=save_path)
     prepare_ae_scores(save_path=save_path)
     prepare_gnn_scores(save_path=save_path)

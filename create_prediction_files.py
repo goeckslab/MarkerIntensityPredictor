@@ -92,7 +92,31 @@ def create_lgbm_predictions():
                 predictions = pd.concat([predictions, df], ignore_index=True)
 
         biopsy_predictions = reset_predictions()
-    predictions.to_csv(Path(save_path, "lgbm_predictions.csv"), index=False)
+
+    all_mean_predictions = pd.DataFrame(columns=columns)
+    # calculate mean for all biopsies over all experiments, making sure only to use the same mode for each biopsy
+    for mode in predictions["Mode"].unique():
+        mode_df = predictions[predictions["Mode"] == mode]
+        for biopsy in mode_df["Biopsy"].unique():
+            # sum up all experiments for this biopsy
+            biopsy_df = mode_df[mode_df["Biopsy"] == biopsy]
+            mean_predictions = pd.DataFrame(columns=MARKERS)
+
+            for experiment in biopsy_df["Experiment"].unique():
+                if len(mean_predictions) == 0:
+                    mean_predictions = biopsy_df[biopsy_df["Experiment"] == experiment][MARKERS]
+                else:
+                    mean_predictions = mean_predictions + biopsy_df[biopsy_df["Experiment"] == experiment][MARKERS]
+
+            # divide by number of experiments
+            mean_predictions = mean_predictions / len(biopsy_df["Experiment"].unique())
+            mean_predictions["Biopsy"] = biopsy
+            mean_predictions["Mode"] = mode
+            all_mean_predictions = pd.concat([all_mean_predictions, mean_predictions], ignore_index=True)
+
+    # remove Experiment column from df
+    all_mean_predictions = all_mean_predictions.drop(columns=["Experiment"])
+    all_mean_predictions.to_csv(Path(save_path, "lgbm_predictions.csv"), index=False)
 
 
 def create_en_predictions():
@@ -151,7 +175,7 @@ def create_ae_predictions():
 
                             biopsy_dfs = biopsy_predictions[biopsy]
                             # check if there is already a dataframe for this experiment id
-                            print("adding new experiment df")
+                            print("Adding new experiment df")
                             biopsy_dfs.append(pd.DataFrame(columns=columns, data=marker_predictions))
                             # add biopsy id to dataframe
                             biopsy_dfs[experiment_id]["Biopsy"] = biopsy
@@ -175,5 +199,5 @@ if __name__ == '__main__':
         shutil.rmtree(save_path)
     save_path.mkdir(parents=True, exist_ok=True)
 
-    create_ae_predictions()
     create_lgbm_predictions()
+    create_ae_predictions()
