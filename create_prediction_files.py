@@ -125,6 +125,7 @@ def create_lgbm_predictions():
 
 
 def create_en_predictions():
+    all_mean_predictions = pd.DataFrame()
     predictions = pd.DataFrame()
     for folder_path in EN_PATHS:
         mode = "IP" if "in_patient" in str(folder_path) else "EXP"
@@ -158,12 +159,15 @@ def create_en_predictions():
                         print(experiment_run_dir)
                     try:
                         # load json file using json library
-                        marker_predictions = pd.read_csv(Path(experiment_run_dir, f"{marker}_predictions.csv"),
+                        marker_predictions:pd.DataFrame = pd.read_csv(Path(experiment_run_dir, f"{marker}_predictions.csv"),
                                                          header=None)
 
                         biopsy_predictions[marker] = marker_predictions[0].values
                         biopsy_predictions["Experiment"] = experiment_id
                         biopsy_predictions["Biopsy"] = biopsy
+                        biopsy_predictions["Mode"] = mode
+                        print(biopsy_predictions)
+                        input()
 
                     except KeyboardInterrupt:
                         exit()
