@@ -12,8 +12,8 @@ LGBM_PATHS = [
 ]
 
 AE_PATHS = [
-    Path("ae_imputation", "ip", "zero"),
-    Path("ae_imputation", "exp", "zero"),
+    Path("ae_imputation", "ip", "mean"),
+    Path("ae_imputation", "exp", "mean"),
 ]
 
 EN_PATHS = [
@@ -22,106 +22,97 @@ EN_PATHS = [
 ]
 
 
-def reset_predictions() -> Dict[str, List]:
-    return {
-        "9_2_1": [],
-        "9_2_2": [],
-        "9_3_1": [],
-        "9_3_2": [],
-        "9_14_1": [],
-        "9_14_2": [],
-        "9_15_1": [],
-        "9_15_2": [],
-    }
-
-
 def create_lgbm_predictions():
+    print("Creating LGBM predictions...")
     columns = [marker for marker in MARKERS]
     columns.append("Biopsy")
     columns.append("Mode")
-    columns.append("Experiment")
 
     predictions = pd.DataFrame(columns=columns)
 
-    biopsy_predictions = reset_predictions()
-
     for folder_path in LGBM_PATHS:
         # iterate through all folders and subfolders
-        print(folder_path)
-        for root, dirs, _ in os.walk(folder_path):
-            for directory in dirs:
-                if directory not in biopsies:
-                    continue
+        mode = "IP" if "in_patient" in str(folder_path) else "EXP"
+        for directory in os.listdir(folder_path):
+            if not Path(folder_path, directory).is_dir():
+                continue
 
-                for marker in MARKERS:
-                    for _, experiment_runs, _ in os.walk(Path(root, directory, marker, "results")):
-                        if "experiment_run" not in experiment_runs:
-                            continue
-
-                        for experiment_run in experiment_runs:
-                            results_path = str(Path(root, directory, marker, "results", experiment_run)).split('/')
-                            mode = "IP" if "in_patient" in results_path[-5] else "EXP"
-                            biopsy = results_path[-4]
-                            marker = results_path[-3]
-                            experiment_id = 0 if results_path[-1] == "experiment_run" else int(
-                                results_path[-1].split("_")[-1])
-
-                            try:
-                                marker_predictions = pd.read_csv(
-                                    Path(root, directory, marker, "results", experiment_run,
-                                         f"{marker}_predictions.csv"),
-                                    header=None)
-                            except:
-                                continue
-
-                            biopsy_dfs = biopsy_predictions[biopsy]
-                            # check if there is already a dataframe for this experiment id
-                            if len(biopsy_dfs) <= experiment_id:
-                                print("adding new experiment df")
-                                biopsy_dfs.append(pd.DataFrame(columns=columns))
-                                # add marker data to dataframe
-                                biopsy_dfs[experiment_id][marker] = marker_predictions[0]
-                                # add biopsy id to dataframe
-                                biopsy_dfs[experiment_id]["Biopsy"] = biopsy
-                                # add mode to dataframe
-                                biopsy_dfs[experiment_id]["Mode"] = mode
-                                # add experiment id to dataframe
-                                biopsy_dfs[experiment_id]["Experiment"] = experiment_id
-                            else:
-                                # add the marker data to the dataframe
-                                biopsy_dfs[experiment_id][marker] = marker_predictions[0]
-
-        # combine all biopsy dfs into one dataframe
-        for biopsy in biopsy_predictions:
-            for df in biopsy_predictions[biopsy]:
-                predictions = pd.concat([predictions, df], ignore_index=True)
-
-        biopsy_predictions = reset_predictions()
-
-    all_mean_predictions = pd.DataFrame(columns=columns)
-    # calculate mean for all biopsies over all experiments, making sure only to use the same mode for each biopsy
-    for mode in predictions["Mode"].unique():
-        mode_df = predictions[predictions["Mode"] == mode]
-        for biopsy in mode_df["Biopsy"].unique():
-            # sum up all experiments for this biopsy
-            biopsy_df = mode_df[mode_df["Biopsy"] == biopsy]
-            mean_predictions = pd.DataFrame(columns=MARKERS)
-
-            for experiment in biopsy_df["Experiment"].unique():
-                if len(mean_predictions) == 0:
-                    mean_predictions = biopsy_df[biopsy_df["Experiment"] == experiment][MARKERS]
+            biopsy_path = Path(folder_path, directory)
+            if mode == "EXP":
+                biopsy = str(biopsy_path).split('/')[-1]
+            else:
+                biopsy = str(biopsy_path).split('/')[-1]
+                if biopsy[-1] == '1':
+                    biopsy = biopsy[:-1] + '2'
                 else:
-                    mean_predictions = mean_predictions + biopsy_df[biopsy_df["Experiment"] == experiment][MARKERS]
+                    biopsy = biopsy[:-1] + '1'
+
+            experiment_biopsy_predictions = {}
+            for marker in MARKERS:
+                marker_dir = Path(biopsy_path, marker)
+
+                for experiment_run in os.listdir(Path(marker_dir, "results")):
+                    experiment_dir = Path(marker_dir, "results", experiment_run)
+                    if not experiment_dir.is_dir():
+                        continue
+
+                    experiment_id = 0 if str(experiment_run).split('_')[-1] == "run" else str(experiment_run).split(
+                        '_')[-1]
+
+                    try:
+                        marker_predictions = pd.read_csv(
+                            Path(experiment_dir, f"predictions.csv"))
+
+                    except BaseException as ex:
+                        print(ex)
+                        continue
+
+                    if experiment_id in experiment_biopsy_predictions:
+                        experiment_biopsy_predictions[experiment_id][marker] = marker_predictions[
+                            'prediction'].values
+                        experiment_biopsy_predictions[experiment_id]["Experiment"] = experiment_id
+                        experiment_biopsy_predictions[experiment_id]["Biopsy"] = biopsy
+                        experiment_biopsy_predictions[experiment_id]["Mode"] = mode
+                    else:
+                        # Add new experiment id to dictionary
+                        experiment_biopsy_predictions[experiment_id] = pd.DataFrame(columns=MARKERS)
+                        # add marker data to dataframe
+                        experiment_biopsy_predictions[experiment_id][marker] = marker_predictions[
+                            'prediction'].values
+                        # add biopsy id to dataframe
+                        experiment_biopsy_predictions[experiment_id]["Biopsy"] = biopsy
+                        # add mode to dataframe
+                        experiment_biopsy_predictions[experiment_id]["Mode"] = mode
+                        # add experiment id to dataframe
+                        experiment_biopsy_predictions[experiment_id]["Experiment"] = experiment_id
+
+            # calculate mean prediction dataframe from all experiments for this biopsy
+            biopsy_mean_predictions = pd.DataFrame(columns=MARKERS)
+            for experiment in experiment_biopsy_predictions.keys():
+                if len(biopsy_mean_predictions) == 0:
+                    biopsy_mean_predictions = \
+                        experiment_biopsy_predictions[experiment][MARKERS]
+
+                else:
+                    biopsy_mean_predictions = biopsy_mean_predictions + \
+                                              experiment_biopsy_predictions[experiment][
+                                                  MARKERS]
 
             # divide by number of experiments
-            mean_predictions = mean_predictions / len(biopsy_df["Experiment"].unique())
-            mean_predictions["Biopsy"] = biopsy
-            mean_predictions["Mode"] = mode
-            all_mean_predictions = pd.concat([all_mean_predictions, mean_predictions], ignore_index=True)
+            biopsy_mean_predictions = biopsy_mean_predictions / len(
+                experiment_biopsy_predictions.keys())
 
-    # remove Experiment column from df
-    all_mean_predictions = all_mean_predictions.drop(columns=["Experiment"])
-    all_mean_predictions.to_csv(Path(save_path, "lgbm_predictions.csv"), index=False)
+            # add biopsy id to dataframe
+            biopsy_mean_predictions["Biopsy"] = biopsy
+            # add mode to dataframe
+            biopsy_mean_predictions["Mode"] = mode
+
+            predictions = pd.concat([predictions, biopsy_mean_predictions], ignore_index=True)
+
+    print(predictions)
+    print(predictions["Biopsy"].unique())
+    print(predictions["Mode"].unique())
+    predictions.to_csv(Path(save_path, "lgbm_predictions.csv"), index=False)
 
 
 def create_en_predictions():
@@ -144,7 +135,7 @@ def create_en_predictions():
                     biopsy = biopsy[:-1] + '1'
 
             print(f"Loading biosy: {biopsy}...")
-            biopsy_predictions = pd.DataFrame(columns=MARKERS)
+            experiment_biopsy_predictions = {}
             for marker in MARKERS:
                 print(f"Loading marker {marker} for biopsy {biopsy}...")
                 marker_dir = Path(biopsy_path, biopsy, marker)
@@ -157,17 +148,32 @@ def create_en_predictions():
                     except BaseException as ex:
                         print(ex)
                         print(experiment_run_dir)
+                        print("Could not parse experiment id")
+                        continue
                     try:
                         # load json file using json library
-                        marker_predictions:pd.DataFrame = pd.read_csv(Path(experiment_run_dir, f"{marker}_predictions.csv"),
-                                                         header=None)
+                        marker_predictions: pd.DataFrame = pd.read_csv(
+                            Path(experiment_run_dir, f"{marker}_predictions.csv"),
+                            header=None)
 
-                        biopsy_predictions[marker] = marker_predictions[0].values
-                        biopsy_predictions["Experiment"] = experiment_id
-                        biopsy_predictions["Biopsy"] = biopsy
-                        biopsy_predictions["Mode"] = mode
-                        print(biopsy_predictions)
-                        input()
+                        if experiment_id in experiment_biopsy_predictions:
+                            experiment_biopsy_predictions[experiment_id][marker] = marker_predictions[0].values
+                            experiment_biopsy_predictions[experiment_id]["Experiment"] = experiment_id
+                            experiment_biopsy_predictions[experiment_id]["Biopsy"] = biopsy
+                            experiment_biopsy_predictions[experiment_id]["Mode"] = mode
+                        else:
+                            # Add new experiment id to dictionary
+                            experiment_biopsy_predictions[experiment_id] = pd.DataFrame(columns=MARKERS)
+                            # add marker data to dataframe
+                            experiment_biopsy_predictions[experiment_id][marker] = marker_predictions[0].values
+                            # add biopsy id to dataframe
+                            experiment_biopsy_predictions[experiment_id]["Biopsy"] = biopsy
+                            # add mode to dataframe
+                            experiment_biopsy_predictions[experiment_id]["Mode"] = mode
+                            # add experiment id to dataframe
+                            experiment_biopsy_predictions[experiment_id]["Experiment"] = experiment_id
+
+
 
                     except KeyboardInterrupt:
                         exit()
@@ -177,45 +183,47 @@ def create_en_predictions():
                         print(experiment_id)
                         raise
             print(f"Merging predictions for biopsy {biopsy}...")
-            predictions = pd.concat([predictions, biopsy_predictions], ignore_index=True)
 
-    for mode in predictions["Mode"].unique():
-        mode_df = predictions[predictions["Mode"] == mode]
-        for biopsy in mode_df["Biopsy"].unique():
-            # sum up all experiments for this biopsy
-            biopsy_df = mode_df[mode_df["Biopsy"] == biopsy]
-            mean_predictions = pd.DataFrame(columns=MARKERS)
+            # calculate mean prediction dataframe from all experiments for this biopsy
+            biopsy_mean_predictions = pd.DataFrame(columns=MARKERS)
+            for experiment in experiment_biopsy_predictions.keys():
+                if len(biopsy_mean_predictions) == 0:
+                    biopsy_mean_predictions = \
+                        experiment_biopsy_predictions[experiment][MARKERS]
 
-            for experiment in biopsy_df["Experiment"].unique():
-                if len(mean_predictions) == 0:
-                    mean_predictions = biopsy_df[biopsy_df["Experiment"] == experiment][MARKERS]
                 else:
-                    mean_predictions = mean_predictions + biopsy_df[biopsy_df["Experiment"] == experiment][MARKERS]
+                    biopsy_mean_predictions = biopsy_mean_predictions + experiment_biopsy_predictions[experiment][
+                        MARKERS]
 
             # divide by number of experiments
-            mean_predictions = mean_predictions / len(biopsy_df["Experiment"].unique())
-            mean_predictions["Biopsy"] = biopsy
-            mean_predictions["Mode"] = mode
-            print(mean_predictions)
-            input()
-            all_mean_predictions = pd.concat([all_mean_predictions, mean_predictions], ignore_index=True)
+            biopsy_mean_predictions = biopsy_mean_predictions / len(
+                experiment_biopsy_predictions.keys())
 
+            # add biopsy id to dataframe
+            biopsy_mean_predictions["Biopsy"] = biopsy
+            # add mode to dataframe
+            biopsy_mean_predictions["Mode"] = mode
+
+            predictions = pd.concat([predictions, biopsy_mean_predictions], ignore_index=True)
+
+    print(predictions)
+    print(predictions["Biopsy"].unique())
+    print(predictions["Mode"].unique())
     # remove Experiment column from df
-    all_mean_predictions = all_mean_predictions.drop(columns=["Experiment"])
-    all_mean_predictions.to_csv(Path(save_path, "en_predictions.csv"), index=False)
+    predictions.to_csv(Path(save_path, "en_predictions.csv"), index=False)
 
 
 def create_ae_predictions():
+    print("Creating AE predictions...")
     columns = [marker for marker in MARKERS]
     columns.append("Biopsy")
     columns.append("Mode")
-    columns.append("Experiment")
 
     predictions = pd.DataFrame(columns=columns)
 
-    biopsy_predictions = reset_predictions()
-
     for folder_path in AE_PATHS:
+        mode = "IP" if "ip" in str(folder_path) else "EXP"
+
         # print(folder_path)
         for root, dirs, _ in os.walk(folder_path):
             for directory in dirs:
@@ -224,52 +232,69 @@ def create_ae_predictions():
 
                 sub_path = Path(root, directory)
                 for biopsy in biopsies:
-                    for _, experiment_runs, _ in os.walk(Path(sub_path, biopsy, "no_hp", "0")):
+                    biopsy_predictions = {}
+                    biopsy_path = Path(sub_path, biopsy, "no_hp", "0")
 
-                        for experiment_run in experiment_runs:
-                            results_path = Path(sub_path, biopsy, "no_hp", "0", experiment_run)
-                            results_path_splits = str(results_path).split('/')
-                            mode = "IP" if "ip" in results_path_splits[-5] else "EXP"
-                            experiment_id = 0 if results_path_splits[-1] == "experiment_run" else int(
-                                results_path_splits[-1].split("_")[-1])
+                    if not Path(biopsy_path).exists():
+                        continue
 
-                            try:
-                                # Load prediction 5 - 9
-                                marker_predictions_5 = pd.read_csv(
-                                    Path(results_path, "5_predictions.csv"))
-                                marker_predictions_6 = pd.read_csv(
-                                    Path(results_path, "6_predictions.csv"))
-                                marker_predictions_7 = pd.read_csv(
-                                    Path(results_path, "7_predictions.csv"))
-                                marker_predictions_8 = pd.read_csv(
-                                    Path(results_path, "8_predictions.csv"))
-                                marker_predictions_9 = pd.read_csv(
-                                    Path(results_path, "9_predictions.csv"))
+                    for experiment_run in os.listdir(biopsy_path):
+                        if not Path(biopsy_path, experiment_run).is_dir():
+                            continue
 
-                                # calculate mean per cell over all marker predictions
-                                marker_predictions = (
-                                                             marker_predictions_5 + marker_predictions_6 + marker_predictions_7 + marker_predictions_8 + marker_predictions_9) / 5
+                        results_path = Path(biopsy_path, experiment_run)
+                        results_path_splits = str(results_path).split('/')
+                        experiment_id = 0 if results_path_splits[-1] == "experiment_run" else int(
+                            results_path_splits[-1].split("_")[-1])
+
+                        try:
+                            # Load prediction 5 - 9
+                            marker_predictions_5 = pd.read_csv(
+                                Path(results_path, "5_predictions.csv"))
+                            marker_predictions_6 = pd.read_csv(
+                                Path(results_path, "6_predictions.csv"))
+                            marker_predictions_7 = pd.read_csv(
+                                Path(results_path, "7_predictions.csv"))
+                            marker_predictions_8 = pd.read_csv(
+                                Path(results_path, "8_predictions.csv"))
+                            marker_predictions_9 = pd.read_csv(
+                                Path(results_path, "9_predictions.csv"))
+
+                            # calculate mean per cell over all marker predictions
+                            marker_predictions = (
+                                                         marker_predictions_5 + marker_predictions_6 + marker_predictions_7 + marker_predictions_8 + marker_predictions_9) / 5
 
 
+                        except BaseException as ex:
+                            print("Could not load predictions")
+                            print(ex)
+                            continue
 
-                            except:
-                                continue
+                        biopsy_predictions[experiment_id] = pd.DataFrame(columns=columns,
+                                                                         data=marker_predictions)
 
-                            biopsy_dfs = biopsy_predictions[biopsy]
-                            # check if there is already a dataframe for this experiment id
-                            print("Adding new experiment df")
-                            biopsy_dfs.append(pd.DataFrame(columns=columns, data=marker_predictions))
-                            # add biopsy id to dataframe
-                            biopsy_dfs[experiment_id]["Biopsy"] = biopsy
-                            # add mode to dataframe
-                            biopsy_dfs[experiment_id]["Mode"] = mode
-                            # add experiment id to dataframe
-                            biopsy_dfs[experiment_id]["Experiment"] = experiment_id
+                        # calculate mean prediction dataframe from all experiments for this biopsy
+                    biopsy_mean_predictions = pd.DataFrame(columns=columns)
+                    for experiment in biopsy_predictions.keys():
+                        if len(biopsy_mean_predictions) == 0:
+                            biopsy_mean_predictions = \
+                                biopsy_predictions[experiment][columns]
 
-        # combine all biopsy dfs into one dataframe
-        for biopsy in biopsy_predictions:
-            for df in biopsy_predictions[biopsy]:
-                predictions = pd.concat([predictions, df], ignore_index=True)
+                        else:
+                            biopsy_mean_predictions = biopsy_mean_predictions + biopsy_predictions[experiment][
+                                columns]
+
+                    # divide by number of experiments
+                    biopsy_mean_predictions = biopsy_mean_predictions / len(
+                        biopsy_predictions.keys())
+
+                    # add biopsy id to dataframe
+                    biopsy_mean_predictions["Biopsy"] = biopsy
+                    # add mode to dataframe
+                    biopsy_mean_predictions["Mode"] = mode
+
+                    # add experiment id to dataframe
+                    predictions = pd.concat([predictions, biopsy_mean_predictions], ignore_index=True)
 
     predictions.to_csv(Path(save_path, "ae_predictions.csv"), index=False)
 
@@ -282,9 +307,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     save_path = Path("data/cleaned_data/predictions")
-    if save_path.exists():
-        shutil.rmtree(save_path)
-    save_path.mkdir(parents=True, exist_ok=True)
+    if not save_path.exists():
+        save_path.mkdir(parents=True)
 
     if args.elastic_net:
         print("Creating elastic net predictions...")
