@@ -47,9 +47,9 @@ def calculate_quartile_performance(ground_truth: pd.DataFrame, marker: str, pred
     mae_2 = np.mean(np.abs(gt_quartile_2[marker] - pred_quartile_2["prediction"]))
     mae_3 = np.mean(np.abs(gt_quartile_3[marker] - pred_quartile_3["prediction"]))
     mae_4 = np.mean(np.abs(gt_quartile_4[marker] - pred_quartile_4["prediction"]))
-    mae_all = np.mean(np.abs(ground_truth[marker] - predictions["prediction"]))
+    # mae_all = np.mean(np.abs(ground_truth[marker] - predictions["prediction"]))
 
-    return mae_1, mae_2, mae_3, mae_4, mae_all, quartiles
+    return mae_1, mae_2, mae_3, mae_4, quartiles
 
 
 def create_outlier_results_file(std: int) -> pd.DataFrame:
@@ -109,16 +109,16 @@ def create_outlier_results_file(std: int) -> pd.DataFrame:
                             print("Loading predictions...")
                             predictions = pd.read_csv(str(Path(experiment_run, "predictions.csv")))
 
-                        mae_1, mae_2, mae_3, mae_4, mae_all, quartiles = calculate_quartile_performance(
+                        mae_1, mae_2, mae_3, mae_4, quartiles = calculate_quartile_performance(
                             ground_truth=ground_truth,
                             marker=marker,
                             predictions=predictions,
                             std=std)
                         # add these values to a dataframe
                         results.append(pd.DataFrame(
-                            {"MAE": [mae_1, mae_2, mae_3, mae_4, mae_all], "Quartile": ["Q1", "Q2", "Q3", "Q4", "All"],
+                            {"MAE": [mae_1, mae_2, mae_3, mae_4], "Quartile": ["Q1", "Q2", "Q3", "Q4"],
                              "Threshold": [quartiles[marker][0.25], quartiles[marker][0.5], quartiles[marker][0.75],
-                                           quartiles[marker][0.75], "All"], "Marker": marker,
+                                           quartiles[marker][0.75]], "Marker": marker,
                              "Biopsy": test_biopsy_name,
                              "Mode": mode,
                              "Load Path": str(Path(marker_results_dir, experiment_run)),
@@ -137,7 +137,8 @@ def create_outlier_results_file(std: int) -> pd.DataFrame:
 def create_boxen_plot_ip_vs_exp(results: pd.DataFrame, metric: str, title: str):
     # plot the quartiles
     fig = plt.figure(figsize=(10, 10), dpi=200)
-    ax = sns.boxenplot(x="Quartile", y=metric, hue="Mode", data=results, palette="Set2", hue_order=["IP", "EXP"])
+    ax = sns.boxenplot(x="Quartile", y=metric, hue="Mode", data=results, hue_order=["IP", "EXP"],
+                       palette={"IP": "lightblue", "EXP": "orange"})
     ax.set_xlabel("Quartile")
     ax.set_ylabel(metric.upper())
     ax.set_title(f"Light GBM \n{metric.upper()} per quartile\nAll Biopsies", fontsize=20, y=1.3)
@@ -145,21 +146,21 @@ def create_boxen_plot_ip_vs_exp(results: pd.DataFrame, metric: str, title: str):
     hue = "Mode"
     hue_order = ["IP", "EXP"]
     pairs = [
-        (("Q1", "IP"), ("Q1", "EXP")),
-        (("Q2", "IP"), ("Q2", "EXP")),
-        (("Q3", "IP"), ("Q3", "EXP")),
-        (("Q4", "IP"), ("Q4", "EXP")),
-        (("All", "IP"), ("All", "EXP")),
+        # (("Q1", "IP"), ("Q1", "EXP")),
+        # (("Q2", "IP"), ("Q2", "EXP")),
+        # (("Q3", "IP"), ("Q3", "EXP")),
+        # (("Q4", "IP"), ("Q4", "EXP")),
+        # (("All", "IP"), ("All", "EXP")),
         (("Q1", "IP"), ("Q2", "IP")),
         (("Q2", "IP"), ("Q3", "IP")),
         (("Q3", "IP"), ("Q4", "IP")),
-        (("Q4", "IP"), ("All", "IP")),
+        # (("Q4", "IP"), ("All", "IP")),
         (("Q1", "EXP"), ("Q2", "EXP")),
         (("Q2", "EXP"), ("Q3", "EXP")),
         (("Q3", "EXP"), ("Q4", "EXP")),
-        (("Q4", "EXP"), ("All", "EXP")),
+        # (("Q4", "EXP"), ("All", "EXP")),
     ]
-    order = ["Q1", "Q2", "Q3", "Q4", "All"]
+    order = ["Q1", "Q2", "Q3", "Q4"]
     annotator = Annotator(ax, pairs, data=results, x="Quartile", y=metric, order=order, hue=hue, hue_order=hue_order,
                           verbose=1)
     annotator.configure(test='Mann-Whitney', text_format='star', loc='outside')
@@ -171,10 +172,11 @@ def create_boxen_plot_ip_vs_exp(results: pd.DataFrame, metric: str, title: str):
 def create_boxen_plot_std(results: pd.DataFrame, metric: str, title: str, mode: str):
     # plot the quartiles
     fig = plt.figure(figsize=(10, 10), dpi=200)
-    ax = sns.boxenplot(x="Quartile", y=metric, hue="Std", data=results, palette="Set2", hue_order=[0, 2, 3])
+    ax = sns.boxenplot(x="Quartile", y=metric, hue="Std", data=results,
+                       hue_order=[0, 2, 3])
     ax.set_xlabel("Quartile")
     ax.set_ylabel(metric.upper())
-    ax.set_title(f"Light GBM \n{metric.upper()} per quartile\nAll Biopsies\nMode: {mode.upper()}", fontsize=20, y=1.3)
+    # ax.set_title(f"Light GBM \n{metric.upper()} per quartile\nAll Biopsies\nMode: {mode.upper()}", fontsize=20, y=1.3)
 
     hue = "Std"
     hue_order = [0, 2, 3]
@@ -183,23 +185,30 @@ def create_boxen_plot_std(results: pd.DataFrame, metric: str, title: str, mode: 
         (("Q2", 2), ("Q2", 3)),
         (("Q3", 2), ("Q3", 3)),
         (("Q4", 2), ("Q4", 3)),
-        (("All", 2), ("All", 3)),
+        # (("All", 2), ("All", 3)),
         (("Q1", 0), ("Q1", 2)),
         (("Q2", 0), ("Q2", 2)),
         (("Q3", 0), ("Q3", 2)),
         (("Q4", 0), ("Q4", 2)),
-        (("All", 0), ("All", 2)),
+        # (("All", 0), ("All", 2)),
         (("Q1", 0), ("Q1", 3)),
         (("Q2", 0), ("Q2", 3)),
         (("Q3", 0), ("Q3", 3)),
         (("Q4", 0), ("Q4", 3)),
-        (("All", 0), ("All", 3)),
+        # (("All", 0), ("All", 3)),
     ]
-    order = ["Q1", "Q2", "Q3", "Q4", "All"]
+    order = ["Q1", "Q2", "Q3", "Q4"]
     annotator = Annotator(ax, pairs, data=results, x="Quartile", y=metric, order=order, hue=hue, hue_order=hue_order,
                           verbose=1)
     annotator.configure(test='Mann-Whitney', text_format='star', loc='outside')
     annotator.apply_and_annotate()
+    # increase font size of x and y ticks
+    ax.tick_params(axis='both', which='major', labelsize=16)
+    plt.box(False)
+    # remove x and y label
+    ax.set_xlabel("")
+    ax.set_ylabel("")
+    plt.legend().set_visible(False)
     plt.tight_layout()
     plt.savefig(str(Path(save_path, f"{title}_accuracy.png")))
 

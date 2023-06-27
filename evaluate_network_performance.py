@@ -23,7 +23,7 @@ if __name__ == '__main__':
         for sub_directory in sub_directories:
             current_path = Path(root, sub_directory)
             try:
-                if 'experiment_run' not in str(current_path):
+                if 'experiment_run' not in str(current_path):  # or int(current_path.stem.split('_')[-1]) > 30:
                     continue
                 print(f"Loading path: {Path(root, sub_directory)}")
                 scores = pd.read_csv(Path(root, sub_directory, "scores.csv"))

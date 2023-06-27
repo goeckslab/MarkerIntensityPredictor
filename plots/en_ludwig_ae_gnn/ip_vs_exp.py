@@ -41,7 +41,7 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, title: str, save_folder: 
     else:
         fig = plt.figure(figsize=(15, 5), dpi=200)
     # ax = sns.violinplot(data=data, x="Marker", y=score, hue="Type", split=True, cut=0)
-    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Mode")
+    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Mode", palette={"IP": "lightblue", "EXP":"orange"})
 
     # plt.title(title)
     # remove y axis label
@@ -58,7 +58,8 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, title: str, save_folder: 
         ax.set_xticklabels(x_ticks, rotation=0, fontsize=20)
     plt.box(False)
     # remove legend from fig
-    # plt.legend().set_visible(False)
+    plt.legend().set_visible(False)
+    ax.tick_params(axis='both', which='major', labelsize=16)
 
     hue = "Mode"
     hue_order = ["IP", "EXP"]

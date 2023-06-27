@@ -16,7 +16,7 @@ modes = ["ip", "exp"]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-metric", choices=["MAE", "RMSE"], help="The metric", default="MAE")
+    parser.add_argument("-m", "--metric", choices=["MAE", "RMSE"], help="The metric", default="MAE")
 
     args = parser.parse_args()
     metric: str = args.metric
@@ -52,6 +52,13 @@ if __name__ == '__main__':
                     str(Path("data", "tumor_mesmer", "preprocessed", f"{biopsy_name}_preprocessed_dataset.tsv")),
                     sep='\t')
 
+                ground_truth = ground_truth[
+                    np.abs(ground_truth[marker] - ground_truth[marker].mean()) <= (
+                            2 * ground_truth[marker].std())].copy()
+
+                # select all indexes of predictions which are in the ground truth index
+                predictions = predictions.loc[ground_truth.index].copy()
+
                 # extract the quartiles
                 quartiles = ground_truth.quantile([0.25, 0.5, 0.75])
                 # select the rows that are in the quartiles from the predictions and ground truth
@@ -62,23 +69,23 @@ if __name__ == '__main__':
                     (ground_truth[marker] > quartiles[marker][0.5]) & (ground_truth[marker] <= quartiles[marker][0.75])]
                 gt_quartile_4 = ground_truth[ground_truth[marker] > quartiles[marker][0.75]]
 
-                pred_quartile_1 = predictions.iloc[gt_quartile_1.index]
-                pred_quartile_2 = predictions.iloc[gt_quartile_2.index]
-                pred_quartile_3 = predictions.iloc[gt_quartile_3.index]
-                pred_quartile_4 = predictions.iloc[gt_quartile_4.index]
+                pred_quartile_1 = predictions.loc[gt_quartile_1.index]
+                pred_quartile_2 = predictions.loc[gt_quartile_2.index]
+                pred_quartile_3 = predictions.loc[gt_quartile_3.index]
+                pred_quartile_4 = predictions.loc[gt_quartile_4.index]
 
                 # Calculate MAE for all quartiles
                 mae_1 = np.mean(np.abs(gt_quartile_1[marker] - pred_quartile_1["prediction"]))
                 mae_2 = np.mean(np.abs(gt_quartile_2[marker] - pred_quartile_2["prediction"]))
                 mae_3 = np.mean(np.abs(gt_quartile_3[marker] - pred_quartile_3["prediction"]))
                 mae_4 = np.mean(np.abs(gt_quartile_4[marker] - pred_quartile_4["prediction"]))
-                mae_all = np.mean(np.abs(ground_truth[marker] - predictions["prediction"]))
+                # mae_all = np.mean(np.abs(ground_truth[marker] - predictions["prediction"]))
 
                 # add these values to a dataframe
                 results.append(pd.DataFrame(
-                    {"MAE": [mae_1, mae_2, mae_3, mae_4, mae_all], "Quartile": ["Q1", "Q2", "Q3", "Q4", "All"],
+                    {"MAE": [mae_1, mae_2, mae_3, mae_4], "Quartile": ["Q1", "Q2", "Q3", "Q4"],
                      "Threshold": [quartiles[marker][0.25], quartiles[marker][0.5], quartiles[marker][0.75],
-                                   quartiles[marker][0.75], "All"], "Marker": marker, "Biopsy": biopsy_name,
+                                   quartiles[marker][0.75]], "Marker": marker, "Biopsy": biopsy_name,
                      "Mode": mode}))
 
     results = pd.concat(results)
@@ -88,32 +95,39 @@ if __name__ == '__main__':
     # plot the quartiles
 
     fig = plt.figure(figsize=(10, 10), dpi=200)
-    ax = sns.boxenplot(x="Quartile", y=metric, hue="Mode", data=results, palette="Set2")
+    ax = sns.boxenplot(x="Quartile", y=metric, hue="Mode", data=results, palette={"IP": "lightblue", "EXP": "orange"})
     ax.set_xlabel("Quartile")
     ax.set_ylabel(metric.upper())
-    ax.set_title(f"Elastic Net \n{metric.upper()} per quartile\nAll Biopsies", fontsize=20, y=1.3)
+    ax.tick_params(axis='both', which='major', labelsize=16)
+    plt.box(False)
+    # remove x and y label
+    ax.set_xlabel("")
+    ax.set_ylabel("")
+
+    # ax.set_title(f"Elastic Net \n{metric.upper()} per quartile\nAll Biopsies", fontsize=20, y=1.3)
 
     hue = "Mode"
     hue_order = ["IP", "EXP"]
     pairs = [
-        (("Q1", "IP"), ("Q1", "EXP")),
-        (("Q2", "IP"), ("Q2", "EXP")),
-        (("Q3", "IP"), ("Q3", "EXP")),
-        (("Q4", "IP"), ("Q4", "EXP")),
-        (("All", "IP"), ("All", "EXP")),
+        # (("Q1", "IP"), ("Q1", "EXP")),
+        # (("Q2", "IP"), ("Q2", "EXP")),
+        # (("Q3", "IP"), ("Q3", "EXP")),
+        # (("Q4", "IP"), ("Q4", "EXP")),
+        # (("All", "IP"), ("All", "EXP")),
         (("Q1", "IP"), ("Q2", "IP")),
         (("Q2", "IP"), ("Q3", "IP")),
         (("Q3", "IP"), ("Q4", "IP")),
-        (("Q4", "IP"), ("All", "IP")),
+        # (("Q4", "IP"), ("All", "IP")),
         (("Q1", "EXP"), ("Q2", "EXP")),
         (("Q2", "EXP"), ("Q3", "EXP")),
         (("Q3", "EXP"), ("Q4", "EXP")),
-        (("Q4", "EXP"), ("All", "EXP")),
+        # (("Q4", "EXP"), ("All", "EXP")),
     ]
-    order = ["Q1", "Q2", "Q3", "Q4", "All"]
+    order = ["Q1", "Q2", "Q3", "Q4"]
     annotator = Annotator(ax, pairs, data=results, x="Quartile", y=metric, order=order, hue=hue, hue_order=hue_order,
                           verbose=1)
     annotator.configure(test='Mann-Whitney', text_format='star', loc='outside')
     annotator.apply_and_annotate()
+    plt.legend().set_visible(False)
     plt.tight_layout()
     plt.savefig(str(Path(save_path, f"accuracy.png")))

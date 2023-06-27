@@ -2,6 +2,7 @@ import pandas as pd
 from pathlib import Path
 import os, shutil, argparse
 from typing import Dict, List
+import numpy as np
 
 MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
            'pERK', 'EGFR', 'ER']
@@ -22,13 +23,54 @@ EN_PATHS = [
 ]
 
 
-def create_lgbm_predictions():
+def calculate_quartile_performance(ground_truth: pd.DataFrame, marker: str, predictions: pd.DataFrame, std: int):
+    if std > 0:
+        # keep only the rows that are within 3 standard deviations of the mean
+        ground_truth = ground_truth[
+            np.abs(ground_truth[marker] - ground_truth[marker].mean()) <= (std * ground_truth[marker].std())].copy()
+
+    # select all indexes of predictions which are in the ground truth index
+    predictions = predictions.loc[ground_truth.index].copy()
+
+    # extract the quartiles
+    quartiles = ground_truth.quantile([0.25, 0.5, 0.75])
+
+    # select the rows that are in the quartiles from the predictions and ground truth
+    gt_quartile_1 = ground_truth[ground_truth[marker] <= quartiles[marker][0.25]]
+    gt_quartile_2 = ground_truth[
+        (ground_truth[marker] > quartiles[marker][0.25]) & (
+                ground_truth[marker] <= quartiles[marker][0.5])]
+    gt_quartile_3 = ground_truth[
+        (ground_truth[marker] > quartiles[marker][0.5]) & (
+                ground_truth[marker] <= quartiles[marker][0.75])]
+    gt_quartile_4 = ground_truth[ground_truth[marker] > quartiles[marker][0.75]]
+
+    pred_quartile_1 = predictions.loc[gt_quartile_1.index]
+    pred_quartile_2 = predictions.loc[gt_quartile_2.index]
+    pred_quartile_3 = predictions.loc[gt_quartile_3.index]
+    pred_quartile_4 = predictions.loc[gt_quartile_4.index]
+
+    # Calculate MAE for all quartiles
+    mae_1 = np.mean(np.abs(gt_quartile_1[marker] - pred_quartile_1["prediction"]))
+    mae_2 = np.mean(np.abs(gt_quartile_2[marker] - pred_quartile_2["prediction"]))
+    mae_3 = np.mean(np.abs(gt_quartile_3[marker] - pred_quartile_3["prediction"]))
+    mae_4 = np.mean(np.abs(gt_quartile_4[marker] - pred_quartile_4["prediction"]))
+
+    return mae_1, mae_2, mae_3, mae_4, quartiles
+
+
+def create_lgbm_predictions(save_path: Path):
+    lgbm_save_path = Path(save_path, "lgbm")
+    if not lgbm_save_path.exists():
+        lgbm_save_path.mkdir(parents=True)
+
     print("Creating LGBM predictions...")
     columns = [marker for marker in MARKERS]
     columns.append("Biopsy")
     columns.append("Mode")
 
     predictions = pd.DataFrame(columns=columns)
+    quartile_performance = pd.DataFrame(columns=["MAE", "Quartile", "Marker", "Biopsy", "Mode", "Experiment"])
 
     for folder_path in LGBM_PATHS:
         # iterate through all folders and subfolders
@@ -48,6 +90,12 @@ def create_lgbm_predictions():
                     biopsy = biopsy[:-1] + '1'
 
             experiment_biopsy_predictions = {}
+
+            # load ground truth data for biopsy
+            print(f"Loading ground truth data for biopsy {biopsy}")
+            ground_truth = pd.read_csv(
+                Path("data", "cleaned_data", "ground_truth", f"{biopsy}_preprocessed_dataset.tsv"), sep='\t')
+
             for marker in MARKERS:
                 marker_dir = Path(biopsy_path, marker)
 
@@ -66,6 +114,21 @@ def create_lgbm_predictions():
                     except BaseException as ex:
                         print(ex)
                         continue
+
+                    # calculate mae for all quartiles
+                    mae_1, mae_2, mae_3, mae_4, quartiles = calculate_quartile_performance(
+                        ground_truth=ground_truth, marker=marker, predictions=marker_predictions, std=2)
+
+                    quartile_performance: pd.DataFrame = pd.concat([quartile_performance, pd.DataFrame(
+                        {"MAE": [mae_1, mae_2, mae_3, mae_4], "Quartile": ["Q1", "Q2", "Q3", "Q4"],
+                         "Threshold": [quartiles[marker][0.25], quartiles[marker][0.5], quartiles[marker][0.75],
+                                       quartiles[marker][0.75]], "Marker": marker,
+                         "Biopsy": biopsy,
+                         "Mode": mode,
+                         "Load Path": str(experiment_dir),
+                         "Experiment": experiment_id,
+                         "Std": 2
+                         })])
 
                     if experiment_id in experiment_biopsy_predictions:
                         experiment_biopsy_predictions[experiment_id][marker] = marker_predictions[
@@ -112,12 +175,20 @@ def create_lgbm_predictions():
     print(predictions)
     print(predictions["Biopsy"].unique())
     print(predictions["Mode"].unique())
-    predictions.to_csv(Path(save_path, "lgbm_predictions.csv"), index=False)
+    predictions.to_csv(Path(lgbm_save_path, "predictions.csv"), index=False)
+
+    # remove all rows with NaN values
+    quartile_performance = quartile_performance.dropna()
+    quartile_performance.to_csv(Path(lgbm_save_path, "quartile_performance.csv"), index=False)
 
 
-def create_en_predictions():
-    all_mean_predictions = pd.DataFrame()
+def create_en_predictions(save_path: Path):
+    en_save_path = Path(save_path, "en")
+    if not en_save_path.exists():
+        en_save_path.mkdir(parents=True)
+
     predictions = pd.DataFrame()
+    quartile_performance = pd.DataFrame(columns=["MAE", "Quartile", "Marker", "Biopsy", "Mode", "Experiment"])
     for folder_path in EN_PATHS:
         mode = "IP" if "in_patient" in str(folder_path) else "EXP"
         # print(folder_path)
@@ -134,7 +205,11 @@ def create_en_predictions():
                 else:
                     biopsy = biopsy[:-1] + '1'
 
-            print(f"Loading biosy: {biopsy}...")
+            print(f"Loading biopsy: {biopsy}...")
+            ground_truth = pd.read_csv(
+                Path("data", "cleaned_data", "ground_truth", f"{biopsy}_preprocessed_dataset.tsv"),
+                sep='\t')
+
             experiment_biopsy_predictions = {}
             for marker in MARKERS:
                 print(f"Loading marker {marker} for biopsy {biopsy}...")
@@ -156,8 +231,27 @@ def create_en_predictions():
                             Path(experiment_run_dir, f"{marker}_predictions.csv"),
                             header=None)
 
+                        # rename column 0 to prediction
+                        marker_predictions = marker_predictions.rename(columns={0: "prediction"})
+
+                        # calculate mae for all quartiles
+                        mae_1, mae_2, mae_3, mae_4, quartiles = calculate_quartile_performance(
+                            ground_truth=ground_truth, marker=marker, predictions=marker_predictions, std=2)
+
+                        quartile_performance: pd.DataFrame = pd.concat([quartile_performance, pd.DataFrame(
+                            {"MAE": [mae_1, mae_2, mae_3, mae_4], "Quartile": ["Q1", "Q2", "Q3", "Q4"],
+                             "Threshold": [quartiles[marker][0.25], quartiles[marker][0.5], quartiles[marker][0.75],
+                                           quartiles[marker][0.75]], "Marker": marker,
+                             "Biopsy": biopsy,
+                             "Mode": mode,
+                             "Load Path": str(experiment_run_dir),
+                             "Experiment": experiment_id,
+                             "Std": 2
+                             })])
+
                         if experiment_id in experiment_biopsy_predictions:
-                            experiment_biopsy_predictions[experiment_id][marker] = marker_predictions[0].values
+                            experiment_biopsy_predictions[experiment_id][marker] = marker_predictions[
+                                "prediction"].values
                             experiment_biopsy_predictions[experiment_id]["Experiment"] = experiment_id
                             experiment_biopsy_predictions[experiment_id]["Biopsy"] = biopsy
                             experiment_biopsy_predictions[experiment_id]["Mode"] = mode
@@ -165,7 +259,8 @@ def create_en_predictions():
                             # Add new experiment id to dictionary
                             experiment_biopsy_predictions[experiment_id] = pd.DataFrame(columns=MARKERS)
                             # add marker data to dataframe
-                            experiment_biopsy_predictions[experiment_id][marker] = marker_predictions[0].values
+                            experiment_biopsy_predictions[experiment_id][marker] = marker_predictions[
+                                "prediction"].values
                             # add biopsy id to dataframe
                             experiment_biopsy_predictions[experiment_id]["Biopsy"] = biopsy
                             # add mode to dataframe
@@ -210,16 +305,25 @@ def create_en_predictions():
     print(predictions["Biopsy"].unique())
     print(predictions["Mode"].unique())
     # remove Experiment column from df
-    predictions.to_csv(Path(save_path, "en_predictions.csv"), index=False)
+    predictions.to_csv(Path(en_save_path, "predictions.csv"), index=False)
+
+    # remove all nan from quartile performance
+    quartile_performance = quartile_performance.dropna()
+    quartile_performance.to_csv(Path(en_save_path, "quartile_performance.csv"), index=False)
 
 
-def create_ae_predictions():
+def create_ae_predictions(save_path: Path):
+    ae_save_path = Path(save_path, "ae")
+    if not ae_save_path.exists():
+        ae_save_path.mkdir(parents=True)
+
     print("Creating AE predictions...")
     columns = [marker for marker in MARKERS]
     columns.append("Biopsy")
     columns.append("Mode")
 
     predictions = pd.DataFrame(columns=columns)
+    quartile_performance = pd.DataFrame(columns=["MAE", "Quartile", "Marker", "Biopsy", "Mode", "Experiment"])
 
     for folder_path in AE_PATHS:
         mode = "IP" if "ip" in str(folder_path) else "EXP"
@@ -238,6 +342,10 @@ def create_ae_predictions():
                     if not Path(biopsy_path).exists():
                         continue
 
+                    print(f"Loading ground truth data for biopsy {biopsy}...")
+                    ground_truth = pd.read_csv(
+                        Path("data", "cleaned_data", "ground_truth", f"{biopsy}_preprocessed_dataset.tsv"),
+                        sep='\t')
                     for experiment_run in os.listdir(biopsy_path):
                         if not Path(biopsy_path, experiment_run).is_dir():
                             continue
@@ -264,6 +372,22 @@ def create_ae_predictions():
                             marker_predictions = (
                                                          marker_predictions_5 + marker_predictions_6 + marker_predictions_7 + marker_predictions_8 + marker_predictions_9) / 5
 
+                            for marker in MARKERS:
+                                # calculate mae for all quartiles
+                                mae_1, mae_2, mae_3, mae_4, quartiles = calculate_quartile_performance(
+                                    ground_truth=ground_truth, marker=marker, predictions=marker_predictions, std=2)
+
+                                quartile_performance: pd.DataFrame = pd.concat([quartile_performance, pd.DataFrame(
+                                    {"MAE": [mae_1, mae_2, mae_3, mae_4], "Quartile": ["Q1", "Q2", "Q3", "Q4"],
+                                     "Threshold": [quartiles[marker][0.25], quartiles[marker][0.5],
+                                                   quartiles[marker][0.75],
+                                                   quartiles[marker][0.75]], "Marker": marker,
+                                     "Biopsy": biopsy,
+                                     "Mode": mode,
+                                     "Load Path": str(results_path),
+                                     "Experiment": experiment_id,
+                                     "Std": 2
+                                     })])
 
                         except BaseException as ex:
                             print("Could not load predictions")
@@ -296,7 +420,11 @@ def create_ae_predictions():
                     # add experiment id to dataframe
                     predictions = pd.concat([predictions, biopsy_mean_predictions], ignore_index=True)
 
-    predictions.to_csv(Path(save_path, "ae_predictions.csv"), index=False)
+    predictions.to_csv(Path(ae_save_path, "predictions.csv"), index=False)
+
+    # remove all nan from quartile performance
+    quartile_performance = quartile_performance.dropna()
+    quartile_performance.to_csv(Path(save_path, "quartile_performance.csv"), index=False)
 
 
 if __name__ == '__main__':
@@ -312,8 +440,8 @@ if __name__ == '__main__':
 
     if args.elastic_net:
         print("Creating elastic net predictions...")
-        create_en_predictions()
+        create_en_predictions(save_path=save_path)
     else:
         print("Creating lgbm & ae predictions...")
-        create_lgbm_predictions()
-        create_ae_predictions()
+        create_lgbm_predictions(save_path=save_path)
+        create_ae_predictions(save_path=save_path)
