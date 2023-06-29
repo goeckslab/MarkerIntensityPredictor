@@ -11,11 +11,9 @@ from statannotations.Annotator import Annotator
 def create_boxen_plot(data: pd.DataFrame, metric: str, ylim: List, microns: List, model: str, save_path: Path):
     color_palette = {"0 µm": "grey", "23 µm": "magenta", "46 µm": "purple", "92 µm": "green", "138 µm": "yellow",
                      "184 µm": "blue"}
-    dpi = 96
-    if model == "GNN":
-        fig = plt.figure(figsize=(800 / dpi, 350 / dpi), dpi=dpi)
-    else:
-        fig = plt.figure(figsize=(800 / dpi, 350 / dpi), dpi=dpi)
+    dpi = 300
+
+    fig = plt.figure(figsize=(2500 / dpi, 1250 / dpi), dpi=dpi)
     ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="FE", palette=color_palette)
 
     plt.ylabel("")
@@ -62,7 +60,7 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, ylim: List, microns: List
         raise
 
     plt.tight_layout()
-    plt.savefig(Path(save_path), dpi=150)
+    plt.savefig(Path(save_path), dpi=300)
     plt.close('all')
 
 
@@ -211,4 +209,4 @@ if __name__ == '__main__':
     ax5.imshow(gnn_results)
 
     plt.tight_layout()
-    plt.savefig(Path("plots", "figures", "fig3.png"), dpi=250)
+    plt.savefig(Path("plots", "figures", "fig3.png"), dpi=300)
