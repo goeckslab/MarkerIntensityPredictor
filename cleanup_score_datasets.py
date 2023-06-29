@@ -80,6 +80,11 @@ def prepare_lbgm_scores(save_path: Path):
         # replace _ with '' for biopsy column
         scores["Biopsy"] = scores["Biopsy"].apply(lambda x: x.replace("_", " "))
 
+        # convert Hyper Flase to 0
+        scores["Hyper"] = scores["Hyper"].apply(lambda x: 0 if x == "False" else 1)
+        # convert Hyper column to int
+        scores["Hyper"] = scores["Hyper"].apply(lambda x: int(x))
+
         # Remove Load Path Random Seed,
         scores = scores.drop(columns=["Load Path", "Random Seed"])
         scores.to_csv(Path(lgbm_path, "scores.csv"), index=False)
@@ -103,8 +108,17 @@ def prepare_ae_scores(save_path: Path):
     # replace _ with '' for biopsy column
     scores["Biopsy"] = scores["Biopsy"].apply(lambda x: x.replace("_", " "))
 
+    # group by marker, biopsy and experiment, only keep iteration 5-9
+    scores = scores.groupby(["Marker", "Biopsy", "Experiment", "Mode", "HP", "FE", "Noise", "Replace Value"]).nth(
+        [5, 6, 7, 8, 9]).reset_index()
+
+    # calculate mean of MAE scores
+    scores = scores.groupby(["Marker", "Biopsy", "Experiment", "Mode", "HP", "FE", "Noise", "Replace Value"]).mean(
+        numeric_only=True).reset_index()
+
     # remove load path and random seed
-    scores = scores.drop(columns=["Load Path"])
+    if "Load Path" in scores.columns:
+        scores = scores.drop(columns=["Load Path"])
     scores.to_csv(Path(ae_path, "scores.csv"), index=False)
 
 
@@ -125,8 +139,20 @@ def prepare_gnn_scores(save_path: Path):
     # replace _ with '' for biopsy column
     scores["Biopsy"] = scores["Biopsy"].apply(lambda x: x.replace("_", " "))
 
+    # group by marker, biopsy and experiment, only keep iteration 5-9
+    scores = scores.groupby(["Marker", "Biopsy", "Experiment", "Mode", "FE", "Noise", "Replace Value"]).nth(
+        [5, 6, 7, 8, 9]).reset_index()
+
+    # calculate mean of MAE scores
+    scores = scores.groupby(["Marker", "Biopsy", "Experiment", "Mode", "FE", "Noise", "Replace Value"]).mean(
+        numeric_only=True).reset_index()
+
     # remove load path and random seed
-    scores = scores.drop(columns=["Load Path"])
+    if "Load Path" in scores.columns:
+        scores = scores.drop(columns=["Load Path"])
+
+    # remove iteration column and imputation column
+    scores = scores.drop(columns=["Iteration", "Imputation"])
     scores.to_csv(Path(gnn_path, "scores.csv"), index=False)
 
 
@@ -134,11 +160,10 @@ if __name__ == '__main__':
 
     # create new scores folder
     save_path = Path("data/cleaned_data/scores")
-    if save_path.exists():
-        shutil.rmtree(save_path)
-    save_path.mkdir(parents=True, exist_ok=True)
+    if not save_path.exists():
+        save_path.mkdir(parents=True, exist_ok=True)
 
-    #prepare_en_scores(save_path=save_path)
+    # prepare_en_scores(save_path=save_path)
     prepare_lbgm_scores(save_path=save_path)
     prepare_ae_scores(save_path=save_path)
     prepare_gnn_scores(save_path=save_path)

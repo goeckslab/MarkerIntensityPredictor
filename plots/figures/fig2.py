@@ -150,7 +150,7 @@ if __name__ == '__main__':
              fontsize=16, fontweight='bold', va='top', ha='right')
 
     # add image to figure
-    ax1.imshow(image)
+    ax1.imshow(image, aspect='auto')
 
     ax2 = fig.add_subplot(gspec[1, :2])
     ax2.text(-0.1, 1.15, "B", transform=ax2.transAxes,
