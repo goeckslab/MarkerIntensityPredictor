@@ -7,34 +7,14 @@ import matplotlib.pyplot as plt
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
 
-
-def load_mae_scores():
-    biopsies = ["9 2 1", "9 2 2", "9 3 1", "9 3 2", "9 14 1", "9 14 2", "9 15 1", "9 15 2"]
-    # load mesmer mae scores from data mesmer folder and all subfolders
-
-    mae_scores = []
-    for root, dirs, files in os.walk("mesmer"):
-        for name in files:
-            if Path(name).suffix == ".csv" and "_mae_scores" in name:
-                mae_scores.append(pd.read_csv(os.path.join(root, name), sep=",", header=0))
-
-    for root, dirs, files in os.walk("unmicst_s3_snr"):
-        for name in files:
-            if Path(name).suffix == ".csv" and "_mae_scores" in name:
-                mae_scores.append(pd.read_csv(os.path.join(root, name), sep=",", header=0))
-
-    for root, dirs, files in os.walk("unmicst_s3_non_snr"):
-        for name in files:
-            if Path(name).suffix == ".csv" and "_mae_scores" in name:
-                mae_scores.append(pd.read_csv(os.path.join(root, name), sep=",", header=0))
-
-    assert len(mae_scores) == 48, "There should be 48 mae scores files"
-    mae_scores = pd.concat(mae_scores, axis=0).reset_index(drop=True)
-
-    return mae_scores
-
+save_folder = Path("data", "cleaned_data", "rounds")
 
 if __name__ == '__main__':
+
+    # create save folder if not exists
+    if not save_folder.exists():
+        save_folder.mkdir(parents=True, exist_ok=True)
+
     # Load data
     r_9_2 = pd.read_csv("data/rounds/CycIF_HTAN9_2_Tumor_markers.csv")
     r_9_3 = pd.read_csv("data/rounds/CycIF_HTAN9_3_Tumor_markers.csv")
@@ -59,23 +39,21 @@ if __name__ == '__main__':
 
     # print all rounds of ck19
 
-    mae_scores = load_mae_scores()
-    # create new column patient based on biopsy value
-    mae_scores["Patient"] = [" ".join(biopsy.split("_")[:2]) for biopsy in mae_scores["Biopsy"]]
-
-    # merge mae scores with rounds
-    rounds = rounds.merge(mae_scores, on=["Patient"])
-    # select shared markers
-    rounds = rounds[rounds["Marker"].isin(SHARED_MARKERS)]
-    print(rounds)
     rounds.to_csv("rounds.csv", index=False)
+    # remove AF_Channel column and channel_number from rounds
+    rounds = rounds.drop(columns=["AF_channel", "channel_number"], axis=1)
+    # rename marker_name to Marker
+    rounds = rounds.rename(columns={"marker_name": "Marker"})
+    print(rounds)
+    # save to save path
+    rounds.to_csv(Path(save_folder, "rounds.csv"), index=False)
 
-    #sns.barplot(x="Biopsy", y="Score", hue="Round", data=rounds)
-    #plt.show()
+    # sns.barplot(x="Biopsy", y="Score", hue="Round", data=rounds)
+    # plt.show()
 
-    sns.catplot(
-        data=rounds, x="Biopsy", y="Score", col="marker_name",
-        kind="bar", height=4, aspect=.6,
-    )
-    plt.show()
+    # sns.catplot(
+    #    data=rounds, x="Biopsy", y="Score", col="marker_name",
+    #    kind="bar", height=4, aspect=.6,
+    # )
+    # plt.show()
     # calculate difference between round 5 and 7 for ck19
