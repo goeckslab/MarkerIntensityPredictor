@@ -80,7 +80,7 @@ def prepare_lbgm_scores(save_path: Path):
         # replace _ with '' for biopsy column
         scores["Biopsy"] = scores["Biopsy"].apply(lambda x: x.replace("_", " "))
 
-        # convert Hyper Flase to 0
+        # convert Hyper False to 0
         scores["Hyper"] = scores["Hyper"].apply(lambda x: 0 if x == "False" else 1)
         # convert Hyper column to int
         scores["Hyper"] = scores["Hyper"].apply(lambda x: int(x))
@@ -119,6 +119,9 @@ def prepare_ae_scores(save_path: Path):
     # remove load path and random seed
     if "Load Path" in scores.columns:
         scores = scores.drop(columns=["Load Path"])
+
+    # drop imputation & iteration columns
+    scores = scores.drop(columns=["Imputation", "Iteration"])
     scores.to_csv(Path(ae_path, "scores.csv"), index=False)
 
 

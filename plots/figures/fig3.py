@@ -80,6 +80,7 @@ if __name__ == '__main__':
 
     # load ae scores
     ae_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "ae", "scores.csv"))
+
     # sort by markers
     # select only the scores for the 0 µm, 23 µm, 92 µm, 184 µm
     ae_scores = ae_scores[ae_scores["FE"].isin([0, 23, 92, 184])]
@@ -87,6 +88,10 @@ if __name__ == '__main__':
     ae_scores = ae_scores[ae_scores["Mode"] == "EXP"]
     # select mean replace value
     ae_scores = ae_scores[ae_scores["Replace Value"] == "mean"]
+    # select only rows with noise = 0
+    ae_scores = ae_scores[ae_scores["Noise"] == 0]
+    # select only non hyperopt rows
+    ae_scores = ae_scores[ae_scores["HP"] == 0]
     # Add µm to the FE column
     ae_scores["FE"] = ae_scores["FE"].astype(str) + " µm"
     ae_scores["FE"] = pd.Categorical(ae_scores['FE'], ["0 µm", "23 µm", "92 µm", "184 µm"])
@@ -179,7 +184,7 @@ if __name__ == '__main__':
 
     ax3 = fig.add_subplot(gspec[0:2, 1])
     ax3.set_title('LGBM 0 vs. 15 µm, 60 µm and 120 µm', rotation='horizontal', fontsize=20)
-    ax3.text(0, 1.1, "B", transform=ax3.transAxes,
+    ax3.text(-0.05, 1.1, "B", transform=ax3.transAxes,
              fontsize=16, fontweight='bold', va='top', ha='right')
     # remove box from ax3
     plt.box(False)
@@ -189,7 +194,7 @@ if __name__ == '__main__':
 
     ax4 = fig.add_subplot(gspec[2:4, 1])
     ax4.set_title('AE 0 vs. 15 µm, 60 µm and 120 µm', rotation='horizontal', fontsize=20)
-    ax4.text(0, 1.1, "D", transform=ax4.transAxes,
+    ax4.text(-0.05, 1.1, "D", transform=ax4.transAxes,
              fontsize=16, fontweight='bold', va='top', ha='right')
     # remove box from ax4
     plt.box(False)
@@ -200,7 +205,7 @@ if __name__ == '__main__':
 
     ax5 = fig.add_subplot(gspec[4:, 1])
     ax5.set_title('GNN 15 µm vs. 30 µm, 60 µm and 120 µm', rotation='horizontal', fontsize=20)
-    ax5.text(0, 1.1, "E", transform=ax5.transAxes,
+    ax5.text(-0.05, 1.1, "E", transform=ax5.transAxes,
              fontsize=16, fontweight='bold', va='top', ha='right')
     # remove box from ax5
     plt.box(False)
