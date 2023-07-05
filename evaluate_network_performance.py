@@ -6,12 +6,15 @@ import pandas as pd
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', "-m", type=str, required=True, help="The model to evaluate", choices=["ae", "gnn"])
+    parser.add_argument('--model', "-m", type=str, required=True, help="The model to evaluate",
+                        choices=["ae", "gnn", "ae_m"])
     args = parser.parse_args()
 
     model = args.model
     if model == "ae":
         load_path = Path("ae_imputation")
+    elif model == "ae_m":
+        load_path = Path("ae_imputation_m")
     elif model == "gnn":
         load_path = Path("gnn/results")
     else:
@@ -53,6 +56,8 @@ if __name__ == '__main__':
 
     if model == 'ae':
         save_path = Path("data/scores/ae")
+    elif model == 'ae_m':
+        save_path = Path("data/scores/ae_m")
     else:
         save_path = Path("data/scores/gnn")
 

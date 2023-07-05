@@ -18,7 +18,7 @@ repetition=$4
 
 source venv/bin/activate
 
-python3 ./ae_imputation/ae.py -m "${mode}" -b "${biopsy}" -i 10  -rm "${replace_value}" -r "${repetition}"
+python3 ./ae_imputation_m/ae.py -m "${mode}" -b "${biopsy}" -i 10  -rm "${replace_value}" -r "${repetition}"
 
 
 
