@@ -103,7 +103,7 @@ def create_boxen_plot_all_spatial(data: pd.DataFrame, metric: str, title: str, s
     # plt.legend().set_visible(False)
 
     hue = "FE"
-    hue_order = ["0 µm", "23 µm", "92 µm",  "184 µm"]
+    hue_order = ["0 µm", "23 µm", "92 µm", "184 µm"]
     pairs = [
         (("pRB", "23 µm"), ("pRB", "0 µm")),
         (("CD45", "23 µm"), ("CD45", "0 µm")),
@@ -248,15 +248,16 @@ if __name__ == '__main__':
     ae_scores = load_ae_scores(mode=mode, replace_value="mean", add_noise="no_noise",
                                hyper=hyper)
     base_scores = ae_scores[ae_scores["FE"] == 0]
-    base_scores = base_scores.groupby(["Marker", "Biopsy", "Experiment"]).head(5)
+    base_scores = base_scores.groupby(["Marker", "Biopsy", "Experiment", "Replace Value", "Noise", "HP"]).head(5)
     # calculate mean of MAE scores
-    base_scores = base_scores.groupby(["Marker", "Biopsy", "Experiment"]).mean().reset_index()
+    base_scores = base_scores.groupby(["Marker", "Biopsy", "Experiment", "Replace Value", "Noise", "HP"]).mean().reset_index()
 
     compare_scores = ae_scores[ae_scores["FE"] == spatial_distance]
     compare_scores = compare_scores.groupby(["Marker", "Biopsy", "Experiment"]).head(5)
     compare_scores = compare_scores.groupby(["Marker", "Biopsy", "Experiment"]).mean().reset_index()
 
-    my_pal = {"0 µm": "grey", "23 µm": "magenta", "46 µm": "purple", "92 µm": "green", "138 µm": "yellow", "184 µm": "blue"}
+    my_pal = {"0 µm": "grey", "23 µm": "magenta", "46 µm": "purple", "92 µm": "green", "138 µm": "yellow",
+              "184 µm": "blue"}
 
     # combine both dataframes
     scores = pd.concat([base_scores, compare_scores], axis=0)
