@@ -6,34 +6,33 @@ from pathlib import Path
 import shutil
 from statannotations.Annotator import Annotator
 
-save_path = Path("plots/ae/plots")
+save_path = Path("plots/en_ludwig_ae_gnn/plots")
+
+
+def load_vae_all_scores(mode: str, replace_value: str) -> pd.DataFrame:
+    all_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "vae_all", "scores.csv"))
+    all_scores = all_scores[all_scores["Mode"] == mode]
+    all_scores = all_scores[all_scores["Replace Value"] == replace_value]
+    all_scores = all_scores[all_scores["Noise"] == 0]
+    all_scores = all_scores[all_scores["FE"] == 0]
+    all_scores = all_scores[all_scores["HP"] == 0]
+    return all_scores
+
+
+def load_ae_all_scores(mode: str, replace_value: str) -> pd.DataFrame:
+    all_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "ae_all", "scores.csv"))
+    all_scores = all_scores[all_scores["Mode"] == mode]
+    all_scores = all_scores[all_scores["Replace Value"] == replace_value]
+    all_scores = all_scores[all_scores["Noise"] == 0]
+    all_scores = all_scores[all_scores["FE"] == 0]
+    all_scores = all_scores[all_scores["HP"] == 0]
+    return all_scores
 
 
 def load_lgbm_scores(mode: str, spatial: int):
     all_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "lgbm", "scores.csv"))
     all_scores = all_scores[all_scores["Mode"] == mode]
     all_scores = all_scores[all_scores["FE"] == spatial]
-    all_scores = all_scores[all_scores["HP"] == 0]
-    return all_scores
-
-
-def load_ae_scores(mode: str, replace_value: str) -> pd.DataFrame:
-    all_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "ae", "scores.csv"))
-    all_scores = all_scores[all_scores["Mode"] == mode]
-    all_scores = all_scores[all_scores["Replace Value"] == replace_value]
-    all_scores = all_scores[all_scores["Noise"] == 0]
-    all_scores = all_scores[all_scores["FE"] == 0]
-    all_scores = all_scores[all_scores["HP"] == 0]
-    return all_scores
-
-
-def load_ae_m_scores(mode: str, replace_value: str) -> pd.DataFrame:
-    all_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "ae_m", "scores.csv"))
-
-    all_scores = all_scores[all_scores["Mode"] == mode]
-    all_scores = all_scores[all_scores["Replace Value"] == replace_value]
-    all_scores = all_scores[all_scores["Noise"] == 0]
-    all_scores = all_scores[all_scores["FE"] == 0]
     all_scores = all_scores[all_scores["HP"] == 0]
     return all_scores
 
@@ -47,7 +46,7 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_n
         fig = plt.figure(figsize=(15, 5), dpi=200)
     # ax = sns.violinplot(data=data, x="Marker", y=metric, hue="Network", split=True, cut=0)
     ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Network",
-                       palette={"AE": "green", "AE M": "blue", "LGBM": "orange"})
+                       palette={"AE ALL": "green", "VAE ALL": "red", "LGBM": "orange"})
     # if ae_fe:
     #    plt.title(f"FE AutoEncoder vs FE Ludwig\n Radius: {radius}")
     # else:
@@ -69,24 +68,24 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, save_folder: Path, file_n
     # plt.legend().set_visible(False)
 
     hue = "Network"
-    hue_order = ['AE', "AE M"]
+    hue_order = ["LGBM", 'AE ALL', "VAE ALL"]
     pairs = [
-        (("pRB", "AE"), ("pRB", "AE M")),
-        (("CD45", "AE"), ("CD45", "AE M")),
-        (("CK19", "AE"), ("CK19", "AE M")),
-        (("Ki67", "AE"), ("Ki67", "AE M")),
-        (("aSMA", "AE"), ("aSMA", "AE M")),
-        (("Ecad", "AE"), ("Ecad", "AE M")),
-        (("PR", "AE"), ("PR", "AE M")),
-        (("CK14", "AE"), ("CK14", "AE M")),
-        (("HER2", "AE"), ("HER2", "AE M")),
-        (("AR", "AE"), ("AR", "AE M")),
-        (("CK17", "AE"), ("CK17", "AE M")),
-        (("p21", "AE"), ("p21", "AE M")),
-        (("Vimentin", "AE"), ("Vimentin", "AE M")),
-        (("pERK", "AE"), ("pERK", "AE M")),
-        (("EGFR", "AE"), ("EGFR", "AE M")),
-        (("ER", "AE"), ("ER", "AE M")),
+        (("pRB", "AE ALL"), ("pRB", "VAE ALL")),
+        (("CD45", "AE ALL"), ("CD45", "VAE ALL")),
+        (("CK19", "AE ALL"), ("CK19", "VAE ALL")),
+        (("Ki67", "AE ALL"), ("Ki67", "VAE ALL")),
+        (("aSMA", "AE ALL"), ("aSMA", "VAE ALL")),
+        (("Ecad", "AE ALL"), ("Ecad", "VAE ALL")),
+        (("PR", "AE ALL"), ("PR", "VAE ALL")),
+        (("CK14", "AE ALL"), ("CK14", "VAE ALL")),
+        (("HER2", "AE ALL"), ("HER2", "VAE ALL")),
+        (("AR", "AE ALL"), ("AR", "VAE ALL")),
+        (("CK17", "AE ALL"), ("CK17", "VAE ALL")),
+        (("p21", "AE ALL"), ("p21", "VAE ALL")),
+        (("Vimentin", "AE ALL"), ("Vimentin", "VAE ALL")),
+        (("pERK", "AE ALL"), ("pERK", "VAE ALL")),
+        (("EGFR", "AE ALL"), ("EGFR", "VAE ALL")),
+        (("ER", "AE ALL"), ("ER", "VAE ALL")),
     ]
     order = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
              'pERK', 'EGFR', 'ER']
@@ -132,7 +131,7 @@ if __name__ == '__main__':
     metric: str = args.metric
     markers = args.markers
 
-    save_path = Path(save_path, "ae_vs_ae_m")
+    save_path = Path(save_path, "lgbm_vs_ae_all_vs_vae_all")
     save_path = Path(save_path, mode)
     # save_path = Path(save_path, str(spatial))
 
@@ -145,18 +144,16 @@ if __name__ == '__main__':
         shutil.rmtree(save_path)
     save_path.mkdir(parents=True)
 
-    ae_m_scores: pd.DataFrame = load_ae_m_scores(mode=mode, replace_value="mean")
-    ae_scores: pd.DataFrame = load_ae_scores(mode=mode, replace_value="mean")
+    ae_all_scores: pd.DataFrame = load_ae_all_scores(mode=mode, replace_value="mean")
+    vae_all_scores: pd.DataFrame = load_vae_all_scores(mode=mode, replace_value="mean")
     lgbm_scores: pd.DataFrame = load_lgbm_scores(mode=mode, spatial=0)
 
-    # Select first iteration
-    # ae_scores = ae_scores[ae_scores["Iteration"] == 0]
-
     # Select only Marker, MAE, MSE, RMSE and Biopsy
-    ae_scores = ae_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
-    ae_m_scores = ae_m_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
+    ae_all_scores = ae_all_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
+    vae_all_scores = vae_all_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
+    lgbm_scores = lgbm_scores[["Marker", "MAE", "RMSE", "Biopsy", "Network"]]
     # combine ae and fe scores
-    scores = pd.concat([lgbm_scores, ae_scores, ae_m_scores], axis=0)
+    scores = pd.concat([lgbm_scores,ae_all_scores, vae_all_scores], axis=0)
 
     if markers:
         scores = scores[scores["Marker"].isin(args.markers)]

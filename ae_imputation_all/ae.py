@@ -72,60 +72,58 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
                    mode: str, experiment_id: int, save_folder: str, file_name: str,
                    replace_value: str, iterations: int, store_predictions: bool, subset: int, rounds: pd.DataFrame):
     try:
-        for round in rounds["Round"].unique():
-            markers = rounds[rounds["Round"] == round]["Marker"].values
-            print(f"Imputing markers {markers}")
-            # copy the test data
-            input_data = test_data.copy()
-            if replace_value == "zero":
-                for marker in markers:
-                    input_data[marker] = 0
-            elif replace_value == "mean":
-                for marker in markers:
-                    input_data[marker] = input_data[marker].mean()
+        # copy the test data
+        input_data = test_data.copy()
+        if replace_value == "zero":
+            for marker in input_data.columns:
+                input_data[marker] = 0
+        elif replace_value == "mean":
+            for marker in input_data.columns:
+                input_data[marker] = input_data[marker].mean()
+
+        marker_prediction = input_data.copy()
+        for iteration in range(iterations):
+            predicted_intensities = ae.decoder.predict(ae.encoder.predict(marker_prediction))
+
+            predicted_intensities = pd.DataFrame(data=predicted_intensities, columns=test_data.columns)
+            if store_predictions:
+                for marker in input_data.columns:
+                    all_predictions[iteration][marker] = predicted_intensities[marker].values
 
             marker_prediction = input_data.copy()
-            for iteration in range(iterations):
-                predicted_intensities = ae.decoder.predict(ae.encoder.predict(marker_prediction))
+            for marker in input_data.columns:
+                imputed_marker = predicted_intensities[marker].values
+                marker_prediction[marker] = imputed_marker
 
-                predicted_intensities = pd.DataFrame(data=predicted_intensities, columns=test_data.columns)
-                if store_predictions:
-                    for marker in markers:
-                        all_predictions[iteration][marker] = predicted_intensities[marker].values
+            for marker in input_data.columns:
+                scores.append({
+                    "Marker": marker,
+                    "Biopsy": test_biopsy_name,
+                    "MAE": mean_absolute_error(marker_prediction[marker], test_data[marker]),
+                    "RMSE": mean_squared_error(marker_prediction[marker], test_data[marker], squared=False),
+                    "HP": 0,
+                    "Mode": mode,
+                    "Imputation": 1,
+                    "Iteration": iteration,
+                    "FE": 0,
+                    "Experiment": int(f"{experiment_id}{subset}"),
+                    "Network": "AE All",
+                    "Noise": 0,
+                    "Replace Value": replace_value,
+                    "Round": round
+                })
 
-                marker_prediction = input_data.copy()
-                for marker in markers:
-                    imputed_marker = predicted_intensities[marker].values
-                    marker_prediction[marker] = imputed_marker
-
-                for marker in markers:
-                    scores.append({
-                        "Marker": marker,
-                        "Biopsy": test_biopsy_name,
-                        "MAE": mean_absolute_error(marker_prediction[marker], test_data[marker]),
-                        "RMSE": mean_squared_error(marker_prediction[marker], test_data[marker], squared=False),
-                        "HP": 0,
-                        "Mode": mode,
-                        "Imputation": 1,
-                        "Iteration": iteration,
-                        "FE": 0,
-                        "Experiment": int(f"{experiment_id}{subset}"),
-                        "Network": "AE M",
-                        "Noise": 0,
-                        "Replace Value": replace_value,
-                        "Round": round
-                    })
-
-                if iteration % 20 == 0:
-                    print("Performing temp save...")
-                    save_scores(save_folder=save_folder, file_name=file_name, new_scores=pd.DataFrame(scores))
-                    scores = []
+            if iteration % 20 == 0:
+                print("Performing temp save...")
+                save_scores(save_folder=save_folder, file_name=file_name, new_scores=pd.DataFrame(scores))
+                scores = []
 
         if len(scores) > 0:
             print("Saving remaining scores...")
             save_scores(save_folder=save_folder, file_name=file_name, new_scores=pd.DataFrame(scores))
             scores = []
         return all_predictions
+
 
     except KeyboardInterrupt as ex:
         print("Keyboard interrupt detected.")
@@ -148,7 +146,7 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
 
 
 def create_results_folder() -> [Path, int]:
-    save_folder = Path(f"ae_imputation_m", patient_type)
+    save_folder = Path(f"ae_imputation_all", patient_type)
     save_folder = Path(save_folder, replace_value)
     save_folder = Path(save_folder, test_biopsy_name)
 

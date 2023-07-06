@@ -22,7 +22,8 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, title: str, save_folder: 
     else:
         fig = plt.figure(figsize=(15, 5), dpi=200)
     # ax = sns.violinplot(data=data, x="Marker", y=score, hue="Type", split=True, cut=0)
-    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Network", hue_order=["LGBM", "AE", "VAE"])
+    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Network", hue_order=["LGBM", "AE", "VAE"],
+                       palette={"AE": "green", "VAE": "red", "LGBM": "orange"})
 
     # plt.title(title)
     # remove y axis label
@@ -94,18 +95,9 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, title: str, save_folder: 
 def load_lgbm_scores(mode: str, spatial: int):
     mode = mode.upper()
     all_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "lgbm", "scores.csv"))
-    print(all_scores)
-    input()
     all_scores = all_scores[all_scores["Mode"] == mode]
-    print(all_scores)
-    input()
     all_scores = all_scores[all_scores["FE"] == spatial]
-    print(all_scores)
-    input()
     all_scores = all_scores[all_scores["HP"] == 0]
-    print(all_scores)
-    print(all_scores["Biopsy"].unique())
-    input()
     return all_scores
 
 

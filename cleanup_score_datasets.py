@@ -104,15 +104,26 @@ def prepare_lbgm_scores(save_path: Path):
         print("LGBM scores could not be cleaned up")
 
 
-def prepare_ae_scores(save_path: Path):
+def prepare_ae_scores(save_path: Path, imputation: str = None):
     print("Preparing ae scores")
-    ae_path = Path(save_path, "ae")
+
+    if imputation is None:
+        scores = pd.read_csv(Path("data", "scores", "ae", "scores.csv"))
+        network = "AE"
+        ae_path = Path(save_path, "ae")
+    elif imputation == "multi":
+        scores = pd.read_csv(Path("data", "scores", "ae_m", "scores.csv"))
+        network = "AE M"
+        ae_path = Path(save_path, "ae_m")
+    else:
+        scores = pd.read_csv(Path("data", "scores", "ae_all", "scores.csv"))
+        network = "AE ALL"
+        ae_path = Path(save_path, "ae_all")
 
     if ae_path.exists():
         shutil.rmtree(ae_path)
     ae_path.mkdir(parents=True, exist_ok=True)
 
-    scores = pd.read_csv(Path("data", "scores", "ae", "scores.csv"))
     scores["Mode"] = scores["Mode"].apply(lambda x: x.upper())
     # convert FE column to int
     scores["FE"] = scores["FE"].apply(lambda x: int(x))
@@ -133,19 +144,31 @@ def prepare_ae_scores(save_path: Path):
 
     # drop imputation & iteration columns
     scores = scores.drop(columns=["Imputation", "Iteration"])
-    scores["Network"] = "AE"
+    scores["Network"] = network
     scores.to_csv(Path(ae_path, "scores.csv"), index=False)
 
 
-def prepare_vae_scores(save_path: Path):
+def prepare_vae_scores(save_path: Path, imputation: str = None):
     print("Preparing vae scores")
     vae_path = Path(save_path, "vae")
+
+    if imputation is None:
+        scores = pd.read_csv(Path("data", "scores", "vae", "scores.csv"))
+        network = "VAE"
+        vae_path = Path(save_path, "vae")
+    elif imputation == "multi":
+        scores = pd.read_csv(Path("data", "scores", "vae_m", "scores.csv"))
+        network = "VAE M"
+        vae_path = Path(save_path, "vae_m")
+    else:
+        scores = pd.read_csv(Path("data", "scores", "vae_all", "scores.csv"))
+        network = "VAE ALL"
+        vae_path = Path(save_path, "vae_all")
 
     if vae_path.exists():
         shutil.rmtree(vae_path)
     vae_path.mkdir(parents=True, exist_ok=True)
 
-    scores = pd.read_csv(Path("data", "scores", "vae", "scores.csv"))
     scores["Mode"] = scores["Mode"].apply(lambda x: x.upper())
     # convert FE column to int
     scores["FE"] = scores["FE"].apply(lambda x: int(x))
@@ -166,41 +189,8 @@ def prepare_vae_scores(save_path: Path):
 
     # drop imputation & iteration columns
     scores = scores.drop(columns=["Imputation", "Iteration"])
-    scores["Network"] = "VAE"
+    scores["Network"] = network
     scores.to_csv(Path(vae_path, "scores.csv"), index=False)
-
-
-def prepare_ae_m_scores(save_path: Path):
-    print("Preparing ae multi scores")
-    ae_m_path = Path(save_path, "ae_m")
-
-    if ae_m_path.exists():
-        shutil.rmtree(ae_m_path)
-    ae_m_path.mkdir(parents=True, exist_ok=True)
-
-    scores = pd.read_csv(Path("data", "scores", "ae_m", "scores.csv"))
-    scores["Mode"] = scores["Mode"].apply(lambda x: x.upper())
-    # convert FE column to int
-    scores["FE"] = scores["FE"].apply(lambda x: int(x))
-    # replace _ with '' for biopsy column
-    scores["Biopsy"] = scores["Biopsy"].apply(lambda x: x.replace("_", " "))
-
-    # group by marker, biopsy and experiment, only keep iteration 5-9
-    scores = scores.groupby(["Marker", "Biopsy", "Experiment", "Mode", "HP", "FE", "Noise", "Replace Value"]).nth(
-        [5, 6, 7, 8, 9]).reset_index()
-
-    # calculate mean of MAE scores
-    scores = scores.groupby(["Marker", "Biopsy", "Experiment", "Mode", "HP", "FE", "Noise", "Replace Value"]).mean(
-        numeric_only=True).reset_index()
-
-    # remove load path and random seed
-    if "Load Path" in scores.columns:
-        scores = scores.drop(columns=["Load Path"])
-
-    # drop imputation & iteration columns
-    scores = scores.drop(columns=["Imputation", "Iteration"])
-    scores["Network"] = "AE M"
-    scores.to_csv(Path(ae_m_path, "scores.csv"), index=False)
 
 
 def prepare_gnn_scores(save_path: Path):
@@ -247,14 +237,10 @@ if __name__ == '__main__':
 
     # prepare_en_scores(save_path=save_path)
     try:
-        prepare_lbgm_scores(save_path=save_path)
+        pass
+        # prepare_lbgm_scores(save_path=save_path)
     except:
         print("Could not prepare lgbm scores")
-
-    try:
-        prepare_ae_scores(save_path=save_path)
-    except:
-        print("Could not prepare ae scores")
 
     try:
         prepare_gnn_scores(save_path=save_path)
@@ -262,11 +248,13 @@ if __name__ == '__main__':
         print("Could not prepare gnn scores")
 
     try:
-        prepare_ae_m_scores(save_path=save_path)
+        prepare_ae_scores(save_path=save_path)
+        prepare_ae_scores(save_path=save_path, imputation="all")
     except:
         print("Could not prepare ae_m scores")
 
     try:
         prepare_vae_scores(save_path=save_path)
+        prepare_vae_scores(save_path=save_path, imputation="all")
     except:
         print("Could not prepare vae scores")
