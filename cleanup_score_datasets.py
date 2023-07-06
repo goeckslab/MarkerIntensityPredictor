@@ -124,6 +124,37 @@ def prepare_ae_scores(save_path: Path):
     scores = scores.drop(columns=["Imputation", "Iteration"])
     scores.to_csv(Path(ae_path, "scores.csv"), index=False)
 
+def prepare_vae_scores(save_path: Path):
+    print("Preparing vae scores")
+    vae_path = Path(save_path, "vae")
+
+    if vae_path.exists():
+        shutil.rmtree(vae_path)
+    vae_path.mkdir(parents=True, exist_ok=True)
+
+    scores = pd.read_csv(Path("data", "scores", "vae", "scores.csv"))
+    scores["Mode"] = scores["Mode"].apply(lambda x: x.upper())
+    # convert FE column to int
+    scores["FE"] = scores["FE"].apply(lambda x: int(x))
+    # replace _ with '' for biopsy column
+    scores["Biopsy"] = scores["Biopsy"].apply(lambda x: x.replace("_", " "))
+
+    # group by marker, biopsy and experiment, only keep iteration 5-9
+    scores = scores.groupby(["Marker", "Biopsy", "Experiment", "Mode", "HP", "FE", "Noise", "Replace Value"]).nth(
+        [5, 6, 7, 8, 9]).reset_index()
+
+    # calculate mean of MAE scores
+    scores = scores.groupby(["Marker", "Biopsy", "Experiment", "Mode", "HP", "FE", "Noise", "Replace Value"]).mean(
+        numeric_only=True).reset_index()
+
+    # remove load path and random seed
+    if "Load Path" in scores.columns:
+        scores = scores.drop(columns=["Load Path"])
+
+    # drop imputation & iteration columns
+    scores = scores.drop(columns=["Imputation", "Iteration"])
+    scores.to_csv(Path(vae_path, "scores.csv"), index=False)
+
 
 def prepare_ae_m_scores(save_path: Path):
     print("Preparing ae multi scores")
@@ -202,4 +233,5 @@ if __name__ == '__main__':
     prepare_lbgm_scores(save_path=save_path)
     prepare_ae_scores(save_path=save_path)
     prepare_gnn_scores(save_path=save_path)
-    prepare_ae_m_scores(save_path=save_path)
+   #prepare_ae_m_scores(save_path=save_path)
+    #prepare_vae_scores(save_path=save_path)
