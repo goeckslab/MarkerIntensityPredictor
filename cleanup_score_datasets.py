@@ -5,17 +5,22 @@ from tqdm import tqdm
 
 
 def load_lgbm_scores(load_path: str, mode: str, network: str) -> pd.DataFrame:
-    scores = []
-    for root, dirs, files in os.walk(load_path):
-        for name in files:
-            if Path(name).suffix == ".csv":
-                scores.append(pd.read_csv(os.path.join(root, name), sep=",", header=0))
+    try:
+        scores = []
+        for root, dirs, files in os.walk(load_path):
+            for name in files:
+                if Path(name).suffix == ".csv":
+                    scores.append(pd.read_csv(os.path.join(root, name), sep=",", header=0))
 
-    assert len(scores) == 8, f"Not all biopsies could be loaded for load path {load_path}"
-    scores = pd.concat(scores, axis=0).sort_values(by=["Marker"])
-    scores["Mode"] = mode
-    scores["Network"] = network
-    return scores
+        assert len(scores) == 8, f"Not all biopsies could be loaded for load path {load_path}"
+        scores = pd.concat(scores, axis=0).sort_values(by=["Marker"])
+        scores["Mode"] = mode
+        scores["Network"] = network
+        return scores
+
+    except Exception as e:
+        print(e)
+        input()
 
 
 def load_en_scores(load_path: str, mode: str, network: str) -> pd.DataFrame:
@@ -51,7 +56,7 @@ def prepare_en_scores(save_path: Path):
 
     # replace _ with '' for biopsy column
     scores["Biopsy"] = scores["Biopsy"].apply(lambda x: x.replace("_", " "))
-
+    scores["Network"] = "EN"
     scores.to_csv(Path(en_path, "scores.csv"), index=False)
 
 
@@ -87,6 +92,12 @@ def prepare_lbgm_scores(save_path: Path):
 
         # Remove Load Path Random Seed,
         scores = scores.drop(columns=["Load Path", "Random Seed"])
+        scores["Network"] = "LGBM"
+
+        if "Hyper" in scores.columns:
+            # rename hyper column to hp
+            scores = scores.rename(columns={"Hyper": "HP"})
+
         scores.to_csv(Path(lgbm_path, "scores.csv"), index=False)
     except BaseException as ex:
         print(ex)
@@ -122,7 +133,9 @@ def prepare_ae_scores(save_path: Path):
 
     # drop imputation & iteration columns
     scores = scores.drop(columns=["Imputation", "Iteration"])
+    scores["Network"] = "AE"
     scores.to_csv(Path(ae_path, "scores.csv"), index=False)
+
 
 def prepare_vae_scores(save_path: Path):
     print("Preparing vae scores")
@@ -153,12 +166,13 @@ def prepare_vae_scores(save_path: Path):
 
     # drop imputation & iteration columns
     scores = scores.drop(columns=["Imputation", "Iteration"])
+    scores["Network"] = "VAE"
     scores.to_csv(Path(vae_path, "scores.csv"), index=False)
 
 
 def prepare_ae_m_scores(save_path: Path):
     print("Preparing ae multi scores")
-    ae_m_path = Path(save_path, "ae")
+    ae_m_path = Path(save_path, "ae_m")
 
     if ae_m_path.exists():
         shutil.rmtree(ae_m_path)
@@ -185,6 +199,7 @@ def prepare_ae_m_scores(save_path: Path):
 
     # drop imputation & iteration columns
     scores = scores.drop(columns=["Imputation", "Iteration"])
+    scores["Network"] = "AE M"
     scores.to_csv(Path(ae_m_path, "scores.csv"), index=False)
 
 
@@ -219,6 +234,7 @@ def prepare_gnn_scores(save_path: Path):
 
     # remove iteration column and imputation column
     scores = scores.drop(columns=["Iteration", "Imputation"])
+    scores["Network"] = "GNN"
     scores.to_csv(Path(gnn_path, "scores.csv"), index=False)
 
 
@@ -230,8 +246,27 @@ if __name__ == '__main__':
         save_path.mkdir(parents=True, exist_ok=True)
 
     # prepare_en_scores(save_path=save_path)
-    prepare_lbgm_scores(save_path=save_path)
-    prepare_ae_scores(save_path=save_path)
-    prepare_gnn_scores(save_path=save_path)
-   #prepare_ae_m_scores(save_path=save_path)
-    #prepare_vae_scores(save_path=save_path)
+    try:
+        prepare_lbgm_scores(save_path=save_path)
+    except:
+        print("Could not prepare lgbm scores")
+
+    try:
+        prepare_ae_scores(save_path=save_path)
+    except:
+        print("Could not prepare ae scores")
+
+    try:
+        prepare_gnn_scores(save_path=save_path)
+    except:
+        print("Could not prepare gnn scores")
+
+    try:
+        prepare_ae_m_scores(save_path=save_path)
+    except:
+        print("Could not prepare ae_m scores")
+
+    try:
+        prepare_vae_scores(save_path=save_path)
+    except:
+        print("Could not prepare vae scores")
