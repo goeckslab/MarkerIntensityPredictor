@@ -2,6 +2,7 @@ import pandas as pd
 from pathlib import Path
 import os, shutil
 from tqdm import tqdm
+from argparse import ArgumentParser
 
 
 def load_lgbm_scores(load_path: str, mode: str, network: str) -> pd.DataFrame:
@@ -229,32 +230,34 @@ def prepare_gnn_scores(save_path: Path):
 
 
 if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument("--model", action="store", type=str, required=True, choices=["lgbm", "ae", "gnn"])
+    args = parser.parse_args()
 
     # create new scores folder
     save_path = Path("data/cleaned_data/scores")
     if not save_path.exists():
         save_path.mkdir(parents=True, exist_ok=True)
 
+    model = args.model
+
     # prepare_en_scores(save_path=save_path)
-    try:
-        pass
-        # prepare_lbgm_scores(save_path=save_path)
-    except:
-        print("Could not prepare lgbm scores")
 
-    try:
-        prepare_gnn_scores(save_path=save_path)
-    except:
-        print("Could not prepare gnn scores")
+    if model == "lgbm":
+        try:
+            prepare_lbgm_scores(save_path=save_path)
+        except:
+            print("Could not prepare lgbm scores")
 
-    try:
-        prepare_ae_scores(save_path=save_path)
-        prepare_ae_scores(save_path=save_path, imputation="all")
-    except:
-        print("Could not prepare ae_m scores")
+    if model == "gnn":
+        try:
+            prepare_gnn_scores(save_path=save_path)
+        except:
+            print("Could not prepare gnn scores")
 
-    try:
-        prepare_vae_scores(save_path=save_path)
-        prepare_vae_scores(save_path=save_path, imputation="all")
-    except:
-        print("Could not prepare vae scores")
+    if model == "ae":
+        try:
+            prepare_ae_scores(save_path=save_path)
+        except:
+            print("Could not prepare ae scores")
+  
