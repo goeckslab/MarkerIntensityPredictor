@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --job-name=ae_m
+#SBATCH --job-name=ae_all
 #SBATCH --time=9-00:00:00
 #SBATCH --partition=exacloud
 #SBATCH --qos=long_jobs
@@ -14,12 +14,24 @@
 biopsy=$1
 mode=$2
 replace_value=$3
-repetition=$4
+spatial=$4
+repetitions=$5
+
+# if repetitions is not set, set it to 1
+if [ "$repetitions" == "" ];
+then
+  echo "Repetitions was not set. Setting it to 1."
+  exit 1
+fi
 
 source venv/bin/activate
+if [ "$spatial" != "" ]; then
+  echo "spatial is set"
+  python3 ./ae_imputation/ae.py -m "${mode}" -b "${biopsy}" -i 10 -sp "${spatial}" -rm "${replace_value}"
 
-python3 ./ae_imputation_all/ae.py -m "${mode}" -b "${biopsy}" -i 10  -rm "${replace_value}" -r "${repetition}"
-
-
+else
+  echo "spatial is not set"
+  python3 ./ae_imputation/ae.py -m "${mode}" -b "${biopsy}" -i 10 -rm "${replace_value}"
+fi
 
 

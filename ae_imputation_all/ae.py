@@ -22,6 +22,10 @@ from tqdm import tqdm
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
 
+SHARED_SPATIAL_FEATURES = ['pRB_mean', "CD45_mean", "CK19_mean", "Ki67_mean", "aSMA_mean", "Ecad_mean", "PR_mean",
+                           "CK14_mean", "HER2_mean", "AR_mean", "CK17_mean", "p21_mean", "Vimentin_mean", "pERK_mean",
+                           "EGFR_mean", "ER_mean"]
+
 
 def clean_column_names(df: pd.DataFrame):
     if "ERK-1" in df.columns:
@@ -69,8 +73,8 @@ def save_scores(save_folder: str, file_name: str, new_scores: pd.DataFrame):
 
 
 def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
-                   mode: str, experiment_id: int, save_folder: str, file_name: str,
-                   replace_value: str, iterations: int, store_predictions: bool, subset: int, rounds: pd.DataFrame):
+                   mode: str, experiment_id: int, save_folder: str, file_name: str, spatial_radius: int,
+                   replace_value: str, iterations: int, store_predictions: bool, subset: int):
     try:
         # copy the test data
         input_data = test_data.copy()
@@ -105,12 +109,11 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
                     "Mode": mode,
                     "Imputation": 1,
                     "Iteration": iteration,
-                    "FE": 0,
+                    "FE": spatial_radius,
                     "Experiment": int(f"{experiment_id}{subset}"),
                     "Network": "AE All",
                     "Noise": 0,
                     "Replace Value": replace_value,
-                    "Round": round
                 })
 
             if iteration % 20 == 0:
@@ -141,14 +144,14 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
         print(mode)
         print(experiment_id)
         print(replace_value)
-        print(rounds)
         raise
 
 
-def create_results_folder() -> [Path, int]:
+def create_results_folder(spatial_radius: str) -> [Path, int]:
     save_folder = Path(f"ae_imputation_all", patient_type)
     save_folder = Path(save_folder, replace_value)
     save_folder = Path(save_folder, test_biopsy_name)
+    save_folder = Path(save_folder, spatial_radius)
 
     experiment_id = 0
 
@@ -177,6 +180,8 @@ if __name__ == '__main__':
                         help="Provide the biopsy name in the following format: 9_2_1. No suffix etc")
     parser.add_argument("-m", "--mode", choices=["ip", "exp"], default="ip")
     parser.add_argument("-i", "--iterations", action="store", default=10, type=int)
+    parser.add_argument("-sp", "--spatial", required=False, default="0", choices=["0", "23", "46", "92", "138", "184"],
+                        type=str)
     parser.add_argument("-rm", "--replace_mode", action="store", type=str, choices=["mean", "zero"], default="zero")
     parser.add_argument("-r", "--repetitions", action="store", type=int, default=1)
     args = parser.parse_args()
@@ -185,6 +190,7 @@ if __name__ == '__main__':
     iterations: int = args.iterations
     replace_value: str = args.replace_mode
     repetitions: int = args.repetitions
+    spatial = args.spatial
 
     print("Replace value: ", replace_value)
 
@@ -194,7 +200,7 @@ if __name__ == '__main__':
     scores_file_name = "scores.csv"
     print(scores_file_name)
 
-    save_folder, experiment_id = create_results_folder()
+    save_folder, experiment_id = create_results_folder(spatial_radius=spatial)
 
     rounds_per_marker = pd.read_csv(Path("data", "cleaned_data", "rounds", "rounds.csv"))
 
@@ -223,14 +229,22 @@ if __name__ == '__main__':
         train_data = pd.read_csv(f'{base_path}/{train_biopsy_name}.csv')
         train_data = clean_column_names(train_data)
 
-        print("Selecting marker")
-        train_data = train_data[SHARED_MARKERS].copy()
+        if spatial != "0":
+            print("Selecting marker and spatial information")
+            train_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
+        else:
+            print("Selecting marker")
+            train_data = train_data[SHARED_MARKERS].copy()
 
         test_data = pd.read_csv(f'{base_path}/{test_biopsy_name}.csv')
         test_data = clean_column_names(test_data)
 
-        test_data = test_data[SHARED_MARKERS].copy()
-        assert test_data.shape[1] == 16, "Test data not complete"
+        if spatial != "0":
+            test_data = test_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
+            assert test_data.shape[1] == 32, "Test data not complete"
+        else:
+            test_data = test_data[SHARED_MARKERS].copy()
+            assert test_data.shape[1] == 16, "Test data not complete"
 
     elif patient_type == "exp":
         # Load noisy train data
@@ -247,17 +261,24 @@ if __name__ == '__main__':
         assert len(train_data) == 6, f"There should be 6 train datasets, loaded {len(train_data)}"
         train_data = pd.concat(train_data)
 
-        print("Selecting marker")
-        train_data = train_data[SHARED_MARKERS].copy()
+        if spatial != "0":
+            print("Selecting marker and spatial information")
+            # select shared markers as well as spatial shared features from the train data
+            train_data = train_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
+        else:
+            print("Selecting marker")
+            train_data = train_data[SHARED_MARKERS].copy()
 
         # Load test data
         test_data = pd.read_csv(Path(f'{base_path}/{test_biopsy_name}.csv'))
         test_data = clean_column_names(test_data)
 
-        test_data = test_data[SHARED_MARKERS].copy()
-        assert test_data.shape[1] == 16, "Test data not complete"
-
-
+        if spatial != "0":
+            test_data = test_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
+            assert test_data.shape[1] == 32, "Test data not complete"
+        else:
+            test_data = test_data[SHARED_MARKERS].copy()
+            assert test_data.shape[1] == 16, "Test data not complete"
 
     else:
         raise ValueError(f"Unknown patient type: {patient_type}")
@@ -288,25 +309,19 @@ if __name__ == '__main__':
         # sample new dataset from test_data
         test_data_sample = test_data.sample(frac=0.7, random_state=random.randint(0, 100000), replace=True)
 
-        # plot distribution of test_data_sample and test_data
-        # fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-        # sns.histplot(test_data_sample, ax=ax[0])
-        # sns.histplot(test_data, ax=ax[1])
-        # plt.show()
-
         # Predict
         impute_markers(scores=scores, all_predictions=predictions, mode=patient_type,
                        experiment_id=experiment_id, replace_value=replace_value,
                        iterations=iterations,
                        store_predictions=False, test_data=test_data_sample, subset=i, file_name=scores_file_name,
-                       save_folder=save_folder, rounds=rounds_per_marker)
+                       save_folder=save_folder, spatial_radius=spatial)
 
     predictions = impute_markers(scores=scores, all_predictions=predictions, mode=patient_type,
 
                                  experiment_id=experiment_id, replace_value=replace_value,
                                  iterations=iterations,
                                  store_predictions=True, test_data=test_data, subset=0, file_name=scores_file_name,
-                                 save_folder=save_folder, rounds=rounds_per_marker)
+                                 save_folder=save_folder, spatial_radius=spatial)
 
     # Save results
     for key, value in predictions.items():
