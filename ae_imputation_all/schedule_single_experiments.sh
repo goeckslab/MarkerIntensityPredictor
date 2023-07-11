@@ -4,6 +4,7 @@ mode=$1
 replace_value=$2
 # How many times should each experiment be repeated?
 iterations=$3
+# the spatial radius
 spatial=$4
 # How many times should the test data be subsampled
 repetitions=$5
@@ -35,6 +36,6 @@ for biopsy in "${biopsies[@]}"; do
   for i in $(seq 1 $iterations)
   do
       echo biopsy="${biopsy}" mode="${mode}" replace_value="${replace_value}" repetitions="${repetitions}" spatial="${spatial}"
-      ./ae_imputation_all/single_ae_experiment.sh "${biopsy}" "${mode}" "${replace_value}" "${spatial}" "${repetitions}"
+      sbatch ./ae_imputation_all/single_ae_experiment.sh "${biopsy}" "${mode}" "${replace_value}" "${spatial}" "${repetitions}"
   done
 done
