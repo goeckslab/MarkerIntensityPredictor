@@ -36,6 +36,6 @@ for biopsy in "${biopsies[@]}"; do
   for i in $(seq 1 $iterations)
   do
       echo biopsy="${biopsy}" mode="${mode}" replace_value="${replace_value}" repetitions="${repetitions}" spatial="${spatial}"
-      ./ae_imputation_all/single_ae_experiment.sh "${biopsy}" "${mode}" "${replace_value}" "${spatial}" "${repetitions}"
+      sbatch ./ae_imputation_all/single_ae_experiment.sh "${biopsy}" "${mode}" "${replace_value}" "${spatial}" "${repetitions}"
   done
 done
