@@ -4,12 +4,18 @@ from ludwig.api import LudwigModel
 import pandas as pd
 import random
 from tqdm import tqdm
-import sys
+import logging
 from typing import List
 
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
 
+logging.root.handlers = []
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s',
+                    handlers=[
+                        logging.FileHandler("ludwig_evaluation.log"),
+                        logging.StreamHandler()
+                    ])
 
 def create_scores_dir(combination: str, radius: int, hyper: bool) -> Path:
     scores_directory = Path("data/scores/Mesmer")
@@ -31,11 +37,11 @@ def create_scores_dir(combination: str, radius: int, hyper: bool) -> Path:
 
 
 def save_scores(save_folder: Path, file_name: str, scores: List):
-    print(f"Temp saving scores")
+    logging.debug(f"Temp saving scores")
     scores = pd.DataFrame(scores)
     if Path(save_path, file_name).exists():
-        print("Found existing scores...")
-        print("Merging...")
+        logging.debug("Found existing scores...")
+        logging.debug("Merging...")
         try:
             temp_scores = pd.read_csv(Path(save_path, file_name))
             scores = pd.concat([temp_scores, scores], ignore_index=True)
@@ -64,11 +70,11 @@ if __name__ == '__main__':
     hyper: bool = args.hyper
     iterations: int = args.iterations
 
-    print(f"Mode: {mode}")
-    print(f"Biopsy: {biopsy}")
-    print(f"Radius: {spatial_radius}")
-    print(f"Hyper: {hyper}")
-    print(f"Iterations: {iterations}")
+    logging.debug(f"Mode: {mode}")
+    logging.debug(f"Biopsy: {biopsy}")
+    logging.debug(f"Radius: {spatial_radius}")
+    logging.debug(f"Hyper: {hyper}")
+    logging.debug(f"Iterations: {iterations}")
 
     if mode == "ip":
         # change last number of biopsy to 1 if it is 2
@@ -77,8 +83,8 @@ if __name__ == '__main__':
         else:
             test_biopsy_name = biopsy[:-1] + "2"
 
-        print(biopsy)
-        print(test_biopsy_name)
+        logging.debug(biopsy)
+        logging.debug(test_biopsy_name)
         assert test_biopsy_name[-1] != biopsy[-1], "The bx should not be the same"
         if spatial_radius is None:
             test_dataset: pd.DataFrame = pd.read_csv(
@@ -98,7 +104,7 @@ if __name__ == '__main__':
     else:
         test_biopsy_name = biopsy
         assert test_biopsy_name == biopsy, "The bx should be the same"
-        print(test_biopsy_name)
+        logging.debug(test_biopsy_name)
 
         if spatial_radius is None:
             test_dataset: pd.DataFrame = pd.read_csv(
@@ -113,13 +119,13 @@ if __name__ == '__main__':
                      f"{test_biopsy_name}_preprocessed_dataset.tsv"), sep='\t')
             base_path = Path("mesmer", f"tumor_exp_patient_sp_{spatial_radius}", biopsy)
 
-    print(f"Base path: {base_path}")
+    logging.debug(f"Base path: {base_path}")
     scores = []
 
     save_path = create_scores_dir(combination=mode, radius=spatial_radius, hyper=hyper)
     file_name = f"{test_biopsy_name}_scores.csv"
-    print("Save path: ", save_path)
-    print("File name: ", file_name)
+    logging.debug("Save path: ", save_path)
+    logging.debug("File name: ", file_name)
     try:
         for marker in SHARED_MARKERS:
             results_path = Path(base_path, marker, "results")
@@ -132,7 +138,7 @@ if __name__ == '__main__':
                         except KeyboardInterrupt as ex:
                             raise
                         except BaseException as ex:
-                            print(ex)
+                            logging.error(ex)
                             continue
 
                         for i in tqdm(range(1, iterations)):
@@ -176,7 +182,7 @@ if __name__ == '__main__':
         if len(scores) > 0:
             save_scores(scores=scores, save_folder=save_path, file_name=file_name)
     except KeyboardInterrupt as ex:
-        print("Detected Keyboard interrupt...")
-        print("Saving scores....")
+        logging.debug("Detected Keyboard interrupt...")
+        logging.debug("Saving scores....")
         if len(scores) > 0:
             save_scores(scores=scores, save_folder=save_path, file_name=file_name)
