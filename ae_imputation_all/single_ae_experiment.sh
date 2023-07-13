@@ -27,11 +27,11 @@ fi
 source venv/bin/activate
 if [ "$spatial" != "" ]; then
   echo "spatial is set"
-  python3 ./ae_imputation_all/ae.py -m "${mode}" -b "${biopsy}" -i 10 -sp "${spatial}" -rm "${replace_value}"
+  python3 ./ae_imputation_all/ae.py -m "${mode}" -b "${biopsy}" -i 10 -sp "${spatial}" -rm "${replace_value}" -r "${repetitions}"
 
 else
   echo "spatial is not set"
-  python3 ./ae_imputation_all/ae.py -m "${mode}" -b "${biopsy}" -i 10 -rm "${replace_value}"
+  python3 ./ae_imputation_all/ae.py -m "${mode}" -b "${biopsy}" -i 10 -rm "${replace_value}" -r "${repetitions}"
 fi
 
 
