@@ -261,7 +261,7 @@ if __name__ == '__main__':
             prepare_ae_scores(save_path=save_path)
         except:
             print("Could not prepare ae scores")
-            
+
     elif model == "ae_all":
         try:
             prepare_ae_scores(save_path=save_path, imputation="all")
