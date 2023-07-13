@@ -145,7 +145,8 @@ def prepare_ae_scores(save_path: Path, imputation: str = None):
 
     # drop imputation & iteration columns
     scores = scores.drop(columns=["Imputation", "Iteration"])
-    scores["Network"] = network
+    if "Network" not in scores.columns:
+        scores["Network"] = network
     scores.to_csv(Path(ae_path, "scores.csv"), index=False)
 
 
@@ -231,7 +232,7 @@ def prepare_gnn_scores(save_path: Path):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument("--model", action="store", type=str, required=True, choices=["lgbm", "ae", "gnn"])
+    parser.add_argument("--model", action="store", type=str, required=True, choices=["lgbm", "ae", "gnn", "ae_all"])
     args = parser.parse_args()
 
     # create new scores folder
@@ -249,15 +250,20 @@ if __name__ == '__main__':
         except:
             print("Could not prepare lgbm scores")
 
-    if model == "gnn":
+    elif model == "gnn":
         try:
             prepare_gnn_scores(save_path=save_path)
         except:
             print("Could not prepare gnn scores")
 
-    if model == "ae":
+    elif model == "ae":
         try:
             prepare_ae_scores(save_path=save_path)
         except:
             print("Could not prepare ae scores")
-  
+            
+    elif model == "ae_all":
+        try:
+            prepare_ae_scores(save_path=save_path, imputation="all")
+        except:
+            print("Could not prepare ae scores")
