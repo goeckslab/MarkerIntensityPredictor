@@ -53,8 +53,6 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, ylim: List) -> plt.Figure
     # reduce font size of x and y ticks
     ax.tick_params(axis='both', which='major', labelsize=8)
 
-    y_ticks = [item.get_text() for item in fig.axes[0].get_yticklabels()]
-    x_ticks = [item.get_text() for item in fig.axes[0].get_xticklabels()]
     # set y ticks of fig
     plt.box(False)
     # remove legend from fig
@@ -116,30 +114,23 @@ def create_boxen_plot_ip_vs_exp(results: pd.DataFrame, metric: str, title: str):
 
 
 if __name__ == '__main__':
+    lgbm_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "lgbm", "scores.csv"))
+    lgbm_scores = lgbm_scores[lgbm_scores["FE"] == 0]
+    # select only non hp scores
+    lgbm_scores = lgbm_scores[lgbm_scores["HP"] == 0]
+
     en_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "en", "scores.csv"))
     en_scores = en_scores[en_scores["FE"] == 0]
 
-    lgbm_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "lgbm", "scores.csv"))
-    ae_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "ae", "scores.csv"))
-
-    lgbm_scores = lgbm_scores[lgbm_scores["FE"] == 0]
-    # Select ae scores where fe  == 0, replace value == mean and noise  == 0
-    ae_scores = ae_scores[(ae_scores["FE"] == 0) & (ae_scores["Replace Value"] == "mean") & (ae_scores["Noise"] == 0)]
-    ae_scores.sort_values(by=["Marker"], inplace=True)
-
-    en_predictions = pd.read_csv(Path("data", "cleaned_data", "predictions", "en", "quartile_performance.csv"))
-    lgbm_predictions = pd.read_csv(Path("data", "cleaned_data", "predictions", "lgbm", "quartile_performance.csv"))
-    ae_predictions = pd.read_csv(Path("data", "cleaned_data", "predictions", "ae", "quartile_performance.csv"))
-
     # load image from images fig2 folder
-    image = plt.imread(Path("images", "fig2", "Fig2 Label 2.png"))
+    image = plt.imread(Path("images", "fig2", "train_test_split.png"))
 
     # ax1 = fig.add_subplot(2, 2, 1)
     # fig.add_subplot(2, 2, 3).set_title("223")
     # fig.add_subplot(1, 2, 2).set_title("122")
 
     fig = plt.figure(figsize=(10, 7), dpi=150)
-    gspec = fig.add_gridspec(4, 3)
+    gspec = fig.add_gridspec(3, 1)
     ax1 = fig.add_subplot(gspec[0, :])
     # remove box from ax1
     plt.box(False)
@@ -152,45 +143,20 @@ if __name__ == '__main__':
     # add image to figure
     ax1.imshow(image, aspect='auto')
 
-    ax2 = fig.add_subplot(gspec[1, :2])
+    ax2 = fig.add_subplot(gspec[1, :])
     ax2.text(-0.1, 1.15, "B", transform=ax2.transAxes,
              fontsize=16, fontweight='bold', va='top', ha='right')
     plt.box(False)
     ax2.set_title('Elastic Net', rotation='vertical', x=-0.1, y=0, fontsize=12)
     ax2 = create_boxen_plot(data=en_scores, metric="MAE", ylim=[0.0, 0.4])
 
-    ax3 = fig.add_subplot(gspec[1, 2])
+    ax3 = fig.add_subplot(gspec[2, :])
     ax3.text(-0.1, 1.15, "C", transform=ax3.transAxes,
              fontsize=16, fontweight='bold', va='top', ha='right')
     plt.box(False)
+    ax3.set_title('LBGM', rotation='vertical', x=-0.1, y=0, fontsize=12)
+    ax3 = create_boxen_plot(data=lgbm_scores, metric="MAE", ylim=[0.0, 0.4])
 
-    ax4 = fig.add_subplot(gspec[2, :2])
-    ax4.text(-0.1, 1.15, "D", transform=ax4.transAxes,
-             fontsize=16, fontweight='bold', va='top', ha='right')
-    plt.box(False)
-    ax4.set_title('LBGM', rotation='vertical', x=-0.1, y=0, fontsize=12)
-    ax4 = create_boxen_plot(data=lgbm_scores, metric="MAE", ylim=[0.0, 0.4])
-
-    ax5 = fig.add_subplot(gspec[2, 2])
-    ax5.text(-0.1, 1.15, "E", transform=ax5.transAxes,
-             fontsize=16, fontweight='bold', va='top', ha='right')
-    ax5 = create_boxen_plot_ip_vs_exp_quartile(data=en_predictions, metric="MAE")
-    plt.box(False)
-
-    ax6 = fig.add_subplot(gspec[3, :2])
-    ax6.text(-0.1, 1.15, "F", transform=ax6.transAxes,
-             fontsize=16, fontweight='bold', va='top', ha='right')
-    plt.box(False)
-    ax6.set_title('AE', rotation='vertical', x=-0.1, y=0, fontsize=12)
-    ax6 = create_boxen_plot(data=ae_scores, metric="MAE", ylim=[0.0, 0.4])
-
-    ax7 = fig.add_subplot(gspec[3, 2])
-    ax7.text(-0.1, 1.15, "G", transform=ax7.transAxes,
-             fontsize=16, fontweight='bold', va='top', ha='right')
-    plt.box(False)
-
-    # add suptitle
-    # fig.suptitle("Figure 2", fontsize=16, fontweight='bold', rotation='vertical', x=-0.01)
     plt.tight_layout()
 
     plt.show()
