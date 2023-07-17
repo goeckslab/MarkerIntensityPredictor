@@ -4,6 +4,9 @@ import os, shutil
 from tqdm import tqdm
 from argparse import ArgumentParser
 
+SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
+                  'pERK', 'EGFR', 'ER']
+
 
 def load_lgbm_scores(load_path: str, mode: str, network: str) -> pd.DataFrame:
     try:
@@ -138,6 +141,9 @@ def prepare_ae_scores(save_path: Path, imputation: str = None):
     # calculate mean of MAE scores
     scores = scores.groupby(["Marker", "Biopsy", "Experiment", "Mode", "HP", "FE", "Noise", "Replace Value"]).mean(
         numeric_only=True).reset_index()
+
+    # select only scores of shared markers
+    scores = scores[scores["Marker"].isin(SHARED_MARKERS)]
 
     # remove load path and random seed
     if "Load Path" in scores.columns:

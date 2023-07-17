@@ -115,7 +115,7 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
                 imputed_marker = predicted_intensities[marker].values
                 marker_prediction[marker] = imputed_marker
 
-            for marker in input_data.columns:
+            for marker in SHARED_MARKERS:
                 scores.append({
                     "Marker": marker,
                     "Biopsy": test_biopsy_name,
