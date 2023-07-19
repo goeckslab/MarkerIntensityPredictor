@@ -206,7 +206,7 @@ if __name__ == '__main__':
     iterations: int = args.iterations
     replace_value: str = args.replace_mode
     repetitions: int = args.repetitions
-    spatial = args.spatial
+    spatial: str = args.spatial
     # Load test data
     test_biopsy_name = args.biopsy
 

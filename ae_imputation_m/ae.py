@@ -1,8 +1,7 @@
 import random
-
 from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.models import Model, Sequential
-import os, argparse
+import os, argparse, logging
 from pathlib import Path
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
@@ -12,15 +11,36 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 from tensorflow.keras.losses import MeanSquaredError
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping
-import keras_tuner as kt
-import shutil
 from typing import List, Dict
-import matplotlib.pyplot as plt
-import seaborn as sns
 from tqdm import tqdm
+import datetime
 
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
+
+SHARED_SPATIAL_FEATURES = ['pRB_mean', "CD45_mean", "CK19_mean", "Ki67_mean", "aSMA_mean", "Ecad_mean", "PR_mean",
+                           "CK14_mean", "HER2_mean", "AR_mean", "CK17_mean", "p21_mean", "Vimentin_mean", "pERK_mean",
+                           "EGFR_mean", "ER_mean"]
+
+logging.root.handlers = []
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s',
+                    handlers=[
+                        logging.FileHandler("ae_imputation_all/debug.log"),
+                        logging.StreamHandler()
+                    ])
+
+
+def setup_log_file(save_path: Path):
+    save_file = Path(save_path, "debug.log")
+    file_logger = logging.FileHandler(save_file, 'a')
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_logger.setFormatter(formatter)
+
+    log = logging.getLogger()  # root logger
+    for handler in log.handlers[:]:  # remove all old handlers
+        log.removeHandler(handler)
+    log.addHandler(file_logger)
+    log.addHandler(logging.StreamHandler())
 
 
 def clean_column_names(df: pd.DataFrame):
@@ -68,21 +88,26 @@ def save_scores(save_folder: str, file_name: str, new_scores: pd.DataFrame):
     new_scores.to_csv(f"{save_folder}/{file_name}", index=False)
 
 
-def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
+def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict, spatial_radius: int,
                    mode: str, experiment_id: int, save_folder: str, file_name: str,
                    replace_value: str, iterations: int, store_predictions: bool, subset: int, rounds: pd.DataFrame):
     try:
         for round in rounds["Round"].unique():
             markers = rounds[rounds["Round"] == round]["Marker"].values
-            print(f"Imputing markers {markers}")
+            logging.debug(f"Imputing markers {markers}")
             # copy the test data
             input_data = test_data.copy()
             if replace_value == "zero":
                 for marker in markers:
                     input_data[marker] = 0
+                    if spatial_radius > 0:
+                        input_data[f"{marker}_mean"] = 0
             elif replace_value == "mean":
                 for marker in markers:
-                    input_data[marker] = input_data[marker].mean()
+                    mean = input_data[marker].mean()
+                    input_data[marker] = mean
+                    if spatial_radius > 0:
+                        input_data[f"{marker}_mean"] = mean
 
             marker_prediction = input_data.copy()
             for iteration in range(iterations):
@@ -117,40 +142,41 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
                     })
 
                 if iteration % 20 == 0:
-                    print("Performing temp save...")
+                    logging.debug("Performing temp save...")
                     save_scores(save_folder=save_folder, file_name=file_name, new_scores=pd.DataFrame(scores))
                     scores = []
 
         if len(scores) > 0:
-            print("Saving remaining scores...")
+            logging.debug("Saving remaining scores...")
             save_scores(save_folder=save_folder, file_name=file_name, new_scores=pd.DataFrame(scores))
             scores = []
         return all_predictions
 
     except KeyboardInterrupt as ex:
-        print("Keyboard interrupt detected.")
-        print("Saving scores...")
+        logging.debug("Keyboard interrupt detected.")
+        logging.debug("Saving scores...")
         if len(scores) > 0:
             save_scores(new_scores=pd.DataFrame(scores), save_folder=save_folder, file_name=file_name)
         raise
 
     except Exception as ex:
-        print(ex)
-        print("Test truth:")
-        print(test_data)
-        print("Predictions:")
-        print(predictions)
-        print(mode)
-        print(experiment_id)
-        print(replace_value)
-        print(rounds)
+        logging.error(ex)
+        logging.error("Test truth:")
+        logging.error(test_data)
+        logging.error("Predictions:")
+        logging.error(predictions)
+        logging.error(mode)
+        logging.error(experiment_id)
+        logging.error(replace_value)
+        logging.error(rounds)
         raise
 
 
-def create_results_folder() -> [Path, int]:
+def create_results_folder(spatial_radius: str, test_biopsy_name: str, replace_value: str) -> [Path, int]:
     save_folder = Path(f"ae_imputation_m", patient_type)
     save_folder = Path(save_folder, replace_value)
     save_folder = Path(save_folder, test_biopsy_name)
+    save_folder = Path(save_folder, spatial_radius)
 
     experiment_id = 0
 
@@ -179,6 +205,8 @@ if __name__ == '__main__':
                         help="Provide the biopsy name in the following format: 9_2_1. No suffix etc")
     parser.add_argument("-m", "--mode", choices=["ip", "exp"], default="ip")
     parser.add_argument("-i", "--iterations", action="store", default=10, type=int)
+    parser.add_argument("-sp", "--spatial", required=False, default="0", choices=["0", "23", "46", "92", "138", "184"],
+                        type=str)
     parser.add_argument("-rm", "--replace_mode", action="store", type=str, choices=["mean", "zero"], default="zero")
     parser.add_argument("-r", "--repetitions", action="store", type=int, default=1)
     args = parser.parse_args()
@@ -187,16 +215,28 @@ if __name__ == '__main__':
     iterations: int = args.iterations
     replace_value: str = args.replace_mode
     repetitions: int = args.repetitions
-
-    print("Replace value: ", replace_value)
+    spatial_radius: str = args.spatial
 
     # Load test data
     test_biopsy_name = args.biopsy
     patient: str = "_".join(Path(test_biopsy_name).stem.split("_")[:2])
     scores_file_name = "scores.csv"
-    print(scores_file_name)
 
-    save_folder, experiment_id = create_results_folder()
+    save_folder, experiment_id = create_results_folder(spatial_radius=spatial_radius, test_biopsy_name=test_biopsy_name,
+                                                       replace_value=replace_value)
+
+    setup_log_file(save_path=save_folder)
+
+    logging.info("Experiment started with the following parameters:")
+    logging.info(f"Time:  {str(datetime.datetime.now())}")
+    logging.info(f"Patient type: {patient_type}")
+    logging.info(f"Iterations: {iterations}")
+    logging.info(f"Replace value: {replace_value}")
+    logging.info(f"Repetitions: {repetitions}")
+    logging.info(f"Spatial radius: {spatial_radius}")
+    logging.info(f"Test biopsy name: {test_biopsy_name}")
+    logging.info(f"Save folder: {save_folder}")
+    logging.info(f"Experiment id: {experiment_id}")
 
     rounds_per_marker = pd.read_csv(Path("data", "cleaned_data", "rounds", "rounds.csv"))
 
@@ -216,32 +256,61 @@ if __name__ == '__main__':
         else:
             train_biopsy_name = "_".join(test_biopsy_name_split[:2]) + "_2"
 
-        print(f"Mode: {patient_type}")
-        print(f"Test biopsy being loaded: {test_biopsy_name}")
-        print(f"Train biopsy being loaded: {train_biopsy_name}")
+        logging.debug(f"Mode: {patient_type}")
+        logging.debug(f"Test biopsy being loaded: {test_biopsy_name}")
+        logging.debug(f"Train biopsy being loaded: {train_biopsy_name}")
 
-        base_path = "data/tumor_mesmer"
+        base_path = "data/tumor_mesmer" if spatial_radius == "0" else f"data/tumor_mesmer_sp_{spatial_radius}"
+        logging.info(f"Base path: {base_path}")
+
         # Load train data
         train_data = pd.read_csv(f'{base_path}/{train_biopsy_name}.csv')
         train_data = clean_column_names(train_data)
 
-        print("Selecting marker")
-        train_data = train_data[SHARED_MARKERS].copy()
+        if spatial_radius != "0":
+            logging.debug("Selecting marker and spatial information")
+            try:
+                train_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
+                assert train_data.shape[1] == 32, "Test data not complete"
+            except BaseException as ex:
+                logging.error(f"Error selecting shared markers and spatial features: {ex}")
+                raise
+        else:
+            logging.debug("Selecting only markers")
+            try:
+                train_data = train_data[SHARED_MARKERS].copy()
+                assert train_data.shape[1] == 16, "Test data not complete"
+            except BaseException as ex:
+                logging.error(f"Error selecting shared markers: {ex}")
+                raise
 
         test_data = pd.read_csv(f'{base_path}/{test_biopsy_name}.csv')
         test_data = clean_column_names(test_data)
 
-        test_data = test_data[SHARED_MARKERS].copy()
-        assert test_data.shape[1] == 16, "Test data not complete"
+        if spatial_radius != "0":
+            try:
+                test_data = test_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
+                assert test_data.shape[1] == 32, "Test data not complete"
+            except BaseException as ex:
+                logging.error(f"Error selecting shared markers and spatial features: {ex}")
+                raise
+        else:
+            try:
+                test_data = test_data[SHARED_MARKERS].copy()
+                assert test_data.shape[1] == 16, "Test data not complete"
+            except BaseException as ex:
+                logging.error(f"Error selecting shared markers: {ex}")
+                raise
 
     elif patient_type == "exp":
         # Load noisy train data
         train_data = []
-        base_path = "data/tumor_mesmer"
+        base_path = "data/tumor_mesmer" if spatial_radius == "0" else f"data/tumor_mesmer_sp_{spatial_radius}"
+        logging.info(f"Base path: {base_path}")
         for file in os.listdir(base_path):
             file_name = Path(file).stem
             if file.endswith(".csv") and patient not in file_name:
-                print("Loading train file: " + file)
+                logging.debug("Loading train file: " + file)
                 data = pd.read_csv(Path(base_path, file))
                 data = clean_column_names(data)
                 train_data.append(data)
@@ -249,17 +318,41 @@ if __name__ == '__main__':
         assert len(train_data) == 6, f"There should be 6 train datasets, loaded {len(train_data)}"
         train_data = pd.concat(train_data)
 
-        print("Selecting marker")
-        train_data = train_data[SHARED_MARKERS].copy()
+        if spatial_radius != "0":
+            logging.debug("Selecting marker and spatial information")
+            try:
+                train_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
+                assert train_data.shape[1] == 32, "Test data not complete"
+            except BaseException as ex:
+                logging.error(f"Error selecting shared markers and spatial features: {ex}")
+                raise
+        else:
+            logging.debug("Selecting only markers")
+            try:
+                train_data = train_data[SHARED_MARKERS].copy()
+                assert train_data.shape[1] == 16, "Test data not complete"
+            except BaseException as ex:
+                logging.error(f"Error selecting shared markers: {ex}")
+                raise
 
         # Load test data
         test_data = pd.read_csv(Path(f'{base_path}/{test_biopsy_name}.csv'))
         test_data = clean_column_names(test_data)
 
-        test_data = test_data[SHARED_MARKERS].copy()
-        assert test_data.shape[1] == 16, "Test data not complete"
-
-
+        if spatial_radius != "0":
+            try:
+                test_data = test_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
+                assert test_data.shape[1] == 32, "Test data not complete"
+            except BaseException as ex:
+                logging.error(f"Error selecting shared markers and spatial features: {ex}")
+                raise
+        else:
+            try:
+                test_data = test_data[SHARED_MARKERS].copy()
+                assert test_data.shape[1] == 16, "Test data not complete"
+            except BaseException as ex:
+                logging.error(f"Error selecting shared markers: {ex}")
+                raise
 
     else:
         raise ValueError(f"Unknown patient type: {patient_type}")
@@ -301,14 +394,14 @@ if __name__ == '__main__':
                        experiment_id=experiment_id, replace_value=replace_value,
                        iterations=iterations,
                        store_predictions=False, test_data=test_data_sample, subset=i, file_name=scores_file_name,
-                       save_folder=save_folder, rounds=rounds_per_marker)
+                       save_folder=save_folder, rounds=rounds_per_marker, spatial_radius=int(spatial_radius))
 
     predictions = impute_markers(scores=scores, all_predictions=predictions, mode=patient_type,
 
                                  experiment_id=experiment_id, replace_value=replace_value,
                                  iterations=iterations,
                                  store_predictions=True, test_data=test_data, subset=0, file_name=scores_file_name,
-                                 save_folder=save_folder, rounds=rounds_per_marker)
+                                 save_folder=save_folder, rounds=rounds_per_marker, spatial_radius=int(spatial_radius))
 
     # Save results
     for key, value in predictions.items():
