@@ -17,6 +17,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
                         logging.StreamHandler()
                     ])
 
+
 def create_scores_dir(combination: str, radius: int, hyper: bool) -> Path:
     scores_directory = Path("data/scores/Mesmer")
     scores_directory = Path(scores_directory, combination)
@@ -142,11 +143,15 @@ if __name__ == '__main__':
                             continue
 
                         for i in tqdm(range(1, iterations)):
-
                             random_seed = random.randint(0, 100000)
                             # sample new dataset from test_data
                             test_data_sample = test_dataset.sample(frac=0.7, random_state=random_seed,
                                                                    replace=True)
+                            # remove marker from test_data_sample
+                            test_data_sample = test_data_sample.drop(columns=[marker])
+                            if spatial_radius is not None:
+                                test_data_sample = test_data_sample.drop(columns=[f"{marker}_mean"])
+
                             test_data_sample.reset_index(drop=True, inplace=True)
                             try:
                                 eval_stats, _, _ = model.evaluate(dataset=test_data_sample)

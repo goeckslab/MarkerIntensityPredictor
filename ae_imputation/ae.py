@@ -15,8 +15,6 @@ from tensorflow.keras.callbacks import EarlyStopping
 import keras_tuner as kt
 import shutil
 from typing import List, Dict
-import matplotlib.pyplot as plt
-import seaborn as sns
 from tqdm import tqdm
 
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
@@ -157,8 +155,13 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
             input_data = test_data.copy()
             if replace_value == "zero":
                 input_data[marker] = 0
+                if spatial_radius > 0:
+                    input_data[f"{marker}_mean"] = 0
             elif replace_value == "mean":
-                input_data[marker] = input_data[marker].mean()
+                mean = input_data[marker].mean()
+                input_data[marker] = mean
+                if spatial_radius > 0:
+                    input_data[f"{marker}_mean"] = mean
 
             marker_prediction = input_data.copy()
             for iteration in range(iterations):
@@ -424,7 +427,7 @@ if __name__ == '__main__':
         history = ae.fit(train_data, train_data, epochs=100, batch_size=32, shuffle=True,
                          validation_data=(val_data, val_data), callbacks=callbacks)
 
-    for i in tqdm(range(1, 101)):
+    for i in tqdm(range(1, 10)):
         # sample new dataset from test_data
         test_data_sample = test_data.sample(frac=0.7, random_state=random.randint(0, 100000), replace=True)
 
