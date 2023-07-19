@@ -2,8 +2,12 @@
 
 mode=$1
 replace_value=$2
+# How many times should each experiment be repeated?
 iterations=$3
-repetitions=$4
+# the spatial radius
+spatial=$4
+# How many times should the test data be subsampled
+repetitions=$5
 
 # if repetitions is not set, set it to 1
 if [ "$repetitions" == "" ];
@@ -31,7 +35,7 @@ biopsies=('9_2_1' '9_2_2' '9_3_1' '9_3_2' '9_14_1' '9_14_2' '9_15_1' '9_15_2')
 for biopsy in "${biopsies[@]}"; do
   for i in $(seq 1 $iterations)
   do
-      echo biopsy="${biopsy}" mode="${mode}" replace_value="${replace_value}" biopsy="${biopsy}" repetitions="${repetitions}"
-      ./ae_imputation_m/single_ae_experiment.sh "${biopsy}" "${mode}" "${replace_value}" "${repetitions}"
+      echo biopsy="${biopsy}" mode="${mode}" replace_value="${replace_value}" repetitions="${repetitions}" spatial="${spatial}"
+      sbatch ./ae_imputation_m/single_ae_experiment.sh "${biopsy}" "${mode}" "${replace_value}" "${spatial}" "${repetitions}"
   done
 done
