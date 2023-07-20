@@ -238,7 +238,8 @@ def prepare_gnn_scores(save_path: Path):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument("--model", action="store", type=str, required=True, choices=["lgbm", "ae", "gnn", "ae_all"])
+    parser.add_argument("--model", action="store", type=str, required=True,
+                        choices=["lgbm", "ae", "gnn", "ae_all", "ae_m"])
     args = parser.parse_args()
 
     # create new scores folder
@@ -271,5 +272,11 @@ if __name__ == '__main__':
     elif model == "ae_all":
         try:
             prepare_ae_scores(save_path=save_path, imputation="all")
+        except:
+            print("Could not prepare ae scores")
+
+    elif model == "ae_m":
+        try:
+            prepare_ae_scores(save_path=save_path, imputation="multi")
         except:
             print("Could not prepare ae scores")
