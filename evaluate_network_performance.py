@@ -7,7 +7,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', "-m", type=str, required=True, help="The model to evaluate",
-                        choices=["ae", "gnn", "ae_m", "vae", "vae_all", "ae_all"])
+                        choices=["ae", "gnn", "ae_m", "vae", "vae_all", "ae_all", "ae_m"])
     args = parser.parse_args()
 
     model = args.model
@@ -17,6 +17,8 @@ if __name__ == '__main__':
         load_path = Path("ae_imputation_m")
     elif model == "ae_all":
         load_path = Path("ae_imputation_all")
+    elif model == "ae_m":
+        load_path = Path("ae_imputation_m")
     elif model == "gnn":
         load_path = Path("gnn/results")
     elif model == "vae":
@@ -66,12 +68,16 @@ if __name__ == '__main__':
         save_path = Path("data/scores/ae_m")
     elif model == 'ae_all':
         save_path = Path("data/scores/ae_all")
+    elif model == 'ae_m':
+        save_path = Path("data/scores/ae_m")
     elif model == 'vae':
         save_path = Path("data/scores/vae")
     elif model == 'vae_all':
         save_path = Path("data/scores/vae_all")
-    else:
+    elif model == 'gnn':
         save_path = Path("data/scores/gnn")
+    else:
+        raise ValueError("Model not supported")
 
     if save_path.exists():
         shutil.rmtree(save_path)

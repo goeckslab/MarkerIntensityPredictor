@@ -1,10 +1,9 @@
-import os, argparse
 from pathlib import Path
 from ludwig.api import LudwigModel
 import pandas as pd
 import random
 from tqdm import tqdm
-import logging
+import logging, sys, os, argparse
 from typing import List
 
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
@@ -125,8 +124,8 @@ if __name__ == '__main__':
 
     save_path = create_scores_dir(combination=mode, radius=spatial_radius, hyper=hyper)
     file_name = f"{test_biopsy_name}_scores.csv"
-    logging.debug("Save path: ", save_path)
-    logging.debug("File name: ", file_name)
+    logging.debug(f"Save path:  {str(save_path)}")
+    logging.debug(f"File name: {file_name}")
     try:
         for marker in SHARED_MARKERS:
             results_path = Path(base_path, marker, "results")
@@ -137,7 +136,8 @@ if __name__ == '__main__':
                         try:
                             model = LudwigModel.load(str(Path(results_path, experiment, 'model')))
                         except KeyboardInterrupt as ex:
-                            raise
+                            logging.debug("Keyboard interrupt")
+                            sys.exit(0)
                         except BaseException as ex:
                             logging.error(ex)
                             continue
@@ -156,9 +156,16 @@ if __name__ == '__main__':
                             try:
                                 eval_stats, _, _ = model.evaluate(dataset=test_data_sample)
                             except KeyboardInterrupt as ex:
-                                raise
+                                logging.debug("Keyboard interrupt")
+                                sys.exit(0)
                             except BaseException as ex:
+                                logging.error(f"Error occurred for experiment: {experiment}")
+                                logging.error(
+                                    f"Model loaded using path: {str(Path(results_path, experiment, 'model'))}")
+                                logging.error(ex)
+                                logging.error("Continuing to next experiment")
                                 continue
+
                             scores.append(
                                 {
                                     "Marker": marker,
@@ -176,15 +183,18 @@ if __name__ == '__main__':
                             )
 
                             if i % 20 == 0:
+                                logging.debug("Temp saving scores...")
                                 save_scores(scores=scores, save_folder=save_path, file_name=file_name)
                                 scores = []
 
                         if len(scores) > 0:
                             # Save scores after each experiment
+                            logging.debug("Temp saving scores...")
                             save_scores(scores=scores, save_folder=save_path, file_name=file_name)
                             scores = []
 
         if len(scores) > 0:
+            logging.debug("Saving scores...")
             save_scores(scores=scores, save_folder=save_path, file_name=file_name)
     except KeyboardInterrupt as ex:
         logging.debug("Detected Keyboard interrupt...")
