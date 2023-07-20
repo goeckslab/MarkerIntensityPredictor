@@ -11,9 +11,8 @@ from statannotations.Annotator import Annotator
 def create_boxen_plot(data: pd.DataFrame, metric: str, ylim: List, microns: List, model: str, save_path: Path):
     color_palette = {"0 µm": "grey", "23 µm": "magenta", "46 µm": "purple", "92 µm": "green", "138 µm": "yellow",
                      "184 µm": "blue"}
-    dpi = 300
+    dpi = 92
 
-    fig = plt.figure(figsize=(2500 / dpi, 1250 / dpi), dpi=dpi)
     ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="FE", palette=color_palette)
 
     plt.ylabel("")
@@ -59,9 +58,7 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, ylim: List, microns: List
         print(data["FE"].unique())
         raise
 
-    plt.tight_layout()
-    plt.savefig(Path(save_path), dpi=300)
-    plt.close('all')
+    return ax
 
 
 if __name__ == '__main__':
@@ -84,14 +81,12 @@ if __name__ == '__main__':
     # sort by markers
     # select only the scores for the 0 µm, 23 µm, 92 µm, 184 µm
     ae_scores = ae_scores[ae_scores["FE"].isin([0, 23, 92, 184])]
-    # select exp scores
-    ae_scores = ae_scores[ae_scores["Mode"] == "EXP"]
-    # select mean replace value
-    ae_scores = ae_scores[ae_scores["Replace Value"] == "mean"]
-    # select only rows with noise = 0
-    ae_scores = ae_scores[ae_scores["Noise"] == 0]
-    # select only non hyperopt rows
-    ae_scores = ae_scores[ae_scores["HP"] == 0]
+
+    # select only EXP mode, mean replace value, no noise and no hp in a one line statement
+    ae_scores = ae_scores[
+        (ae_scores["Mode"] == "EXP") & (ae_scores["Replace Value"] == "mean") & (ae_scores["Noise"] == 0) & (
+                    ae_scores["HP"] == 0)]
+
     # Add µm to the FE column
     ae_scores["FE"] = ae_scores["FE"].astype(str) + " µm"
     ae_scores["FE"] = pd.Categorical(ae_scores['FE'], ["0 µm", "23 µm", "92 µm", "184 µm"])
@@ -126,7 +121,6 @@ if __name__ == '__main__':
     # load image from images fig3 folder
     spatial_information_image = plt.imread(Path("images", "fig4", "Panel_A.png"))
     gnn_spatial_information_image = plt.imread(Path("images", "fig4", "Panel_D.png"))
-    test_image = plt.imread(Path("images", "fig3", "img.png"))
 
     image_path = Path("plots", "figures", "fig4_subplots")
     if not image_path.exists():
@@ -214,4 +208,4 @@ if __name__ == '__main__':
     ax5.imshow(gnn_results)
 
     plt.tight_layout()
-    plt.savefig(Path("plots", "figures", "fig3.png"), dpi=300)
+    plt.savefig(Path("plots", "figures", "fig4.png"), dpi=300)

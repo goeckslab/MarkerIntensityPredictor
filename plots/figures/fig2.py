@@ -123,15 +123,15 @@ if __name__ == '__main__':
     en_scores = en_scores[en_scores["FE"] == 0]
 
     # load image from images fig2 folder
-    image = plt.imread(Path("images", "fig2", "train_test_split.png"))
+    train_test_split = plt.imread(Path("images", "fig2", "train_test_split.png"))
 
     # ax1 = fig.add_subplot(2, 2, 1)
     # fig.add_subplot(2, 2, 3).set_title("223")
     # fig.add_subplot(1, 2, 2).set_title("122")
 
     fig = plt.figure(figsize=(10, 7), dpi=150)
-    gspec = fig.add_gridspec(3, 1)
-    ax1 = fig.add_subplot(gspec[0, :])
+    gspec = fig.add_gridspec(3, 3)
+    ax1 = fig.add_subplot(gspec[0, :1])
     # remove box from ax1
     plt.box(False)
     # remove ticks from ax1
@@ -141,7 +141,7 @@ if __name__ == '__main__':
              fontsize=16, fontweight='bold', va='top', ha='right')
 
     # add image to figure
-    ax1.imshow(image, aspect='auto')
+    ax1.imshow(train_test_split, aspect='auto')
 
     ax2 = fig.add_subplot(gspec[1, :])
     ax2.text(-0.1, 1.15, "B", transform=ax2.transAxes,
@@ -159,5 +159,6 @@ if __name__ == '__main__':
 
     plt.tight_layout()
 
-    plt.show()
+    plt.tight_layout()
+    plt.savefig(Path("plots", "figures", "fig2.png"), dpi=300)
     sys.exit()
