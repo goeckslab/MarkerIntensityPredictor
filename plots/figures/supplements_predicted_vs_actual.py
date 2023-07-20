@@ -16,9 +16,9 @@ if __name__ == '__main__':
     parser.add_argument("--mode", choices=["ip", "exp"], default="ip", help="the mode used")
     parser.add_argument("--network", choices=["EN", "LGBM", "AE", "GNN"], help="the network used", required=True)
     args = parser.parse_args()
-    marker = args.marker
-    network = args.network
-    biopsy = args.biopsy
+    marker: str = args.marker
+    network: str = args.network
+    biopsy: str = args.biopsy
     mode: str = str(args.mode).upper()
 
     ground_truth_path: Path = Path(ground_truth_path, f"{biopsy}_preprocessed_dataset.tsv")
@@ -57,5 +57,10 @@ if __name__ == '__main__':
     plt.plot(np.unique(ground_truth[[marker]].values.flatten()),
              np.poly1d(np.polyfit(ground_truth[[marker]].values.flatten(), predictions[[marker]].values.flatten(), 1))(
                  np.unique(ground_truth[[marker]].values.flatten())), color='red')
+    plt.xlabel(f"Ground Truth {marker}")
+    plt.ylabel(f"Predicted {marker}")
 
-    plt.show()
+    if not save_path.exists():
+        save_path.mkdir(parents=True)
+        
+    plt.savefig(Path(save_path, f"{marker}_{network}_{mode}_{biopsy}_predicted_vs_actual.png"), dpi=300)
