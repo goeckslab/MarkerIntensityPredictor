@@ -57,6 +57,20 @@ def clean_column_names(df: pd.DataFrame):
     return df
 
 
+def clean_round_marker_names(df: pd.DataFrame):
+    if "ERK-1" in df["Marker"].values:
+        # Rename ERK to pERK
+        df["Marker"] = df["Marker"].replace({"ERK-1": "pERK"})
+
+    if "E-cadherin" in df["Marker"].values:
+        df["Marker"] = df["Marker"].replace({"E-cadherin": "Ecad"})
+
+    if "Rb" in df["Marker"].values:
+        df["Marker"] = df["Marker"].replace({"Rb": "pRB"})
+
+    return df
+
+
 class AutoEncoder(Model):
     def __init__(self, input_dim: int, latent_dim: int):
         super(AutoEncoder, self).__init__()
@@ -240,12 +254,17 @@ if __name__ == '__main__':
 
     rounds_per_marker = pd.read_csv(Path("data", "cleaned_data", "rounds", "rounds.csv"))
 
+    rounds_per_marker = clean_round_marker_names(rounds_per_marker)
+
     # select only the rounds for the given patient
     rounds_per_marker = rounds_per_marker[rounds_per_marker["Patient"] == patient.replace("_", " ")].copy()
     # select only shared markers
     rounds_per_marker = rounds_per_marker[rounds_per_marker["Marker"].isin(SHARED_MARKERS)].copy()
     # reset index
     rounds_per_marker.reset_index(drop=True, inplace=True)
+
+    assert len(
+        rounds_per_marker) == 16, f"Number of rounds for patient {patient} is not 16. It is {len(rounds_per_marker)}."
 
     # Load train data
     if patient_type == "ip":
