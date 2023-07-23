@@ -12,7 +12,7 @@ RANDOM_SEED=$(random_seed)
 	mkdir -p "$(DATA_DIRECTORY_PREPROCESSED)" && python ../../shared_scripts/prepare_data.py "$(DATA_DIRECTORY)/$(SAMPLE).csv" "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)"
 
 # Create final configuration file.
-"$(SAMPLE)_final_config.yaml": create_input_features.py base_config.yaml "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)"
+"$(SAMPLE)_final_config.yaml": "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)"
 	python ../../shared_scripts/create_input_features.py "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" "$(MARKER)" "$(SAMPLE)_$(MARKER)_input_features.yaml"; cat "$(SAMPLE)_$(MARKER)_input_features.yaml" base_config.yaml > "$(SAMPLE)_$(MARKER)_final_config.yaml"
 
 # Run a ludwig experiment using the preprocessed dataset. Results are placed into the $(SAMPLE) directory.
