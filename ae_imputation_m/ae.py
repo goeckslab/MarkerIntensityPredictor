@@ -182,6 +182,8 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
         logging.error(mode)
         logging.error(experiment_id)
         logging.error(replace_value)
+        logging.error(iterations)
+        logging.error(spatial_radius)
         logging.error(rounds)
         raise
 
