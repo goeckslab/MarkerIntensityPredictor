@@ -109,7 +109,7 @@ def prepare_lbgm_scores(save_path: Path):
 
 
 def prepare_ae_scores(save_path: Path, imputation: str = None):
-    print("Preparing ae scores")
+    print(f"Preparing ae scores with imputation {imputation}")
 
     if imputation is None:
         scores = pd.read_csv(Path("data", "scores", "ae", "scores.csv"))
@@ -148,6 +148,11 @@ def prepare_ae_scores(save_path: Path, imputation: str = None):
     # remove load path and random seed
     if "Load Path" in scores.columns:
         scores = scores.drop(columns=["Load Path"])
+
+
+    if imputation == "multi":
+        # remove round column:
+        scores = scores.drop(columns=["Round"])
 
     # drop imputation & iteration columns
     scores = scores.drop(columns=["Imputation", "Iteration"])
@@ -279,4 +284,4 @@ if __name__ == '__main__':
         try:
             prepare_ae_scores(save_path=save_path, imputation="multi")
         except:
-            print("Could not prepare ae scores")
+            print("Could not prepare ae multi scores")
