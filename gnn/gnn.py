@@ -249,7 +249,7 @@ if __name__ == '__main__':
 
     score_file_name = "scores.csv"
 
-    save_folder, experiment_id = create_results_folder(spatial_radius, mode, replace_value, biopsy_name)
+    save_folder, experiment_id = create_results_folder(spatial_radius, mode, replace_value, test_biopsy_name)
 
     setup_log_file(save_path=save_folder)
 
@@ -290,7 +290,7 @@ if __name__ == '__main__':
         train_edge_index = torch.load(
             str(Path(prepared_data_folder, str(spatial_radius), f"{patient}_excluded_edge_index.pt")))
 
-        raw_test_set = pd.read_csv(str(Path(raw_data_folder, f"{biopsy_name}.csv")), header=0)
+        raw_test_set = pd.read_csv(str(Path(raw_data_folder, f"{test_biopsy_name}.csv")), header=0)
         raw_test_set = clean_column_names(raw_test_set)
 
         # normalize data
@@ -350,7 +350,7 @@ if __name__ == '__main__':
 
         impute_marker(test_data=test_data, subset=i, scores=scores, all_predictions=predictions,
                       store_predictions=False, columns=test_data_sample.columns, replace_value=replace_value,
-                      iterations=iterations, biopsy_name=biopsy_name, save_folder=save_folder,
+                      iterations=iterations, biopsy_name=test_biopsy_name, save_folder=save_folder,
                       file_name=score_file_name)
 
     # Evaluate on full test set
@@ -363,7 +363,7 @@ if __name__ == '__main__':
 
     impute_marker(test_data=test_data, subset=0, scores=scores, all_predictions=predictions, store_predictions=True,
                   columns=test_set.columns, replace_value=replace_value, iterations=iterations,
-                  biopsy_name=biopsy_name, save_folder=save_folder, file_name=score_file_name)
+                  biopsy_name=test_biopsy_name, save_folder=save_folder, file_name=score_file_name)
 
     # Convert to df
     scores = pd.DataFrame(scores)
