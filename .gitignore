@@ -220,3 +220,4 @@ data/tumor_cycif_v2.csv
 *.csv
 .vscode/settings.json
 mlruns.zip
+*.eps

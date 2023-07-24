@@ -199,30 +199,30 @@ if __name__ == '__main__':
     ax1.set_xticks([])
     ax1.set_yticks([])
     ax1.text(-0.1, 1.15, "A", transform=ax1.transAxes,
-             fontsize=14, fontweight='bold', va='top', ha='right')
+             fontsize=7, fontweight='bold', va='top', ha='right')
 
     # add image to figure
     ax1.imshow(image, aspect='auto')
 
     ax2 = fig.add_subplot(gspec[1, :])
     ax2.text(-0.1, 1.15, "B", transform=ax2.transAxes,
-             fontsize=14, fontweight='bold', va='top', ha='right')
+             fontsize=7, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    ax2.set_title("AE (Single Marker)", rotation='vertical', x=-0.1, y=-0.2, fontsize=12)
+    ax2.set_title("AE (Single Marker)", rotation='vertical', x=-0.1, y=-0.2, fontsize=7)
     ax2 = create_boxen_plot(data=ae_scores, metric="MAE", ylim=[0.0, 0.8])
 
     ax3 = fig.add_subplot(gspec[2, :])
     ax3.text(-0.1, 1.15, "C", transform=ax3.transAxes,
-             fontsize=14, fontweight='bold', va='top', ha='right')
+             fontsize=7, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    ax3.set_title('AE (All Markers)', rotation='vertical', x=-0.1, y=0, fontsize=12)
+    ax3.set_title('AE (All Markers)', rotation='vertical', x=-0.1, y=0, fontsize=7)
     ax3 = create_boxen_plot(data=ae_all_scores, metric="MAE", ylim=[0.0, 0.8])
 
     ax4 = fig.add_subplot(gspec[3, :2])
     ax4.text(-0.15, 1.15, "D", transform=ax4.transAxes,
-             fontsize=14, fontweight='bold', va='top', ha='right')
+             fontsize=7, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    ax4.set_title('Performance', rotation='vertical', x=-0.15, y=0.1, fontsize=12)
+    ax4.set_title('Performance', rotation='vertical', x=-0.15, y=0.1, fontsize=7)
     ax4 = create_boxen_plot_by_mode_only(data=all_scores, metric="MAE", ylim=[0.0, 0.8])
 
     # add suptitle

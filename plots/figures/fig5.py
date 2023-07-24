@@ -8,11 +8,10 @@ from typing import List
 from statannotations.Annotator import Annotator
 import logging
 
-logging_path = Path("plots", "figures", "fig4.log")
 logging.root.handlers = []
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[
-                        logging.FileHandler(logging_path),
+                        logging.FileHandler("plots/figures/fig5.log"),
                         logging.StreamHandler()
                     ])
 
@@ -63,25 +62,10 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, ylim: List, microns: List
 
 
 if __name__ == '__main__':
-    if logging_path.exists():
-        os.remove(logging_path)
-    save_path = Path("images", "fig4")
+    save_path = Path("images", "fig5")
 
-    lgbm_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "lgbm", "scores.csv"))
-
-    # select only the scores for the 0 µm, 23 µm, 92 µm, 184 µm
-    lgbm_scores = lgbm_scores[lgbm_scores["FE"].isin([0, 23, 92, 184])]
-    # select exp scores
-    lgbm_scores = lgbm_scores[lgbm_scores["Mode"] == "EXP"]
-    # only select non hp scores
-    lgbm_scores = lgbm_scores[lgbm_scores["HP"] == 0]
-
-    # Add µm to the FE column
-    lgbm_scores["FE"] = lgbm_scores["FE"].astype(str) + " µm"
-    lgbm_scores["FE"] = pd.Categorical(lgbm_scores['FE'], ["0 µm", "23 µm", "92 µm", "184 µm"])
-
-    # sort by marker and FE
-    lgbm_scores.sort_values(by=["Marker", "FE"], inplace=True)
+    if not save_path.exists():
+        save_path.mkdir(parents=True, exist_ok=True)
 
     # load ae scores
     ae_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "ae", "scores.csv"))
@@ -123,51 +107,33 @@ if __name__ == '__main__':
     ae_m_scores = ae_m_scores[np.abs(ae_m_scores["MAE"] - ae_m_scores["MAE"].mean()) <= (3 * ae_m_scores["MAE"].std())]
     # ae_m_scores = ae_m_scores[np.abs(ae_m_scores["RMSE"] - ae_m_scores["RMSE"].mean()) <= (3 * ae_m_scores["RMSE"].std())]
 
-    # load image from images fig3 folder
-    spatial_information_image = plt.imread(Path("images", "fig4", "Panel_A.png"))
-
-    image_path = Path("plots", "figures", "fig4_subplots")
-    if not image_path.exists():
-        image_path.mkdir(parents=True)
-
     dpi = 300
     cm = 1 / 2.54  # centimeters in inches
     # Create new figure
-    fig = plt.figure(figsize=(18.5 * cm, 12 * cm), dpi=dpi)
+    fig = plt.figure(figsize=(18.5 * cm, 20 * cm), dpi=dpi)
     gspec = fig.add_gridspec(2, 3)
 
-    ax1 = fig.add_subplot(gspec[0, 0])
-    # remove box from ax1
-    plt.box(False)
-    # remove ticks from ax1
-    ax1.set_xticks([])
-    ax1.set_yticks([])
-    ax1.text(-0.1, 1.1, "A", transform=ax1.transAxes,
-             fontsize=7, fontweight='bold', va='top', ha='right')
-    # show spatial information image
-    ax1.imshow(spatial_information_image, aspect='auto')
-
-    ax3 = fig.add_subplot(gspec[1, :])
-    ax3.set_title('LGBM 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.1, y=-0.2, fontsize=7)
-    ax3.text(-0.05, 1.1, "B", transform=ax3.transAxes,
+    ax1 = fig.add_subplot(gspec[0, :])
+    ax1.set_title('AE 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.1, y=0, fontsize=7)
+    ax1.text(-0.05, 1.1, "A", transform=ax1.transAxes,
              fontsize=7, fontweight='bold', va='top', ha='right')
     # remove box from ax3
     plt.box(False)
 
     # ax3 = ax3.imshow(lgbm_results)
-    ax3 = create_boxen_plot(data=lgbm_scores, metric="MAE", ylim=[0, 0.5],
+    ax1 = create_boxen_plot(data=ae_scores, metric="MAE", ylim=[0, 0.5],
                             microns=["0 µm", "23 µm", "92 µm", "184 µm"])
 
-    # ax4 = fig.add_subplot(gspec[2, :])
-    # ax4.set_title('AE 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.1, y=-0.2, fontsize=7)
-    # ax4.text(-0.05, 1.1, "D", transform=ax4.transAxes,
-    #         fontsize=7, fontweight='bold', va='top', ha='right')
+    ax2 = fig.add_subplot(gspec[1, :])
+    ax2.set_title('AE M 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.1, y=0, fontsize=7)
+    ax2.text(-0.05, 1.1, "B", transform=ax2.transAxes,
+             fontsize=7, fontweight='bold', va='top', ha='right')
     # remove box from ax4
-    # plt.box(False)
+    plt.box(False)
     # ax4.imshow(ae_results)
-    # ax4 = create_boxen_plot(data=ae_scores, metric="MAE", ylim=[0, 0.5],
-    #                            microns=["0 µm", "23 µm", "92 µm", "184 µm"])
+    ax2 = create_boxen_plot(data=ae_m_scores, metric="MAE", ylim=[0, 0.5],
+                            microns=["0 µm", "23 µm", "92 µm", "184 µm"])
 
     plt.tight_layout()
-    plt.savefig(Path(save_path, "fig4.png"), dpi=300, bbox_inches='tight')
-    plt.savefig(Path(save_path, "fig4.eps"), dpi=300, bbox_inches='tight', format='eps')
+    plt.savefig(Path(save_path, "fig5.png"), dpi=300, bbox_inches='tight')
+    plt.savefig(Path(save_path, "fig5.eps"), dpi=300, bbox_inches='tight', format='eps')
