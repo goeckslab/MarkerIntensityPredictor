@@ -232,7 +232,7 @@ if __name__ == '__main__':
     parser.add_argument("--mode", action="store", type=str, choices=["ip", "exp"], default="ip")
     parser.add_argument("--spatial", "-sp", action="store", type=int, choices=[23, 46, 92, 138, 184], default=46)
     parser.add_argument("-b", "--biopsy", action="store", type=str, required=True, help="The biopsy to run")
-    parser.add_argument("-r", "--repetitions", action="store", type=int, default=1)
+    parser.add_argument("-s", "--subsets", action="store", type=int, default=1)
 
     args = parser.parse_args()
     prepared_data_folder = Path("gnn", "data", args.mode)
@@ -240,7 +240,7 @@ if __name__ == '__main__':
     spatial_radius = args.spatial
     biopsy_name = args.biopsy
     mode = args.mode
-    repetitions: int = args.repetitions
+    subsets: int = args.subsets
     patient = "_".join(biopsy_name.split("_")[:2])
     replace_value = args.replace_mode
     iterations = args.iterations
@@ -320,7 +320,7 @@ if __name__ == '__main__':
         predictions[i] = pd.DataFrame(columns=test_set.columns)
 
     # Evaluate on subset
-    for i in range(1, repetitions):
+    for i in range(1, subsets):
         test_data_sample: pd.DataFrame = test_set.sample(frac=0.7, random_state=random.randint(0, 100000),
                                                          replace=True)
 
