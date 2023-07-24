@@ -188,11 +188,12 @@ def impute_marker(test_data: Data, subset: int, scores: List, all_predictions: D
                                                 spatial_radius=spatial_radius, experiment_id=experiment_id,
                                                 replace_value=replace_value, subset=subset)
 
+                    logging.debug(f"Finished iteration {iteration} for marker {marker}.")
                     if iteration % 20 == 0:
-                        logging.debug(f"Finished iteration {iteration} for marker {marker}.")
                         logging.debug("Performing temp save...")
                         save_scores(save_folder=save_folder, file_name=file_name, scores=scores)
                         scores = []
+
     except KeyboardInterrupt as ex:
         logging.error("Keyboard interrupt detected.")
         logging.error("Saving scores...")
@@ -239,10 +240,10 @@ if __name__ == '__main__':
     prepared_data_folder = Path("gnn", "data", args.mode)
     raw_data_folder = Path("data", "tumor_mesmer")
     spatial_radius = args.spatial
-    biopsy_name = args.biopsy
+    test_biopsy_name = args.biopsy
     mode = args.mode
     subsets: int = args.subsets
-    patient = "_".join(biopsy_name.split("_")[:2])
+    patient = "_".join(test_biopsy_name.split("_")[:2])
     replace_value = args.replace_mode
     iterations = args.iterations
 
@@ -259,18 +260,20 @@ if __name__ == '__main__':
     logging.info(f"Replace value: {replace_value}")
     logging.info(f"Subsets: {subsets}")
     logging.info(f"Spatial radius: {spatial_radius}")
-    logging.info(f"Biopsy name: {biopsy_name}")
+    logging.info(f"Test biopsy name: {test_biopsy_name}")
     logging.info(f"Save folder: {save_folder}")
     logging.info(f"Experiment id: {experiment_id}")
 
     if mode == "ip":
-        logging.debug(str(Path(raw_data_folder, biopsy_name)))
-        raw_test_set: pd.DataFrame = pd.read_csv(str(Path(raw_data_folder, f"{biopsy_name}.csv")), header=0)
+        logging.debug(str(Path(raw_data_folder, test_biopsy_name)))
+        raw_test_set: pd.DataFrame = pd.read_csv(str(Path(raw_data_folder, f"{test_biopsy_name}.csv")), header=0)
+
+        logging.debug(f"Loading train data using path:  {str(Path(prepared_data_folder, test_biopsy_name, str(spatial_radius), f'train_set.csv'))}")
         raw_test_set: pd.DataFrame = clean_column_names(raw_test_set)
-        train_set = pd.read_csv(str(Path(prepared_data_folder, biopsy_name, str(spatial_radius), f"train_set.csv")),
+        train_set = pd.read_csv(str(Path(prepared_data_folder, test_biopsy_name, str(spatial_radius), f"train_set.csv")),
                                 header=0)
         train_edge_index = torch.load(
-            str(Path(prepared_data_folder, biopsy_name, str(spatial_radius), f"train_edge_index.pt")))
+            str(Path(prepared_data_folder, test_biopsy_name, str(spatial_radius), f"train_edge_index.pt")))
 
         # normalize data
         test_set: pd.DataFrame = raw_test_set[MARKERS]
@@ -311,7 +314,7 @@ if __name__ == '__main__':
     logging.debug("Training model...")
     for epoch in range(100):
         if epoch % 10 == 0:
-            logging.debug("Epoch: ", epoch)
+            logging.debug(f"Epoch: {epoch}")
         loss, h = train(train_data)
 
     logging.debug("Training complete.")

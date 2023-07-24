@@ -13,13 +13,12 @@ then
   subsets=1
 fi
 
-echo "experiments=${experiments}" "subsets=${subsets}"
 
 for biopsy in "${biopsies[@]}"; do
   for radius in "${spatial_radius[@]}"; do
     for i in $(seq 1 $experiments)
       do
-
+        echo biopsy="${biopsy}" radius="${radius}" subsets="${subsets}" experiments="${experiments}" i="${i}"
         sbatch ./gnn/gnn.sh "${biopsy}" "mean" "ip" "${radius}" "${subsets}"
         sbatch ./gnn/gnn.sh "${biopsy}" "mean" "exp" "${radius}" "${subsets}"
         sbatch ./gnn/gnn.sh "${biopsy}" "zero" "ip" "${radius}" "${subsets}"
