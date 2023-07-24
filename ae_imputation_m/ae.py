@@ -25,7 +25,7 @@ SHARED_SPATIAL_FEATURES = ['pRB_mean', "CD45_mean", "CK19_mean", "Ki67_mean", "a
 logging.root.handlers = []
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[
-                        logging.FileHandler("ae_imputation_all/debug.log"),
+                        logging.FileHandler("ae_imputation_m/debug.log"),
                         logging.StreamHandler()
                     ])
 

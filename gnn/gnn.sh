@@ -16,6 +16,7 @@ biopsy=$1
 replace_value=$2
 mode=$3
 spatial=$4
+repetitions=$5
 
 
-python3 ./gnn/gnn.py -b "${biopsy}" -rm ${replace_value} --mode "${mode}" --spatial "${spatial}" -i 10
+python3 ./gnn/gnn.py -b "${biopsy}" -rm ${replace_value} --mode "${mode}" --spatial "${spatial}" -i 10 -r "${repetitions}"

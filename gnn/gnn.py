@@ -9,13 +9,33 @@ from scipy.spatial.distance import cdist
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-import os, argparse
+import os, argparse, logging
 from pathlib import Path
 from tqdm import tqdm
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
            'pERK', 'EGFR', 'ER']
+
+logging.root.handlers = []
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s',
+                    handlers=[
+                        logging.FileHandler("ae_imputation_m/debug.log"),
+                        logging.StreamHandler()
+                    ])
+
+
+def setup_log_file(save_path: Path):
+    save_file = Path(save_path, "debug.log")
+    file_logger = logging.FileHandler(save_file, 'a')
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_logger.setFormatter(formatter)
+
+    log = logging.getLogger()  # root logger
+    for handler in log.handlers[:]:  # remove all old handlers
+        log.removeHandler(handler)
+    log.addHandler(file_logger)
+    log.addHandler(logging.StreamHandler())
 
 
 def clean_column_names(df: pd.DataFrame):
@@ -212,6 +232,7 @@ if __name__ == '__main__':
     parser.add_argument("--mode", action="store", type=str, choices=["ip", "exp"], default="ip")
     parser.add_argument("--spatial", "-sp", action="store", type=int, choices=[23, 46, 92, 138, 184], default=46)
     parser.add_argument("-b", "--biopsy", action="store", type=str, required=True, help="The biopsy to run")
+    parser.add_argument("-r", "--repetitions", action="store", type=int, default=1)
 
     args = parser.parse_args()
     prepared_data_folder = Path("gnn", "data", args.mode)
@@ -219,14 +240,24 @@ if __name__ == '__main__':
     spatial_radius = args.spatial
     biopsy_name = args.biopsy
     mode = args.mode
+    repetitions: int = args.repetitions
     patient = "_".join(biopsy_name.split("_")[:2])
     replace_value = args.replace_mode
     iterations = args.iterations
 
     score_file_name = "scores.csv"
 
+    save_folder, experiment_id = create_results_folder(spatial_radius, mode, replace_value, biopsy_name)
+
+    setup_log_file(save_path=save_folder)
+
+    logging.info(f"Started new experiment with id {experiment_id}.")
+    logging.info(f"Running {mode} mode with spatial radius {spatial_radius} and replace mode {replace_value}.")
+    logging.info(f"Running on biopsy {biopsy_name}.")
+    logging.info(f"Running {iterations} iterations.")
+
     if mode == "ip":
-        print(str(Path(raw_data_folder, biopsy_name)))
+        logging.debug(str(Path(raw_data_folder, biopsy_name)))
         raw_test_set: pd.DataFrame = pd.read_csv(str(Path(raw_data_folder, f"{biopsy_name}.csv")), header=0)
         raw_test_set: pd.DataFrame = clean_column_names(raw_test_set)
         train_set = pd.read_csv(str(Path(prepared_data_folder, biopsy_name, str(spatial_radius), f"train_set.csv")),
@@ -259,8 +290,6 @@ if __name__ == '__main__':
         test_set: pd.DataFrame = pd.DataFrame(scaler.fit_transform(test_set),
                                               columns=test_set.columns)
 
-    save_folder, experiment_id = create_results_folder(spatial_radius, mode, replace_value, biopsy_name)
-
     model = GCNAutoencoder(num_features=len(train_set.columns))  # Create new network.
     criterion = torch.nn.L1Loss()  # Define loss criterion.
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)  # Define optimizer.
@@ -272,17 +301,17 @@ if __name__ == '__main__':
     train_data: Data = Data(x=train_node_features, train_mask=train_mask, edge_index=train_edge_index,
                             y=train_set['CD45'].values)
 
-    print("Training model...")
+    logging.debug("Training model...")
     for epoch in range(100):
         if epoch % 10 == 0:
-            print("Epoch: ", epoch)
+            logging.debug("Epoch: ", epoch)
         loss, h = train(train_data)
 
-    print("Training complete.")
+    logging.debug("Training complete.")
     # Evaluate model performance on test set.
     model.eval()
 
-    print("Evaluating...")
+    logging.debug("Evaluating...")
 
     scores = []
     predictions = {}
@@ -291,7 +320,7 @@ if __name__ == '__main__':
         predictions[i] = pd.DataFrame(columns=test_set.columns)
 
     # Evaluate on subset
-    for i in range(1, 101):
+    for i in range(1, repetitions):
         test_data_sample: pd.DataFrame = test_set.sample(frac=0.7, random_state=random.randint(0, 100000),
                                                          replace=True)
 
@@ -311,7 +340,8 @@ if __name__ == '__main__':
 
         impute_marker(test_data=test_data, subset=i, scores=scores, all_predictions=predictions,
                       store_predictions=False, columns=test_data_sample.columns, replace_value=replace_value,
-                      iterations=iterations, biopsy_name=biopsy_name, save_folder=save_folder, file_name=score_file_name)
+                      iterations=iterations, biopsy_name=biopsy_name, save_folder=save_folder,
+                      file_name=score_file_name)
 
     # Evaluate on full test set
     test_node_features = torch.tensor(test_set.values, dtype=torch.float)
