@@ -19,4 +19,4 @@ spatial=$4
 subsets=$5
 
 
-python3 ./gnn/gnn.py -b "${biopsy}" -rm ${replace_value} --mode "${mode}" --spatial "${spatial}" -i 10 -s "${subsets}"
+python3 ./gnn/gnn.py -b "${biopsy}" -rm ${replace_value} --mode "${mode}" --spatial "${spatial}" -i 10 --subsets "${subsets}"
