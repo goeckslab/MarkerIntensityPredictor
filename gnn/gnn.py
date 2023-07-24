@@ -12,6 +12,7 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import os, argparse, logging
 from pathlib import Path
 from tqdm import tqdm
+import datetime
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
@@ -188,26 +189,26 @@ def impute_marker(test_data: Data, subset: int, scores: List, all_predictions: D
                                                 replace_value=replace_value, subset=subset)
 
                     if iteration % 20 == 0:
-                        print(f"Finished iteration {iteration} for marker {marker}.")
-                        print("Performing temp save...")
+                        logging.debug(f"Finished iteration {iteration} for marker {marker}.")
+                        logging.debug("Performing temp save...")
                         save_scores(save_folder=save_folder, file_name=file_name, scores=scores)
                         scores = []
     except KeyboardInterrupt as ex:
-        print("Keyboard interrupt detected.")
-        print("Saving scores...")
+        logging.error("Keyboard interrupt detected.")
+        logging.error("Saving scores...")
         if len(scores) > 0:
             save_scores(scores=scores, save_folder=save_folder, file_name=file_name)
         raise
     except BaseException as ex:
-        print(ex)
-        print("Test truth:")
-        print(test_data)
-        print("Predictions:")
-        print(predictions)
-        print(mode)
-        print(spatial_radius)
-        print(experiment_id)
-        print(replace_value)
+        logging.error(ex)
+        logging.error("Test truth:")
+        logging.error(test_data)
+        logging.error("Predictions:")
+        logging.error(predictions)
+        logging.error(mode)
+        logging.error(spatial_radius)
+        logging.error(experiment_id)
+        logging.error(replace_value)
         raise
 
 
@@ -251,10 +252,16 @@ if __name__ == '__main__':
 
     setup_log_file(save_path=save_folder)
 
-    logging.info(f"Started new experiment with id {experiment_id}.")
-    logging.info(f"Running {mode} mode with spatial radius {spatial_radius} and replace mode {replace_value}.")
-    logging.info(f"Running on biopsy {biopsy_name}.")
-    logging.info(f"Running {iterations} iterations.")
+    logging.info("Experiment started with the following parameters:")
+    logging.info(f"Time:  {str(datetime.datetime.now())}")
+    logging.info(f"Patient type: {mode}")
+    logging.info(f"Iterations: {iterations}")
+    logging.info(f"Replace value: {replace_value}")
+    logging.info(f"Subsets: {subsets}")
+    logging.info(f"Spatial radius: {spatial_radius}")
+    logging.info(f"Biopsy name: {biopsy_name}")
+    logging.info(f"Save folder: {save_folder}")
+    logging.info(f"Experiment id: {experiment_id}")
 
     if mode == "ip":
         logging.debug(str(Path(raw_data_folder, biopsy_name)))
