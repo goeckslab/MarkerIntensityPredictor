@@ -39,6 +39,17 @@ def create_scores_dir(combination: str, radius: int, hyper: bool) -> Path:
 def save_scores(save_folder: Path, file_name: str, scores: List):
     logging.debug(f"Temp saving scores")
     scores = pd.DataFrame(scores)
+
+    # find empty rows
+    empty_rows = scores.isnull().all(axis=1)
+    # drop empty rows
+    scores = scores[~empty_rows]
+
+    # find nan seed rows
+    nan_seed_rows = scores['seed'].isnull()
+    # replace with 0
+    scores.loc[nan_seed_rows, 'seed'] = 0
+
     if Path(save_path, file_name).exists():
         logging.debug("Found existing scores...")
         logging.debug("Merging...")
