@@ -122,6 +122,14 @@ if __name__ == '__main__':
     en_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "en", "scores.csv"))
     en_scores = en_scores[en_scores["FE"] == 0]
 
+    ae_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "ae", "scores.csv"))
+    # Select ae scores where fe  == 0, replace value == mean and noise  == 0
+    ae_scores = ae_scores[(ae_scores["FE"] == 0) & (ae_scores["Replace Value"] == "mean") & (ae_scores["Noise"] == 0)]
+    # select only non hp scores
+    ae_scores = ae_scores[ae_scores["HP"] == 0]
+    ae_scores.sort_values(by=["Marker"], inplace=True)
+    ae_scores = ae_scores[np.abs(ae_scores["MAE"] - ae_scores["MAE"].mean()) <= (3 * ae_scores["MAE"].std())]
+
     # load image from images fig2 folder
     train_test_split = plt.imread(Path("images", "fig2", "train_test_split.png"))
 
@@ -157,8 +165,14 @@ if __name__ == '__main__':
     ax3.set_title('LBGM', rotation='vertical', x=-0.1, y=0, fontsize=12)
     ax3 = create_boxen_plot(data=lgbm_scores, metric="MAE", ylim=[0.0, 0.4])
 
-    plt.tight_layout()
+    ax4 = fig.add_subplot(gspec[2, :])
+    ax4.text(-0.1, 1.15, "D", transform=ax3.transAxes,
+             fontsize=16, fontweight='bold', va='top', ha='right')
+    plt.box(False)
+    ax4.set_title('AE', rotation='vertical', x=-0.1, y=0, fontsize=12)
+    ax4 = create_boxen_plot(data=ae_scores, metric="MAE", ylim=[0.0, 0.4])
 
     plt.tight_layout()
-    plt.savefig(Path("plots", "figures", "fig2.png"), dpi=300)
+
+    plt.savefig(Path("images", "fig2", "fig2.png"), dpi=300)
     sys.exit()

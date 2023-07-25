@@ -139,7 +139,6 @@ if __name__ == '__main__':
     # select same amount of markers per biopsy per FE
 
 
-    input()
 
 
     # Add µm to the FE column
@@ -150,7 +149,7 @@ if __name__ == '__main__':
     dpi = 300
     cm = 1 / 2.54  # centimeters in inches
     # Create new figure
-    fig = plt.figure(figsize=(18 * cm, 18 * cm), dpi=dpi)
+    fig = plt.figure(figsize=(18 * cm, 20 * cm), dpi=dpi)
     gspec = fig.add_gridspec(3, 3)
 
     ax1 = fig.add_subplot(gspec[0, :])

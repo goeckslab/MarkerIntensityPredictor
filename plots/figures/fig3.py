@@ -89,7 +89,7 @@ def create_boxen_plot_by_mode_only(data: pd.DataFrame, metric: str, ylim: List) 
     order = ["IP", "AP"]
     hue_order = ["EN", "LGBM", "AE", "AE ALL"]
     ax = sns.boxenplot(data=data, x=x, y=metric, hue=hue, order=order,
-                       palette={"EN": "purple", "LGBM": "green", "AE": "grey", "AE ALL": "lightgrey"})
+                       palette={"EN": "purple", "LGBM": "green", "AE": "grey", "AE M": "darkgrey", "AE ALL": "lightgrey"})
 
     # plt.title(title)
     # remove y axis label
@@ -158,13 +158,23 @@ if __name__ == '__main__':
     en_scores = en_scores[en_scores["FE"] == 0]
 
     ae_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "ae", "scores.csv"))
+    ae_m_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "ae_m", "scores.csv"))
     ae_all_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "ae_all", "scores.csv"))
 
+
     # Select ae scores where fe  == 0, replace value == mean and noise  == 0
-    ae_scores = ae_scores[(ae_scores["FE"] == 0) & (ae_scores["Replace Value"] == "mean") & (ae_scores["Noise"] == 0)]
+    ae_scores = ae_scores[
+        (ae_scores["FE"] == 0) & (ae_scores["Replace Value"] == "mean") & (ae_scores["Noise"] == 0)]
     # select only non hp scores
     ae_scores = ae_scores[ae_scores["HP"] == 0]
     ae_scores.sort_values(by=["Marker"], inplace=True)
+
+    # Select ae scores where fe  == 0, replace value == mean and noise  == 0
+    ae_m_scores = ae_m_scores[
+        (ae_m_scores["FE"] == 0) & (ae_m_scores["Replace Value"] == "mean") & (ae_m_scores["Noise"] == 0)]
+    # select only non hp scores
+    ae_m_scores = ae_m_scores[ae_m_scores["HP"] == 0]
+    ae_m_scores.sort_values(by=["Marker"], inplace=True)
 
     # Select ae scores where fe  == 0, replace value == mean and noise  == 0
     ae_all_scores = ae_all_scores[
@@ -175,11 +185,12 @@ if __name__ == '__main__':
 
     # assert that FE column only contains 0
     assert (lgbm_scores["FE"] == 0).all(), "FE column should only contain 0 for lgbm_scores"
-    assert (ae_scores["FE"] == 0).all(), "FE column should only contain 0 for ae_scores"
+    assert (ae_m_scores["FE"] == 0).all(), "FE column should only contain 0 for ae_m_scores"
     assert (ae_all_scores["FE"] == 0).all(), "FE column should only contain 0 for ae_all_scores"
+    assert (ae_scores["FE"] == 0).all(), "FE column should only contain 0 for ae_scores"
 
     # merge all scores together
-    all_scores = pd.concat([lgbm_scores, en_scores, ae_scores, ae_all_scores], axis=0)
+    all_scores = pd.concat([lgbm_scores, en_scores, ae_scores, ae_m_scores, ae_all_scores], axis=0)
 
     # remove column hyper, experiment, Noise, Replace Value
     all_scores.drop(columns=["HP", "Experiment", "Noise", "Replace Value", "Hyper"], inplace=True)
@@ -208,7 +219,7 @@ if __name__ == '__main__':
     ax2.text(-0.1, 1.15, "B", transform=ax2.transAxes,
              fontsize=7, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    ax2.set_title("AE (Single Marker)", rotation='vertical', x=-0.1, y=-0.2, fontsize=7)
+    ax2.set_title("AE (Multi Marker)", rotation='vertical', x=-0.1, y=-0.2, fontsize=7)
     ax2 = create_boxen_plot(data=ae_scores, metric="MAE", ylim=[0.0, 0.8])
 
     ax3 = fig.add_subplot(gspec[2, :])
