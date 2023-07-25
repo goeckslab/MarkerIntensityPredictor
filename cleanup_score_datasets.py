@@ -29,6 +29,8 @@ def load_lgbm_scores(load_path: str, mode: str, network: str) -> pd.DataFrame:
                     if score.isnull().values.any():
                         print(score)
                         print(file_name)
+                        # print the rows with nan
+                        print(score[score.isnull().any(axis=1)])
                         input()
 
                     scores.append(score)
