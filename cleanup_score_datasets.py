@@ -14,7 +14,8 @@ def load_lgbm_scores(load_path: str, mode: str, network: str) -> pd.DataFrame:
         for root, dirs, files in os.walk(load_path):
             for name in files:
                 if Path(name).suffix == ".csv":
-                    scores.append(pd.read_csv(os.path.join(root, name), sep=",", header=0))
+                    scores.append(pd.read_csv(os.path.join(root, name), sep=",", header=0, skip_blank_lines=True,
+                                              error_bad_lines=True))
 
         assert len(scores) == 8, f"Not all biopsies could be loaded for load path {load_path}"
         scores = pd.concat(scores, axis=0).sort_values(by=["Marker"])
@@ -109,6 +110,7 @@ def prepare_lbgm_scores(save_path: Path):
         print("LGBM scores could not be cleaned up")
         print(scores)
 
+
 def prepare_ae_scores(save_path: Path, imputation: str = None):
     print(f"Preparing ae scores with imputation {imputation}")
 
@@ -149,7 +151,6 @@ def prepare_ae_scores(save_path: Path, imputation: str = None):
     # remove load path and random seed
     if "Load Path" in scores.columns:
         scores = scores.drop(columns=["Load Path"])
-
 
     if imputation == "multi":
         # remove round column:
