@@ -17,9 +17,14 @@ def load_lgbm_scores(load_path: str, mode: str, network: str) -> pd.DataFrame:
                     file_name = os.path.join(root, name)
                     score = pd.read_csv(file_name, sep=",", header=0)
                     if 'Unnamed: 0' in score.columns:
-                        print(file_name)
+                        score = score.drop(columns=['Unnamed: 0'])
+
+                    # check if any other column is in df other than Marker       MAE       MSE      RMSE Biopsy Mode    FE Network  Hyper                                          Load Path  Random Seed
+                    if len(score.columns) == 12:
                         print(score)
+                        print(file_name)
                         input()
+
                     scores.append(score)
 
         assert len(scores) == 8, f"Not all biopsies could be loaded for load path {load_path}"
