@@ -16,8 +16,7 @@ def load_lgbm_scores(load_path: str, mode: str, network: str) -> pd.DataFrame:
                 if Path(name).suffix == ".csv":
                     file_name = os.path.join(root, name)
                     scores = pd.read_csv(file_name, sep=",", header=0, skip_blank_lines=True,
-                                              error_bad_lines=True)
-                    print(scores)
+                                         error_bad_lines=True)
                     if 'Unnamed: 0' in scores.columns:
                         print(file_name)
                         print(scores)
