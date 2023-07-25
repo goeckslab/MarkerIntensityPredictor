@@ -142,7 +142,7 @@ if __name__ == '__main__':
                             logging.error(ex)
                             continue
 
-                        for i in tqdm(range(1, iterations)):
+                        for i in tqdm(range(1, 10)):
                             random_seed = random.randint(0, 100000)
                             # sample new dataset from test_data
                             test_data_sample = test_dataset.sample(frac=0.7, random_state=random_seed,
@@ -176,9 +176,9 @@ if __name__ == '__main__':
                                     "Mode": mode,
                                     "FE": spatial_radius if spatial_radius is not None else 0,
                                     "Network": "Ludwig",
-                                    "Hyper": hyper,
+                                    "Hyper": int(hyper),
                                     "Load Path": str(Path(results_path, experiment, 'model')),
-                                    "Random Seed": random_seed,
+                                    "Random Seed": int(random_seed),
                                 }
                             )
 
