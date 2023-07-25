@@ -73,14 +73,21 @@ def save_scores(save_folder: Path, file_name: str, scores: List):
     # replace with 0
     scores.loc[nan_seed_rows, 'Random Seed'] = 0
 
+    if 'Unnamed: 0' in scores.columns or len(scores.columns) > 11:
+        logger.debug("Found unnamed column or more than 11 columns. Skipping...")
+        return
+
     if Path(save_path, file_name).exists():
         logging.debug("Found existing scores...")
         logging.debug("Merging...")
         try:
             temp_scores = pd.read_csv(Path(save_path, file_name))
             scores = pd.concat([temp_scores, scores], ignore_index=True)
-        except:
+        except BaseException as ex:
             # continue without doing anything
+            logger.error("Error occured saving scores")
+            logger.error(ex)
+
             pass
 
     scores.to_csv(Path(save_folder, file_name), index=False)
@@ -183,8 +190,8 @@ if __name__ == '__main__':
                             test_data_sample = test_dataset.sample(frac=0.7, random_state=random_seed,
                                                                    replace=True)
                             # remove marker from test_data_sample
-                            #test_data_sample = test_data_sample.drop(columns=[marker])
-                            #if spatial_radius is not None:
+                            # test_data_sample = test_data_sample.drop(columns=[marker])
+                            # if spatial_radius is not None:
                             #    test_data_sample = test_data_sample.drop(columns=[f"{marker}_mean"])
 
                             test_data_sample.reset_index(drop=True, inplace=True)
