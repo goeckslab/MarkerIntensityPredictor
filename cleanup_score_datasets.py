@@ -25,6 +25,12 @@ def load_lgbm_scores(load_path: str, mode: str, network: str) -> pd.DataFrame:
                         print(file_name)
                         input()
 
+                    # check if score df contains nan
+                    if score.isnull().values.any():
+                        print(score)
+                        print(file_name)
+                        input()
+
                     scores.append(score)
 
         assert len(scores) == 8, f"Not all biopsies could be loaded for load path {load_path}"
