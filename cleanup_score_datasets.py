@@ -18,9 +18,9 @@ def load_lgbm_scores(load_path: str, mode: str, network: str) -> pd.DataFrame:
                     score = pd.read_csv(file_name, sep=",", header=0)
                     if 'Unnamed: 0' in score.columns:
                         print(file_name)
-                        print(scores)
+                        print(score)
                         input()
-                    scores.append(scores)
+                    scores.append(score)
 
         assert len(scores) == 8, f"Not all biopsies could be loaded for load path {load_path}"
         scores = pd.concat(scores, axis=0).sort_values(by=["Marker"])
