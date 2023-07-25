@@ -106,7 +106,7 @@ def prepare_lbgm_scores(save_path: Path):
     except BaseException as ex:
         print(ex)
         print("LGBM scores could not be cleaned up")
-
+        print(scores)
 
 def prepare_ae_scores(save_path: Path, imputation: str = None):
     print(f"Preparing ae scores with imputation {imputation}")
