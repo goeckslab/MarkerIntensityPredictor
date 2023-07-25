@@ -184,8 +184,8 @@ if __name__ == '__main__':
                                                                    replace=True)
                             # remove marker from test_data_sample
                             test_data_sample = test_data_sample.drop(columns=[marker])
-                            if spatial_radius is not None:
-                                test_data_sample = test_data_sample.drop(columns=[f"{marker}_mean"])
+                            #if spatial_radius is not None:
+                            #    test_data_sample = test_data_sample.drop(columns=[f"{marker}_mean"])
 
                             test_data_sample.reset_index(drop=True, inplace=True)
                             try:
