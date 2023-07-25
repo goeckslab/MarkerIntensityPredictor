@@ -20,7 +20,7 @@ def load_lgbm_scores(load_path: str, mode: str, network: str) -> pd.DataFrame:
                         score = score.drop(columns=['Unnamed: 0'])
 
                     # check if any other column is in df other than Marker       MAE       MSE      RMSE Biopsy Mode    FE Network  Hyper                                          Load Path  Random Seed
-                    if len(score.columns) == 12:
+                    if len(score.columns) > 11:
                         print(score)
                         print(file_name)
                         input()
