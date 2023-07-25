@@ -19,7 +19,8 @@ def load_lgbm_scores(load_path: str, mode: str, network: str) -> pd.DataFrame:
                     if 'Unnamed: 0' in score.columns:
                         score = score.drop(columns=['Unnamed: 0'])
 
-                    # check if any other column is in df other than Marker       MAE       MSE      RMSE Biopsy Mode    FE Network  Hyper                                          Load Path  Random Seed
+                    # check if any other column is in df other than Marker       MAE      MSE      RMSE Biopsy Mode
+                    # FE Network  Hyper                                          Load Path  Random Seed
                     if len(score.columns) > 11:
                         print(score)
                         print(file_name)
@@ -95,8 +96,8 @@ def prepare_lbgm_scores(save_path: Path):
         microns = [0, 23, 46, 92, 138, 184]
         scores = []
         for micron in tqdm(microns):
-            ip_path = f"data/scores/Mesmer/ip/Ludwig{f'_sp_{micron}' if micron != 0 else ''}"
-            exp_path = f"data/scores/Mesmer/exp/Ludwig{f'_sp_{micron}' if micron != 0 else ''}"
+            ip_path = f"data/scores/lgbm/ip/{micron}"
+            exp_path = f"data/scores/lgbm/exp/{micron}"
             scores.append(load_lgbm_scores(ip_path, "IP", "LGBM"))
             scores.append(load_lgbm_scores(exp_path, "EXP", "LGBM"))
 

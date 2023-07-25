@@ -38,16 +38,16 @@ def get_logger(
     return log
 
 
-def create_scores_dir(combination: str, radius: int, hyper: bool) -> Path:
-    scores_directory = Path("data/scores/Mesmer")
-    scores_directory = Path(scores_directory, combination)
+def create_scores_dir(mode: str, radius: int, hyper: bool) -> Path:
+    scores_directory = Path("data/scores/lgbm")
+    scores_directory = Path(scores_directory, mode)
 
     if radius is not None:
-        scores_directory = Path(scores_directory, f"Ludwig_sp_{radius}")
+        scores_directory = Path(scores_directory, f"{radius}")
     elif hyper:
         scores_directory = Path(scores_directory, f"Ludwig_hyper")
     else:
-        scores_directory = Path(scores_directory, f"Ludwig")
+        scores_directory = Path(scores_directory, "0")
 
     scores_directory = Path(scores_directory)
 
@@ -85,7 +85,7 @@ def save_scores(save_folder: Path, file_name: str, scores: List):
             scores = pd.concat([temp_scores, scores], ignore_index=True)
         except BaseException as ex:
             # continue without doing anything
-            logger.error("Error occured saving scores")
+            logger.error("Error occurred saving scores")
             logger.error(ex)
 
             pass
