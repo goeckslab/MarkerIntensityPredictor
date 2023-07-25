@@ -63,6 +63,8 @@ def save_scores(save_folder: Path, file_name: str, scores: List):
 
     # find empty rows
     empty_rows = scores.isnull().all(axis=1)
+    if empty_rows.any():
+        logging.debug(f"Found empty rows: {empty_rows.sum()}")
     # drop empty rows
     scores = scores[~empty_rows]
 
