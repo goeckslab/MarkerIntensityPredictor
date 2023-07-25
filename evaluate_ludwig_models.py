@@ -69,9 +69,9 @@ def save_scores(save_folder: Path, file_name: str, scores: List):
     scores = scores[~empty_rows]
 
     # find nan seed rows
-    nan_seed_rows = scores['seed'].isnull()
+    nan_seed_rows = scores['Random Seed'].isnull()
     # replace with 0
-    scores.loc[nan_seed_rows, 'seed'] = 0
+    scores.loc[nan_seed_rows, 'Random Seed'] = 0
 
     if Path(save_path, file_name).exists():
         logging.debug("Found existing scores...")
@@ -183,7 +183,7 @@ if __name__ == '__main__':
                             test_data_sample = test_dataset.sample(frac=0.7, random_state=random_seed,
                                                                    replace=True)
                             # remove marker from test_data_sample
-                            test_data_sample = test_data_sample.drop(columns=[marker])
+                            #test_data_sample = test_data_sample.drop(columns=[marker])
                             #if spatial_radius is not None:
                             #    test_data_sample = test_data_sample.drop(columns=[f"{marker}_mean"])
 
