@@ -164,7 +164,7 @@ if __name__ == '__main__':
     logger.debug(f"Base path: {base_path}")
     scores = []
 
-    save_path = create_scores_dir(combination=mode, radius=spatial_radius, hyper=hyper)
+    save_path = create_scores_dir(mode=mode, radius=spatial_radius, hyper=hyper)
     file_name = f"{test_biopsy_name}_scores.csv"
     logger.debug(f"Save path:  {str(save_path)}")
     logger.debug(f"File name: {file_name}")
