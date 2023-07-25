@@ -9,12 +9,33 @@ from typing import List
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
 
-logging.root.handlers = []
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s',
-                    handlers=[
-                        logging.FileHandler("ludwig_evaluation.log"),
-                        logging.StreamHandler()
-                    ])
+
+def get_logger(
+        LOG_FORMAT='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+        LOG_NAME='',
+        LOG_FILE_INFO='ludwig_evaluation.log',
+        LOG_FILE_ERROR='ludwig_evaluation.err'):
+    log = logging.getLogger(LOG_NAME)
+    log_formatter = logging.Formatter(LOG_FORMAT)
+
+    # comment this to suppress console output
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(log_formatter)
+    log.addHandler(stream_handler)
+
+    file_handler_info = logging.FileHandler(LOG_FILE_INFO, mode='w')
+    file_handler_info.setFormatter(log_formatter)
+    file_handler_info.setLevel(logging.INFO)
+    log.addHandler(file_handler_info)
+
+    file_handler_error = logging.FileHandler(LOG_FILE_ERROR, mode='w')
+    file_handler_error.setFormatter(log_formatter)
+    file_handler_error.setLevel(logging.ERROR)
+    log.addHandler(file_handler_error)
+
+    log.setLevel(logging.DEBUG)
+
+    return log
 
 
 def create_scores_dir(combination: str, radius: int, hyper: bool) -> Path:
@@ -75,17 +96,18 @@ if __name__ == '__main__':
     parser.add_argument("--iterations", "-i", type=int, default=101, help="The number of iterations")
     args = parser.parse_args()
 
+    logger = get_logger()
     spatial_radius: int = args.spatial
     mode = args.mode
     biopsy: str = args.biopsy
     hyper: bool = args.hyper
     iterations: int = args.iterations
 
-    logging.debug(f"Mode: {mode}")
-    logging.debug(f"Biopsy: {biopsy}")
-    logging.debug(f"Radius: {spatial_radius}")
-    logging.debug(f"Hyper: {hyper}")
-    logging.debug(f"Iterations: {iterations}")
+    logger.debug(f"Mode: {mode}")
+    logger.debug(f"Biopsy: {biopsy}")
+    logger.debug(f"Radius: {spatial_radius}")
+    logger.debug(f"Hyper: {hyper}")
+    logger.debug(f"Iterations: {iterations}")
 
     if mode == "ip":
         # change last number of biopsy to 1 if it is 2
@@ -94,8 +116,8 @@ if __name__ == '__main__':
         else:
             test_biopsy_name = biopsy[:-1] + "2"
 
-        logging.debug(biopsy)
-        logging.debug(test_biopsy_name)
+        logger.debug(biopsy)
+        logger.debug(test_biopsy_name)
         assert test_biopsy_name[-1] != biopsy[-1], "The bx should not be the same"
         if spatial_radius is None:
             test_dataset: pd.DataFrame = pd.read_csv(
@@ -115,7 +137,7 @@ if __name__ == '__main__':
     else:
         test_biopsy_name = biopsy
         assert test_biopsy_name == biopsy, "The bx should be the same"
-        logging.debug(test_biopsy_name)
+        logger.debug(test_biopsy_name)
 
         if spatial_radius is None:
             test_dataset: pd.DataFrame = pd.read_csv(
@@ -130,13 +152,13 @@ if __name__ == '__main__':
                      f"{test_biopsy_name}_preprocessed_dataset.tsv"), sep='\t')
             base_path = Path("mesmer", f"tumor_exp_patient_sp_{spatial_radius}", biopsy)
 
-    logging.debug(f"Base path: {base_path}")
+    logger.debug(f"Base path: {base_path}")
     scores = []
 
     save_path = create_scores_dir(combination=mode, radius=spatial_radius, hyper=hyper)
     file_name = f"{test_biopsy_name}_scores.csv"
-    logging.debug(f"Save path:  {str(save_path)}")
-    logging.debug(f"File name: {file_name}")
+    logger.debug(f"Save path:  {str(save_path)}")
+    logger.debug(f"File name: {file_name}")
     try:
         for marker in SHARED_MARKERS:
             results_path = Path(base_path, marker, "results")
@@ -147,10 +169,10 @@ if __name__ == '__main__':
                         try:
                             model = LudwigModel.load(str(Path(results_path, experiment, 'model')))
                         except KeyboardInterrupt as ex:
-                            logging.debug("Keyboard interrupt")
+                            logger.debug("Keyboard interrupt")
                             sys.exit(0)
                         except BaseException as ex:
-                            logging.error(ex)
+                            logger.error(ex)
                             continue
 
                         for i in tqdm(range(1, 10)):
@@ -167,14 +189,14 @@ if __name__ == '__main__':
                             try:
                                 eval_stats, _, _ = model.evaluate(dataset=test_data_sample)
                             except KeyboardInterrupt as ex:
-                                logging.debug("Keyboard interrupt")
+                                logger.debug("Keyboard interrupt")
                                 sys.exit(0)
                             except BaseException as ex:
-                                logging.error(f"Error occurred for experiment: {experiment}")
-                                logging.error(
+                                logger.error(f"Error occurred for experiment: {experiment}")
+                                logger.error(
                                     f"Model loaded using path: {str(Path(results_path, experiment, 'model'))}")
-                                logging.error(ex)
-                                logging.error("Continuing to next experiment")
+                                logger.error(ex)
+                                logger.error("Continuing to next experiment")
                                 continue
 
                             scores.append(
@@ -194,21 +216,21 @@ if __name__ == '__main__':
                             )
 
                             if i % 20 == 0:
-                                logging.debug("Temp saving scores...")
+                                logger.debug("Temp saving scores...")
                                 save_scores(scores=scores, save_folder=save_path, file_name=file_name)
                                 scores = []
 
                         if len(scores) > 0:
                             # Save scores after each experiment
-                            logging.debug("Temp saving scores...")
+                            logger.debug("Temp saving scores...")
                             save_scores(scores=scores, save_folder=save_path, file_name=file_name)
                             scores = []
 
         if len(scores) > 0:
-            logging.debug("Saving scores...")
+            logger.debug("Saving scores...")
             save_scores(scores=scores, save_folder=save_path, file_name=file_name)
     except KeyboardInterrupt as ex:
-        logging.debug("Detected Keyboard interrupt...")
-        logging.debug("Saving scores....")
+        logger.debug("Detected Keyboard interrupt...")
+        logger.debug("Saving scores....")
         if len(scores) > 0:
             save_scores(scores=scores, save_folder=save_path, file_name=file_name)
