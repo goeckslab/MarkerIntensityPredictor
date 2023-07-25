@@ -1,12 +1,10 @@
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import seaborn as sns
 from pathlib import Path
-import os, sys
+import os, sys, logging
 from typing import List
 from statannotations.Annotator import Annotator
-import logging
 
 logging_path = Path("plots", "figures", "fig4.log")
 logging.root.handlers = []
@@ -83,52 +81,8 @@ if __name__ == '__main__':
     # sort by marker and FE
     lgbm_scores.sort_values(by=["Marker", "FE"], inplace=True)
 
-    # load ae scores
-    ae_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "ae", "scores.csv"))
-
-    # sort by markers
-    # select only the scores for the 0 µm, 23 µm, 92 µm, 184 µm
-    ae_scores = ae_scores[ae_scores["FE"].isin([0, 23, 92, 184])]
-
-    # select only EXP mode, mean replace value, no noise and no hp in a one line statement
-    ae_scores = ae_scores[
-        (ae_scores["Mode"] == "EXP") & (ae_scores["Replace Value"] == "mean") & (ae_scores["Noise"] == 0) & (
-                ae_scores["HP"] == 0)]
-
-    # Add µm to the FE column
-    ae_scores["FE"] = ae_scores["FE"].astype(str) + " µm"
-    ae_scores["FE"] = pd.Categorical(ae_scores['FE'], ["0 µm", "23 µm", "92 µm", "184 µm"])
-    # sort by marker and FE
-    ae_scores.sort_values(by=["Marker", "FE"], inplace=True)
-
-    # load ae multi scores
-    ae_m_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "ae_m", "scores.csv"))
-
-    # sort by markers
-    # select only the scores for the 0 µm, 23 µm, 92 µm, 184 µm
-    ae_m_scores = ae_m_scores[ae_m_scores["FE"].isin([0, 23, 92, 184])]
-
-    # select only EXP mode, mean replace value, no noise and no hp in a one line statement
-    ae_m_scores = ae_m_scores[
-        (ae_m_scores["Mode"] == "EXP") & (ae_m_scores["Replace Value"] == "mean") & (ae_m_scores["Noise"] == 0) & (
-                ae_m_scores["HP"] == 0)]
-
-    # Add µm to the FE column
-    ae_m_scores["FE"] = ae_m_scores["FE"].astype(str) + " µm"
-    ae_m_scores["FE"] = pd.Categorical(ae_m_scores['FE'], ["0 µm", "23 µm", "92 µm", "184 µm"])
-    # sort by marker and FE
-    ae_m_scores.sort_values(by=["Marker", "FE"], inplace=True)
-
-    # Remove outliers for MAE and RMSE by only keeping the values that are within +3 to -3 standard deviations
-    ae_m_scores = ae_m_scores[np.abs(ae_m_scores["MAE"] - ae_m_scores["MAE"].mean()) <= (3 * ae_m_scores["MAE"].std())]
-    # ae_m_scores = ae_m_scores[np.abs(ae_m_scores["RMSE"] - ae_m_scores["RMSE"].mean()) <= (3 * ae_m_scores["RMSE"].std())]
-
     # load image from images fig3 folder
     spatial_information_image = plt.imread(Path("images", "fig4", "Panel_A.png"))
-
-    image_path = Path("plots", "figures", "fig4_subplots")
-    if not image_path.exists():
-        image_path.mkdir(parents=True)
 
     dpi = 300
     cm = 1 / 2.54  # centimeters in inches
@@ -136,7 +90,7 @@ if __name__ == '__main__':
     fig = plt.figure(figsize=(18.5 * cm, 12 * cm), dpi=dpi)
     gspec = fig.add_gridspec(2, 3)
 
-    ax1 = fig.add_subplot(gspec[0, 0])
+    ax1 = fig.add_subplot(gspec[0, :2])
     # remove box from ax1
     plt.box(False)
     # remove ticks from ax1
@@ -147,26 +101,16 @@ if __name__ == '__main__':
     # show spatial information image
     ax1.imshow(spatial_information_image, aspect='auto')
 
-    ax3 = fig.add_subplot(gspec[1, :])
-    ax3.set_title('LGBM 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.1, y=-0.2, fontsize=7)
-    ax3.text(-0.05, 1.1, "B", transform=ax3.transAxes,
+    ax2 = fig.add_subplot(gspec[1, :])
+    ax2.set_title('LGBM 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.1, y=-0.2, fontsize=7)
+    ax2.text(-0.05, 1.1, "B", transform=ax2.transAxes,
              fontsize=7, fontweight='bold', va='top', ha='right')
     # remove box from ax3
     plt.box(False)
 
     # ax3 = ax3.imshow(lgbm_results)
-    ax3 = create_boxen_plot(data=lgbm_scores, metric="MAE", ylim=[0, 0.5],
+    ax2 = create_boxen_plot(data=lgbm_scores, metric="MAE", ylim=[0, 0.5],
                             microns=["0 µm", "23 µm", "92 µm", "184 µm"])
-
-    # ax4 = fig.add_subplot(gspec[2, :])
-    # ax4.set_title('AE 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.1, y=-0.2, fontsize=7)
-    # ax4.text(-0.05, 1.1, "D", transform=ax4.transAxes,
-    #         fontsize=7, fontweight='bold', va='top', ha='right')
-    # remove box from ax4
-    # plt.box(False)
-    # ax4.imshow(ae_results)
-    # ax4 = create_boxen_plot(data=ae_scores, metric="MAE", ylim=[0, 0.5],
-    #                            microns=["0 µm", "23 µm", "92 µm", "184 µm"])
 
     plt.tight_layout()
     plt.savefig(Path(save_path, "fig4.png"), dpi=300, bbox_inches='tight')
