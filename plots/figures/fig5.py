@@ -33,7 +33,7 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, ylim: List, microns: List
 
     # reduce font size of x and y ticks
     ax.tick_params(axis='both', which='major', labelsize=8)
-    plt.ylim(0, 0.4)
+    plt.ylim(ylim[0], ylim[1])
 
     pairs = []
     for micron in microns:
@@ -149,7 +149,7 @@ if __name__ == '__main__':
     dpi = 300
     cm = 1 / 2.54  # centimeters in inches
     # Create new figure
-    fig = plt.figure(figsize=(18 * cm, 20 * cm), dpi=dpi)
+    fig = plt.figure(figsize=(22 * cm, 18 * cm), dpi=dpi)
     gspec = fig.add_gridspec(3, 3)
 
     ax1 = fig.add_subplot(gspec[0, :])
