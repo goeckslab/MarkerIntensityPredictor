@@ -14,7 +14,7 @@ if __name__ == '__main__':
     parser.add_argument("--marker", help="the predicted marker", required=True)
     parser.add_argument("--biopsy", "-b", help="the biopsy used", required=True)
     parser.add_argument("--mode", choices=["ip", "exp"], default="ip", help="the mode used")
-    parser.add_argument("--network", choices=["EN", "LGBM", "AE", "GNN"], help="the network used", required=True)
+    parser.add_argument("--network", choices=["EN", "LGBM", "AE", "GNN", "AE M", "AE ALL"], help="the network used", required=True)
     args = parser.parse_args()
     marker: str = args.marker
     network: str = args.network
