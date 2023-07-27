@@ -184,7 +184,7 @@ def impute_marker(test_data: Data, subset: int, scores: List, all_predictions: D
                     append_scores_per_iteration(scores=scores, test_biopsy_name=biopsy_name,
                                                 predictions=marker_prediction,
                                                 ground_truth=pd.DataFrame(test_data.x, columns=columns),
-                                                hp=False, type=mode, iteration=i, marker=marker,
+                                                hp=False, type=mode, iteration=iteration, marker=marker,
                                                 spatial_radius=spatial_radius, experiment_id=experiment_id,
                                                 replace_value=replace_value, subset=subset)
 
@@ -193,6 +193,10 @@ def impute_marker(test_data: Data, subset: int, scores: List, all_predictions: D
                         logging.debug("Performing temp save...")
                         save_scores(save_folder=save_folder, file_name=file_name, scores=scores)
                         scores = []
+
+        if len(scores) > 0:
+            save_scores(save_folder=save_folder, file_name=file_name, scores=scores)
+            scores = []
 
     except KeyboardInterrupt as ex:
         logging.error("Keyboard interrupt detected.")
@@ -268,10 +272,12 @@ if __name__ == '__main__':
         logging.debug(str(Path(raw_data_folder, test_biopsy_name)))
         raw_test_set: pd.DataFrame = pd.read_csv(str(Path(raw_data_folder, f"{test_biopsy_name}.csv")), header=0)
 
-        logging.debug(f"Loading train data using path:  {str(Path(prepared_data_folder, test_biopsy_name, str(spatial_radius), f'train_set.csv'))}")
+        logging.debug(
+            f"Loading train data using path:  {str(Path(prepared_data_folder, test_biopsy_name, str(spatial_radius), f'train_set.csv'))}")
         raw_test_set: pd.DataFrame = clean_column_names(raw_test_set)
-        train_set = pd.read_csv(str(Path(prepared_data_folder, test_biopsy_name, str(spatial_radius), f"train_set.csv")),
-                                header=0)
+        train_set = pd.read_csv(
+            str(Path(prepared_data_folder, test_biopsy_name, str(spatial_radius), f"train_set.csv")),
+            header=0)
         train_edge_index = torch.load(
             str(Path(prepared_data_folder, test_biopsy_name, str(spatial_radius), f"train_edge_index.pt")))
 
@@ -349,7 +355,7 @@ if __name__ == '__main__':
                                y=test_data_sample['CD45'].values)
 
         impute_marker(test_data=test_data, subset=i, scores=scores, all_predictions=predictions,
-                      store_predictions=False, columns=test_data_sample.columns, replace_value=replace_value,
+                      store_predictions=False, columns=MARKERS, replace_value=replace_value,
                       iterations=iterations, biopsy_name=test_biopsy_name, save_folder=save_folder,
                       file_name=score_file_name)
 
@@ -362,7 +368,7 @@ if __name__ == '__main__':
                            y=test_set['CD45'].values)
 
     impute_marker(test_data=test_data, subset=0, scores=scores, all_predictions=predictions, store_predictions=True,
-                  columns=test_set.columns, replace_value=replace_value, iterations=iterations,
+                  columns=MARKERS, replace_value=replace_value, iterations=iterations,
                   biopsy_name=test_biopsy_name, save_folder=save_folder, file_name=score_file_name)
 
     # Convert to df
