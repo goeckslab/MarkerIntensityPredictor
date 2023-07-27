@@ -3,6 +3,8 @@ from pathlib import Path
 import os, shutil, argparse, logging
 from typing import Dict, List
 import numpy as np
+import datetime
+import traceback
 
 MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
            'pERK', 'EGFR', 'ER']
@@ -35,7 +37,7 @@ AE_ALL_PATHS = [
 logging.root.handlers = []
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[
-                        logging.FileHandler("plots/debug.log"),
+                        logging.FileHandler("predictions/debug.log"),
                         logging.StreamHandler()
                     ])
 
@@ -66,6 +68,10 @@ def calculate_quartile_performance(ground_truth: pd.DataFrame, marker: str, pred
     pred_quartile_2 = predictions.loc[gt_quartile_2.index]
     pred_quartile_3 = predictions.loc[gt_quartile_3.index]
     pred_quartile_4 = predictions.loc[gt_quartile_4.index]
+
+    print("PRedcitions")
+    print(pred_quartile_1)
+    input()
 
     # Calculate MAE for all quartiles
     mae_1 = np.mean(np.abs(gt_quartile_1[marker] - pred_quartile_1["prediction"]))
@@ -340,11 +346,13 @@ def create_ae_predictions(save_path: Path, imputation_mode: str = None):
     if not ae_save_path.exists():
         ae_save_path.mkdir(parents=True)
 
-    print(f"Creating AE predictions for {imputation_mode}...")
+    logging.info(f"Creating AE predictions for {imputation_mode}...")
     columns = [marker for marker in MARKERS]
     columns.append("Biopsy")
     columns.append("Mode")
 
+    biopsy_predictions = {}
+    biopsy_counter = {}
     predictions = pd.DataFrame(columns=columns)
     quartile_performance = pd.DataFrame(columns=["MAE", "Quartile", "Marker", "Biopsy", "Mode", "Experiment"])
 
@@ -366,94 +374,133 @@ def create_ae_predictions(save_path: Path, imputation_mode: str = None):
 
                 logging.debug("Current path: " + str(current_path))
 
-                biopsy = str(current_path).split('/')[-2]
-                print(biopsy)
-                input()
+                try:
+                    scores = pd.read_csv(Path(current_path, "scores.csv"))
+                except FileNotFoundError:
+                    logging.debug(f"Scores not found for {current_path}")
+                    continue
 
-                logging.debug(f"Loading ground truth data for biopsy {biopsy}...")
-                ground_truth = pd.read_csv(
-                    Path("data", "cleaned_data", "ground_truth", f"{biopsy}_preprocessed_dataset.tsv"),
-                    sep='\t')
-                for experiment_run in os.listdir(biopsy_path):
-                    if not Path(biopsy_path, experiment_run).is_dir():
-                        continue
+                except KeyboardInterrupt:
+                    logging.debug("Keyboard interrupt")
+                    exit()
 
-                    results_path = Path(biopsy_path, experiment_run)
-                    results_path_splits = str(results_path).split('/')
-                    experiment_id = 0 if results_path_splits[-1] == "experiment_run" else int(
-                        results_path_splits[-1].split("_")[-1])
+                except BaseException as ex:
+                    logging.error(f"Error occurred at {datetime.datetime.now()}")
+                    logging.error(f"Error loading score files for path {current_path}")
+                    logging.error(ex)
+                    logging.error(traceback.format_exc())
+                    continue
 
-                    try:
-                        # Load prediction 5 - 9
-                        marker_predictions_5 = pd.read_csv(
-                            Path(results_path, "5_predictions.csv"))
-                        marker_predictions_6 = pd.read_csv(
-                            Path(results_path, "6_predictions.csv"))
-                        marker_predictions_7 = pd.read_csv(
-                            Path(results_path, "7_predictions.csv"))
-                        marker_predictions_8 = pd.read_csv(
-                            Path(results_path, "8_predictions.csv"))
-                        marker_predictions_9 = pd.read_csv(
-                            Path(results_path, "9_predictions.csv"))
+                biopsy: str = scores["Biopsy"].values[0]
+                mode: str = scores["Mode"].values[0]
+                experiment_id: int = int(scores["Experiment"].values[0])
+                replace_value: str = scores["Replace Value"].values[0]
+                noise: int = int(scores["Noise"].values[0])
+                radius: int = int(scores["FE"].values[0])
+                hyper = int(scores["HP"].values[0])
 
-                        # calculate mean per cell over all marker predictions
-                        marker_predictions = (
-                                                     marker_predictions_5 + marker_predictions_6 + marker_predictions_7 + marker_predictions_8 + marker_predictions_9) / 5
+                assert mode == "ip" or mode == "exp", f"Mode {mode} not in ['ip', 'exp']"
+                assert biopsy in biopsies, f"Biopsy {biopsy} not in biopsies"
+                assert radius in [0, 23, 46, 92, 138, 184], f"Noise {noise} not in [0, 23,46,92,138,184]"
+                assert hyper in [0, 1], f"Hyper {hyper} not in [0,1]"
+                assert replace_value in ["mean", "zero"], f"Replace value {replace_value} not in ['mean', 'zero']"
 
-                        for marker in MARKERS:
-                            # calculate mae for all quartiles
-                            mae_1, mae_2, mae_3, mae_4, quartiles = calculate_quartile_performance(
-                                ground_truth=ground_truth, marker=marker, predictions=marker_predictions, std=2)
+                try:
+                    logging.debug(f"Loading ground truth data for biopsy {biopsy}...")
+                    ground_truth = pd.read_csv(
+                        Path("data", "cleaned_data", "ground_truth", f"{biopsy}_preprocessed_dataset.tsv"),
+                        sep='\t')
+                except KeyboardInterrupt as ex:
+                    logging.debug("Keyboard interrupt")
+                    exit()
 
-                            quartile_performance: pd.DataFrame = pd.concat([quartile_performance, pd.DataFrame(
-                                {"MAE": [mae_1, mae_2, mae_3, mae_4], "Quartile": ["Q1", "Q2", "Q3", "Q4"],
-                                 "Threshold": [quartiles[marker][0.25], quartiles[marker][0.5],
-                                               quartiles[marker][0.75],
-                                               quartiles[marker][0.75]], "Marker": marker,
-                                 "Biopsy": biopsy,
-                                 "Mode": mode,
-                                 "Load Path": str(results_path),
-                                 "Experiment": experiment_id,
-                                 "Std": 2
-                                 })])
+                except BaseException as ex:
+                    logging.error(f"Error occurred at {datetime.datetime.now()}")
+                    logging.error(f"Error loading ground truth data for biopsy {biopsy}")
+                    logging.error(ex)
+                    logging.error(traceback.format_exc())
+                    continue
 
-                    except BaseException as ex:
-                        print("Could not load predictions")
-                        print(ex)
-                        continue
+                try:
+                    # Load prediction 5 - 9
+                    marker_predictions_5 = pd.read_csv(
+                        Path(current_path, "5_predictions.csv"))
+                    marker_predictions_6 = pd.read_csv(
+                        Path(current_path, "6_predictions.csv"))
+                    marker_predictions_7 = pd.read_csv(
+                        Path(current_path, "7_predictions.csv"))
+                    marker_predictions_8 = pd.read_csv(
+                        Path(current_path, "8_predictions.csv"))
+                    marker_predictions_9 = pd.read_csv(
+                        Path(current_path, "9_predictions.csv"))
 
-                    biopsy_predictions[experiment_id] = pd.DataFrame(columns=columns,
-                                                                     data=marker_predictions)
+                    # calculate mean per cell over all marker predictions
+                    marker_predictions = (marker_predictions_5 + marker_predictions_6 + marker_predictions_7
+                                          + marker_predictions_8 + marker_predictions_9) / 5
 
-                    # calculate mean prediction dataframe from all experiments for this biopsy
-                biopsy_mean_predictions = pd.DataFrame(columns=columns)
-                for experiment in biopsy_predictions.keys():
-                    if len(biopsy_mean_predictions) == 0:
-                        biopsy_mean_predictions = \
-                            biopsy_predictions[experiment][columns]
+                    marker_predictions = marker_predictions[MARKERS].copy()
+
+                    unique_key = f"{biopsy}||{mode}||{replace_value}||{noise}||{radius}||{hyper}"
+
+                    if unique_key not in biopsy_predictions:
+                        biopsy_counter[unique_key] = 1
+                        biopsy_predictions[unique_key] = marker_predictions
 
                     else:
-                        biopsy_mean_predictions = biopsy_mean_predictions + biopsy_predictions[experiment][
-                            columns]
-
-                # divide by number of experiments
-                biopsy_mean_predictions = biopsy_mean_predictions / len(
-                    biopsy_predictions.keys())
-
-                # add biopsy id to dataframe
-                biopsy_mean_predictions["Biopsy"] = biopsy
-                # add mode to dataframe
-                biopsy_mean_predictions["Mode"] = mode
-
-                # add experiment id to dataframe
-                predictions = pd.concat([predictions, biopsy_mean_predictions], ignore_index=True)
+                        biopsy_counter[unique_key] += 1
+                        biopsy_temp_df = biopsy_predictions[unique_key]
+                        biopsy_predictions[unique_key] = biopsy_temp_df + marker_predictions
+                        biopsy_predictions[unique_key] = biopsy_predictions[unique_key] / biopsy_counter[unique_key]
 
 
-                predictions.to_csv(Path(ae_save_path, "predictions.csv"), index=False)
 
-    # remove all nan from quartile performance
-    quartile_performance = quartile_performance.dropna()
-    quartile_performance.to_csv(Path(save_path, "quartile_performance.csv"), index=False)
+                except KeyboardInterrupt as ex:
+                    logging.debug("Keyboard interrupt")
+                    exit()
+
+                except BaseException as ex:
+                    logging.error(f"Error occurred at {datetime.datetime.now()}")
+                    logging.error(f"Error loading prediction files for path {current_path}")
+                    logging.error(ex)
+                    logging.error(traceback.format_exc())
+                    continue
+
+    if imputation_mode is None:
+        save_path = Path("data", "cleaned_data", "predictions", "ae")
+    elif imputation_mode == "Multi":
+        save_path = Path("data", "cleaned_data", "predictions", "ae_m")
+    else:
+        save_path = Path("data", "cleaned_data", "predictions", "ae_all")
+    for key in biopsy_predictions.keys():
+        mean_biopsy_predictions = biopsy_predictions[key]
+        # f"{biopsy}_{mode}_{replace_value}_{noise}_{radius}_{hyper}"
+        key_splits = key.split("||")
+
+        print(key_splits)
+        biopsy = key_splits[0]
+        mode = key_splits[1]
+        replace_value = key_splits[2]
+        noise = int(key_splits[3])
+        fe = int(key_splits[4])
+        hp = int(key_splits[5])
+
+        mean_biopsy_predictions["Biopsy"] = biopsy
+        mean_biopsy_predictions["Mode"] = mode
+        mean_biopsy_predictions["Replace Value"] = replace_value
+        mean_biopsy_predictions["Noise"] = noise
+        mean_biopsy_predictions["FE"] = fe
+        mean_biopsy_predictions["HP"] = hp
+
+        # convert fe , hp and noise to int
+        mean_biopsy_predictions["FE"] = mean_biopsy_predictions["FE"].astype(int)
+        mean_biopsy_predictions["HP"] = mean_biopsy_predictions["HP"].astype(int)
+        mean_biopsy_predictions["Noise"] = mean_biopsy_predictions["Noise"].astype(int)
+
+        predictions = pd.concat([predictions, mean_biopsy_predictions], ignore_index=True)
+
+    if not save_path.exists():
+        save_path.mkdir(parents=True, exist_ok=True)
+    predictions.to_csv(Path(save_path, f"predictions.csv"), index=False)
 
 
 def setup_log_file(save_path: Path):
@@ -489,7 +536,7 @@ if __name__ == '__main__':
         print("Creating lgbm & ae predictions...")
         create_lgbm_predictions(save_path=save_path)
     elif model == "AE":
-        create_ae_predictions(save_path=save_path, imputation_mode="Single")
+        create_ae_predictions(save_path=save_path)
     elif model == "AE M":
         create_ae_predictions(save_path=save_path, imputation_mode="Multi")
 
