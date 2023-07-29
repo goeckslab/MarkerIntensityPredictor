@@ -19,21 +19,6 @@ def load_lgbm_scores(load_path: str, mode: str, network: str) -> pd.DataFrame:
                     if 'Unnamed: 0' in score.columns:
                         score = score.drop(columns=['Unnamed: 0'])
 
-                    # check if any other column is in df other than Marker       MAE      MSE      RMSE Biopsy Mode
-                    # FE Network  Hyper                                          Load Path  Random Seed
-                    if len(score.columns) > 11:
-                        print(score)
-                        print(file_name)
-                        input()
-
-                    # check if score df contains nan
-                    if score.isnull().values.any():
-                        print(score)
-                        print(file_name)
-                        # print the rows with nan
-                        print(score[score.isnull().any(axis=1)])
-                        input()
-
                     scores.append(score)
 
         assert len(scores) == 8, f"Not all biopsies could be loaded for load path {load_path}"

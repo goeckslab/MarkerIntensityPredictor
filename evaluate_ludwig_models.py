@@ -102,7 +102,7 @@ if __name__ == '__main__':
                         choices=[23, 46, 92, 138, 184])
     parser.add_argument('--mode', type=str, choices=['ip', 'exp'], help="The mode", default='ip')
     parser.add_argument('--hyper', action="store_true", help="Use hyperopt", default=False)
-    parser.add_argument("--iterations", "-i", type=int, default=101, help="The number of iterations")
+    parser.add_argument("--subsets", "-s", type=int, default=101, help="The number of subsets")
     args = parser.parse_args()
 
     logger = get_logger()
@@ -110,13 +110,13 @@ if __name__ == '__main__':
     mode = args.mode
     biopsy: str = args.biopsy
     hyper: bool = args.hyper
-    iterations: int = args.iterations
+    subsets: int = args.subsets
 
     logger.debug(f"Mode: {mode}")
     logger.debug(f"Biopsy: {biopsy}")
     logger.debug(f"Radius: {spatial_radius}")
     logger.debug(f"Hyper: {hyper}")
-    logger.debug(f"Iterations: {iterations}")
+    logger.debug(f"Subsets: {subsets}")
 
     if mode == "ip":
         # change last number of biopsy to 1 if it is 2
@@ -184,7 +184,7 @@ if __name__ == '__main__':
                             logger.error(ex)
                             continue
 
-                        for i in tqdm(range(1, 10)):
+                        for i in tqdm(range(1, subsets)):
                             random_seed = random.randint(0, 100000)
                             # sample new dataset from test_data
                             test_data_sample = test_dataset.sample(frac=0.7, random_state=random_seed,
