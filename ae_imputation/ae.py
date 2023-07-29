@@ -1,8 +1,7 @@
 import random
-
 from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.models import Model, Sequential
-import os, argparse
+import os, argparse, logging
 from pathlib import Path
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
@@ -12,8 +11,6 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 from tensorflow.keras.losses import MeanSquaredError
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping
-import keras_tuner as kt
-import shutil
 from typing import List, Dict
 from tqdm import tqdm
 
@@ -23,6 +20,26 @@ SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', '
 SHARED_SPATIAL_FEATURES = ['pRB_mean', "CD45_mean", "CK19_mean", "Ki67_mean", "aSMA_mean", "Ecad_mean", "PR_mean",
                            "CK14_mean", "HER2_mean", "AR_mean", "CK17_mean", "p21_mean", "Vimentin_mean", "pERK_mean",
                            "EGFR_mean", "ER_mean"]
+
+logging.root.handlers = []
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s',
+                    handlers=[
+                        logging.FileHandler("ae_imputation_m/debug.log"),
+                        logging.StreamHandler()
+                    ])
+
+
+def setup_log_file(save_path: Path):
+    save_file = Path(save_path, "debug.log")
+    file_logger = logging.FileHandler(save_file, 'a')
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_logger.setFormatter(formatter)
+
+    log = logging.getLogger()  # root logger
+    for handler in log.handlers[:]:  # remove all old handlers
+        log.removeHandler(handler)
+    log.addHandler(file_logger)
+    log.addHandler(logging.StreamHandler())
 
 
 def clean_column_names(df: pd.DataFrame):
@@ -37,81 +54,6 @@ def clean_column_names(df: pd.DataFrame):
         df = df.rename(columns={"Rb": "pRB"})
 
     return df
-
-
-class Hyperopt:
-    @staticmethod
-    def build_model(hp):
-        input_layer = Input(shape=(16,))
-
-        # Encoder
-        encoded = Dense(units=hp.Int('enc_1', min_value=8, max_value=16, step=2), activation='relu')(input_layer)
-
-        latent_space = Dense(units=hp.Int('latent_space', min_value=5, max_value=8, step=2))(encoded)
-
-        # Decoder
-        decoded = Dense(units=hp.Int('dec_2', min_value=8, max_value=16, step=2), activation='relu')(latent_space)
-        decoded = Dense(units=16, activation='relu')(decoded)
-
-        # Autoencoder
-        autoencoder = Model(inputs=input_layer, outputs=decoded)
-        hp_learning_rate = hp.Choice('learning_rate', values=[1e-2, 1e-3, 1e-4])
-        # Compile the model
-        autoencoder.compile(optimizer=Adam(learning_rate=hp_learning_rate), loss=MeanSquaredError())
-
-        return autoencoder
-
-    @staticmethod
-    def build_spatial_model(hp):
-        input_layer = Input(shape=(32,))
-
-        # Encoder
-        encoded = Dense(units=hp.Int('enc_1', min_value=8, max_value=16, step=2), activation='relu')(input_layer)
-
-        latent_space = Dense(units=hp.Int('latent_space', min_value=5, max_value=8, step=2))(encoded)
-
-        # Decoder
-        decoded = Dense(units=hp.Int('dec_2', min_value=8, max_value=16, step=2), activation='relu')(latent_space)
-        decoded = Dense(units=32, activation='relu')(decoded)
-
-        # Autoencoder
-        autoencoder = Model(inputs=input_layer, outputs=decoded)
-        hp_learning_rate = hp.Choice('learning_rate', values=[1e-2, 1e-3, 1e-4])
-        # Compile the model
-        autoencoder.compile(optimizer=Adam(learning_rate=hp_learning_rate), loss=MeanSquaredError())
-
-        return autoencoder
-
-    @staticmethod
-    def run(hyperopt_project_name: str, train_data, val_data, spatial: bool):
-        if spatial:
-            tuner = kt.Hyperband(Hyperopt.build_spatial_model,
-                                 objective="val_loss",
-                                 max_epochs=50,
-                                 factor=3,
-                                 directory=hyperopt_directory,
-                                 project_name=hyperopt_project_name,
-                                 hyperband_iterations=2)
-        else:
-            tuner = kt.Hyperband(Hyperopt.build_model,
-                                 objective="val_loss",
-                                 max_epochs=50,
-                                 factor=3,
-                                 directory=hyperopt_directory,
-                                 project_name=hyperopt_project_name,
-                                 hyperband_iterations=2)
-        stop_early = EarlyStopping(monitor='val_loss', patience=5)
-        tuner.search(train_data, train_data, epochs=50, validation_data=(val_data, val_data),
-                     callbacks=[stop_early])
-
-        # Get the optimal hyperparameters
-        best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
-
-        model = tuner.hypermodel.build(best_hps)
-        history = model.fit(train_data, train_data, epochs=50,
-                            validation_data=(val_data, val_data), callbacks=[stop_early])
-
-        return model
 
 
 class AutoEncoder(Model):
@@ -145,9 +87,9 @@ def save_scores(save_folder: str, file_name: str, new_scores: pd.DataFrame):
     new_scores.to_csv(f"{save_folder}/{file_name}", index=False)
 
 
-def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict, hp: bool,
+def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
                    mode: str, spatial_radius: int, experiment_id: int, save_folder: str, file_name: str,
-                   replace_value: str, add_noise: bool, iterations: int, store_predictions: bool, subset: int):
+                   replace_value: str, iterations: int, store_predictions: bool, subset: int):
     try:
         for marker in SHARED_MARKERS:
             print(f"Imputing marker {marker}")
@@ -155,53 +97,39 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
             input_data = test_data.copy()
             if replace_value == "zero":
                 input_data[marker] = 0
-                if spatial_radius > 0:
+                if int(spatial_radius) > 0:
                     input_data[f"{marker}_mean"] = 0
             elif replace_value == "mean":
                 mean = input_data[marker].mean()
                 input_data[marker] = mean
-                if spatial_radius > 0:
+                if int(spatial_radius) > 0:
                     input_data[f"{marker}_mean"] = mean
 
             marker_prediction = input_data.copy()
             for iteration in range(iterations):
-                if hp:
-                    predicted_intensities = ae.predict(marker_prediction)
-                else:
-                    predicted_intensities = ae.decoder.predict(ae.encoder.predict(marker_prediction))
+
+                predicted_intensities = ae.decoder.predict(ae.encoder.predict(marker_prediction))
 
                 predicted_intensities = pd.DataFrame(data=predicted_intensities, columns=test_data.columns)
                 if store_predictions:
                     all_predictions[iteration][marker] = predicted_intensities[marker].values
 
-                if not replace_all_markers:
-                    imputed_marker = predicted_intensities[marker].values
-                    marker_prediction = input_data.copy()
-                    marker_prediction[marker] = imputed_marker
-
-                    if add_noise:
-                        noise = create_noise(shape=marker_prediction.shape, columns=test_data.columns)
-                        marker_prediction[marker] = marker_prediction[marker].values + noise[marker].values
-
-                else:
-                    marker_prediction = predicted_intensities.copy()
-                    if add_noise:
-                        noise = create_noise(shape=marker_prediction.shape, columns=test_data.columns)
-                        marker_prediction = marker_prediction + noise
+                imputed_marker = predicted_intensities[marker].values
+                marker_prediction[marker] = imputed_marker
 
                 scores.append({
                     "Marker": marker,
                     "Biopsy": test_biopsy_name,
                     "MAE": mean_absolute_error(marker_prediction[marker], test_data[marker]),
                     "RMSE": mean_squared_error(marker_prediction[marker], test_data[marker], squared=False),
-                    "HP": int(hp),
+                    "HP": 0,
                     "Mode": mode,
                     "Imputation": 1,
                     "Iteration": iteration,
                     "FE": spatial_radius,
                     "Experiment": int(f"{experiment_id}{subset}"),
                     "Network": "AE",
-                    "Noise": int(add_noise),
+                    "Noise": 0,
                     "Replace Value": replace_value
                 })
 
@@ -224,38 +152,25 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
         raise
 
     except Exception as ex:
-        print(ex)
-        print("Test truth:")
-        print(test_data)
-        print("Predictions:")
-        print(predictions)
-        print(mode)
-        print(spatial_radius)
-        print(experiment_id)
-        print(replace_value)
-        print(add_noise)
-        print(hp)
+        logging.error(ex)
+        logging.error("Test truth:")
+        logging.error(test_data)
+        logging.error("Predictions:")
+        logging.error(predictions)
+        logging.error(mode)
+        logging.error(spatial_radius)
+        logging.error(experiment_id)
+        logging.error(replace_value)
 
         raise
 
 
-def create_results_folder(spatial_radius: str, hp: bool) -> [Path, int]:
-    if replace_all_markers:
-        save_folder = Path(f"ae_imputation", f"{patient_type}_replace_all")
-    else:
-        save_folder = Path(f"ae_imputation", patient_type)
+def create_results_folder(spatial_radius: str) -> [Path, int]:
+    save_folder = Path(f"ae_imputation", patient_type)
 
     save_folder = Path(save_folder, replace_value)
-    if add_noise:
-        save_folder = Path(save_folder, "noise")
-    else:
-        save_folder = Path(save_folder, "no_noise")
 
     save_folder = Path(save_folder, test_biopsy_name)
-    if hp:
-        save_folder = Path(save_folder, "hp")
-    else:
-        save_folder = Path(save_folder, "no_hp")
     save_folder = Path(save_folder, spatial_radius)
 
     experiment_id = 0
@@ -286,44 +201,29 @@ if __name__ == '__main__':
     parser.add_argument("-m", "--mode", required=True, choices=["ip", "exp"], default="ip")
     parser.add_argument("-sp", "--spatial", required=False, default="0", choices=["0", "23", "46", "92", "138", "184"],
                         type=str)
-    parser.add_argument("-hp", "--hyper", action="store_true", required=False, default=False,
-                        help="Should hyper parameter tuning be used?")
     parser.add_argument("-o", "--override", action='store_true', default=False, help="Override existing hyperopt")
     parser.add_argument("-i", "--iterations", action="store", default=10, type=int)
-    parser.add_argument("--replace_all", action="store_true", default=False,
-                        help="Instead of only replacing the imputed marker values, replace all values")
     parser.add_argument("-rm", "--replace_mode", action="store", type=str, choices=["mean", "zero"], default="zero")
-    parser.add_argument("-an", "--an", action="store_true", default=False, help="Add noise to each iteration")
+    parser.add_argument("-s", "--subsets", action="store", default=1, type=int, help="Number of subsets to use")
     args = parser.parse_args()
 
     patient_type = args.mode
-    hp: bool = args.hyper
     iterations: int = args.iterations
-    replace_all_markers = args.replace_all
     replace_value: str = args.replace_mode
-    add_noise: bool = args.an
-    spatial = args.spatial
+    spatial: str = args.spatial
+    subsets: int = args.subsets
 
-    print("Replace all markers: ", replace_all_markers)
     print("Replace value: ", replace_value)
-    print("Add noise: ", add_noise)
 
     # Load test data
     test_biopsy_name = args.biopsy
     patient: str = "_".join(Path(test_biopsy_name).stem.split("_")[:2])
-    scores_file_name = "scores.csv" if not hp else "hp_scores.csv"
+    scores_file_name = "scores.csv"
     print(scores_file_name)
 
-    save_folder, experiment_id = create_results_folder(spatial_radius=spatial, hp=hp)
+    save_folder, experiment_id = create_results_folder(spatial_radius=spatial)
 
-    if hp:
-        print("Using hyper parameter tuning")
-        hyperopt_project_name = f"{test_biopsy_name}_{patient_type}_{spatial}_{add_noise}_{replace_value}_{experiment_id}_hp"
-        hyperopt_directory = Path("ae_imputation/ae_hyperopt")
-        hyper_opt_project_directory = Path(hyperopt_directory, hyperopt_project_name)
-        if hyper_opt_project_directory.exists():
-            shutil.rmtree(hyper_opt_project_directory)
-        hyper_opt_project_directory.mkdir(parents=True, exist_ok=True)
+    setup_log_file(save_path=save_folder)
 
     # Load train data
     if patient_type == "ip":
@@ -414,20 +314,14 @@ if __name__ == '__main__':
     for i in range(iterations):
         predictions[i] = pd.DataFrame(columns=test_data.columns)
 
-    if hp:
-        # Hyperopt section
-        ae = Hyperopt.run(hyperopt_project_name=hyperopt_project_name, train_data=train_data, val_data=val_data,
-                          spatial=False if spatial == "0" else True)
+    # Create ae
+    callbacks = [EarlyStopping(monitor='val_loss', patience=5)]
+    ae = AutoEncoder(input_dim=train_data.shape[1], latent_dim=5)
+    ae.compile(optimizer=Adam(learning_rate=0.001), loss=MeanSquaredError())
+    history = ae.fit(train_data, train_data, epochs=100, batch_size=32, shuffle=True,
+                     validation_data=(val_data, val_data), callbacks=callbacks)
 
-    else:
-        # Create ae
-        callbacks = [EarlyStopping(monitor='val_loss', patience=5)]
-        ae = AutoEncoder(input_dim=train_data.shape[1], latent_dim=5)
-        ae.compile(optimizer=Adam(learning_rate=0.001), loss=MeanSquaredError())
-        history = ae.fit(train_data, train_data, epochs=100, batch_size=32, shuffle=True,
-                         validation_data=(val_data, val_data), callbacks=callbacks)
-
-    for i in tqdm(range(1, 10)):
+    for i in tqdm(range(1, subsets)):
         # sample new dataset from test_data
         test_data_sample = test_data.sample(frac=0.7, random_state=random.randint(0, 100000), replace=True)
 
@@ -438,28 +332,20 @@ if __name__ == '__main__':
         # plt.show()
 
         # Predict
-        impute_markers(scores=scores, all_predictions=predictions, hp=hp, mode=patient_type, spatial_radius=spatial,
-                       experiment_id=experiment_id, replace_value=replace_value, add_noise=add_noise,
+        impute_markers(scores=scores, all_predictions=predictions, mode=patient_type, spatial_radius=int(spatial),
+                       experiment_id=experiment_id, replace_value=replace_value,
                        iterations=iterations,
                        store_predictions=False, test_data=test_data_sample, subset=i, file_name=scores_file_name,
                        save_folder=save_folder)
 
-    predictions = impute_markers(scores=scores, all_predictions=predictions, hp=hp, mode=patient_type,
-                                 spatial_radius=spatial,
-                                 experiment_id=experiment_id, replace_value=replace_value, add_noise=add_noise,
+    predictions = impute_markers(scores=scores, all_predictions=predictions, mode=patient_type,
+                                 spatial_radius=int(spatial),
+                                 experiment_id=experiment_id, replace_value=replace_value,
                                  iterations=iterations,
                                  store_predictions=True, test_data=test_data, subset=0, file_name=scores_file_name,
                                  save_folder=save_folder)
 
     # Save results
-    if not hp:
-        for key, value in predictions.items():
-            value.to_csv(f"{save_folder}/{key}_predictions.csv",
-                         index=False)
-    else:
-        for key, value in predictions.items():
-            value.to_csv(f"{save_folder}/{key}_hp_predictions.csv",
-                         index=False)
-
-    if hp:
-        shutil.rmtree(hyper_opt_project_directory)
+    for key, value in predictions.items():
+        value.to_csv(f"{save_folder}/{key}_predictions.csv",
+                     index=False)

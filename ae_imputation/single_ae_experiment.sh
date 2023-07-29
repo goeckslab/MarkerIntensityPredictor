@@ -14,30 +14,20 @@
 biopsy=$1
 mode=$2
 replace_value=$3
-noise=$4
-spatial=$5
+spatial=$4
 
 source venv/bin/activate
 
 
   if [ "$spatial" != "" ]; then
-    echo "spatial is set"
-
-    if [ "$noise" != "" ]; then
-      python3 ./ae_imputation/ae.py -m "${mode}" -b "${biopsy}" -i 10 -sp "${spatial}" -rm "${replace_value}" -an
-
-    else
+      echo "spatial is set to ${spatial}"
       python3 ./ae_imputation/ae.py -m "${mode}" -b "${biopsy}" -i 10 -sp "${spatial}" -rm "${replace_value}"
-    fi
+
 
   else
     echo "spatial is not set"
-    if [ "$noise" != "" ]; then
-      python3 ./ae_imputation/ae.py -m "${mode}" -b "${biopsy}" -i 10 -rm "${replace_value}" -an
+    python3 ./ae_imputation/ae.py -m "${mode}" -b "${biopsy}" -i 10 -rm "${replace_value}"
 
-    else
-      python3 ./ae_imputation/ae.py -m "${mode}" -b "${biopsy}" -i 10 -rm "${replace_value}"
-    fi
   fi
 
 
