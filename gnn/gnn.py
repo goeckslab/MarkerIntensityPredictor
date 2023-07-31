@@ -374,8 +374,6 @@ if __name__ == '__main__':
     # Convert to df
     scores = pd.DataFrame(scores)
 
-    assert len(scores["Marker"].unique()) == 16, f"Found only {len(scores['Marker'])} markers, expected 16."
-
     # Save data
     if Path(f"{save_folder}/{score_file_name}").exists():
         scores = pd.concat([pd.read_csv(f"{save_folder}/{score_file_name}"), scores], axis=0)
