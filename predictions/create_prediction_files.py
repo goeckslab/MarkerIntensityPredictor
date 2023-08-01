@@ -174,8 +174,7 @@ def create_lgbm_predictions(save_path: Path):
                                                                  hyper=hyper)
                     # predict on test_data
                     protein_predictions, _ = model.predict(dataset=test_data)
-                    print(protein_predictions)
-                    input()
+
 
                 except KeyboardInterrupt as ex:
                     logging.debug("Keyboard interrupt")
@@ -194,20 +193,24 @@ def create_lgbm_predictions(save_path: Path):
                         biopsy_predictions[unique_key] = pd.DataFrame(columns=SHARED_MARKERS)
                         print(biopsy_predictions[unique_key])
                         input()
-                        biopsy_predictions[unique_key][protein] = protein_predictions
+                        biopsy_predictions[unique_key][protein] = protein_predictions[f"{protein}_predictions"].values
 
-                        print(biopsy_predictions[unique_key][protein])
+                        print(biopsy_predictions[unique_key])
                         input()
 
                     else:
                         biopsy_counter[unique_key] += 1
                         biopsy_temp_df = biopsy_predictions[unique_key].copy()
-                        biopsy_predictions[unique_key][protein] = biopsy_temp_df[protein] + marker_predictions[
-                            "prediction"]
+                        print(biopsy_predictions[unique_key])
+                        input()
+
+                        biopsy_predictions[unique_key][protein] = biopsy_temp_df[protein] + protein_predictions[
+                            f"{protein}_predictions"].values
                         biopsy_predictions[unique_key][protein] = biopsy_predictions[unique_key][protein] / \
                                                                   biopsy_counter[unique_key]
 
-                        print(biopsy_predictions[unique_key][protein])
+                        print(biopsy_predictions[unique_key])
+                        input()
 
 
 
