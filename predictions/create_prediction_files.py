@@ -98,11 +98,11 @@ def create_lgbm_predictions(save_path: Path):
 
                 path_splits: [] = current_path.parts
 
-                biopsy: str = path_splits[-2]
+                biopsy: str = path_splits[2]
                 mode: str = "ip " if "_in_" in path_splits[1] else "exp"
                 experiment_id: int = int(path_splits[-1].split("_")[-1])
                 radius: int = 0 if "_sp" not in path_splits[1] else int(path_splits[1].split("_")[-1])
-                hyper = 0 if "_hyper" in path_splits[1] else 1
+                hyper = 1 if "_hyper" in path_splits[1] else 0
 
                 logging.debug(f"Biopsy: {biopsy}")
                 logging.debug(f"Mode: {mode}")
@@ -110,7 +110,7 @@ def create_lgbm_predictions(save_path: Path):
                 logging.debug(f"Radius: {radius}")
                 logging.debug(f"Hyper: {hyper}")
 
-                assert mode in ['ip', 'exp'], f"Mode {mode} not in ['ip', 'exp']"
+                assert mode == "ip" or mode == "exp", f"Mode {mode} not in ['ip', 'exp']"
                 assert biopsy in biopsies, f"Biopsy {biopsy} not in biopsies"
                 assert radius in [0, 23, 46, 92, 138, 184], f"Radius {radius} not in [0, 23,46,92,138,184]"
                 assert hyper in [0, 1], f"Hyper {hyper} not in [0,1]"
