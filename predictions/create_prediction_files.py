@@ -79,10 +79,6 @@ def calculate_quartile_performance(ground_truth: pd.DataFrame, marker: str, pred
 
 
 def create_lgbm_predictions(save_path: Path):
-    lgbm_save_path = Path(save_path, "lgbm")
-    if not lgbm_save_path.exists():
-        lgbm_save_path.mkdir(parents=True)
-
     print("Creating LGBM predictions...")
     columns = [marker for marker in MARKERS]
     columns.append("Biopsy")
@@ -91,77 +87,77 @@ def create_lgbm_predictions(save_path: Path):
     biopsy_predictions = {}
     biopsy_counter = {}
     predictions = pd.DataFrame(columns=columns)
+    for load_path in LGBM_PATHS:
+        for root, sub_directories, files in load_path:
+            for sub_directory in sub_directories:
+                current_path = Path(root, sub_directory)
+                if 'experiment_run' not in str(current_path):  # or int(current_path.stem.split('_')[-1]) > 30:
+                    continue
 
-    for root, sub_directories, files in LGBM_PATHS:
-        for sub_directory in sub_directories:
-            current_path = Path(root, sub_directory)
-            if 'experiment_run' not in str(current_path):  # or int(current_path.stem.split('_')[-1]) > 30:
-                continue
+                logging.debug("Current path: " + str(current_path))
 
-            logging.debug("Current path: " + str(current_path))
+                try:
+                    scores = pd.read_csv(Path(current_path, "scores.csv"))
+                except FileNotFoundError:
+                    logging.debug(f"Scores not found for {current_path}")
+                    continue
 
-            try:
-                scores = pd.read_csv(Path(current_path, "scores.csv"))
-            except FileNotFoundError:
-                logging.debug(f"Scores not found for {current_path}")
-                continue
+                except KeyboardInterrupt:
+                    logging.debug("Keyboard interrupt")
+                    exit()
 
-            except KeyboardInterrupt:
-                logging.debug("Keyboard interrupt")
-                exit()
+                except BaseException as ex:
+                    logging.error(f"Error occurred at {datetime.datetime.now()}")
+                    logging.error(f"Error loading score files for path {current_path}")
+                    logging.error(ex)
+                    logging.error(traceback.format_exc())
+                    continue
 
-            except BaseException as ex:
-                logging.error(f"Error occurred at {datetime.datetime.now()}")
-                logging.error(f"Error loading score files for path {current_path}")
-                logging.error(ex)
-                logging.error(traceback.format_exc())
-                continue
+                biopsy: str = scores["Biopsy"].values[0]
+                mode: str = scores["Mode"].values[0]
+                experiment_id: int = int(scores["Experiment"].values[0])
+                replace_value: str = scores["Replace Value"].values[0]
+                noise: int = int(scores["Noise"].values[0])
+                radius: int = int(scores["FE"].values[0])
+                hyper = int(scores["HP"].values[0])
 
-            biopsy: str = scores["Biopsy"].values[0]
-            mode: str = scores["Mode"].values[0]
-            experiment_id: int = int(scores["Experiment"].values[0])
-            replace_value: str = scores["Replace Value"].values[0]
-            noise: int = int(scores["Noise"].values[0])
-            radius: int = int(scores["FE"].values[0])
-            hyper = int(scores["HP"].values[0])
+                assert mode == "ip" or mode == "exp", f"Mode {mode} not in ['ip', 'exp']"
+                assert biopsy in biopsies, f"Biopsy {biopsy} not in biopsies"
+                assert radius in [0, 23, 46, 92, 138, 184], f"Noise {noise} not in [0, 23,46,92,138,184]"
+                assert hyper in [0, 1], f"Hyper {hyper} not in [0,1]"
+                assert replace_value in ["mean", "zero"], f"Replace value {replace_value} not in ['mean', 'zero']"
 
-            assert mode == "ip" or mode == "exp", f"Mode {mode} not in ['ip', 'exp']"
-            assert biopsy in biopsies, f"Biopsy {biopsy} not in biopsies"
-            assert radius in [0, 23, 46, 92, 138, 184], f"Noise {noise} not in [0, 23,46,92,138,184]"
-            assert hyper in [0, 1], f"Hyper {hyper} not in [0,1]"
-            assert replace_value in ["mean", "zero"], f"Replace value {replace_value} not in ['mean', 'zero']"
+                try:
+                    # Load prediction 5 - 9
+                    marker_predictions = pd.read_csv(
+                        Path(current_path, "predictions.csv"))
 
-            try:
-                # Load prediction 5 - 9
-                marker_predictions = pd.read_csv(
-                    Path(current_path, "predictions.csv"))
+                    marker_predictions = marker_predictions[MARKERS].copy()
 
-                marker_predictions = marker_predictions[MARKERS].copy()
+                    unique_key = f"{biopsy}||{mode}||{replace_value}||{noise}||{radius}||{hyper}"
 
-                unique_key = f"{biopsy}||{mode}||{replace_value}||{noise}||{radius}||{hyper}"
+                    if unique_key not in biopsy_predictions:
+                        biopsy_counter[unique_key] = 1
+                        biopsy_predictions[unique_key] = marker_predictions
 
-                if unique_key not in biopsy_predictions:
-                    biopsy_counter[unique_key] = 1
-                    biopsy_predictions[unique_key] = marker_predictions
-
-                else:
-                    biopsy_counter[unique_key] += 1
-                    biopsy_temp_df = biopsy_predictions[unique_key]
-                    biopsy_predictions[unique_key] = biopsy_temp_df + marker_predictions
-                    biopsy_predictions[unique_key] = biopsy_predictions[unique_key] / biopsy_counter[unique_key]
+                    else:
+                        biopsy_counter[unique_key] += 1
+                        biopsy_temp_df = biopsy_predictions[unique_key]
+                        biopsy_predictions[unique_key] = biopsy_temp_df + marker_predictions
+                        biopsy_predictions[unique_key] = biopsy_predictions[unique_key] / biopsy_counter[unique_key]
 
 
 
-            except KeyboardInterrupt as ex:
-                logging.debug("Keyboard interrupt")
-                exit()
+                except KeyboardInterrupt as ex:
+                    logging.debug("Keyboard interrupt")
+                    exit()
 
-            except BaseException as ex:
-                logging.error(f"Error occurred at {datetime.datetime.now()}")
-                logging.error(f"Error loading prediction files for path {current_path}")
-                logging.error(ex)
-                logging.error(traceback.format_exc())
-                continue
+                except BaseException as ex:
+                    logging.error(f"Error occurred at {datetime.datetime.now()}")
+                    logging.error(f"Error loading prediction files for path {current_path}")
+                    logging.error(ex)
+                    logging.error(traceback.format_exc())
+                    continue
 
     save_path = Path(save_path, "lgbm")
 
