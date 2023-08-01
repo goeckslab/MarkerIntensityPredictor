@@ -29,9 +29,9 @@ AE_M_PATHS = [
     Path("ae_imputation_m", "exp", "mean"),
 ]
 
-AE_ALL_PATHS = [
-    Path("ae_imputation_all", "ip", "mean"),
-    Path("ae_imputation_all", "exp", "mean"),
+VAE_ALL_PATHS = [
+    Path("vae_imputation_all", "ip", "zero"),
+    Path("vae_imputation_all", "exp", "zero"),
 ]
 
 logging.root.handlers = []
@@ -69,10 +69,6 @@ def calculate_quartile_performance(ground_truth: pd.DataFrame, marker: str, pred
     pred_quartile_3 = predictions.loc[gt_quartile_3.index]
     pred_quartile_4 = predictions.loc[gt_quartile_4.index]
 
-    print("PRedcitions")
-    print(pred_quartile_1)
-    input()
-
     # Calculate MAE for all quartiles
     mae_1 = np.mean(np.abs(gt_quartile_1[marker] - pred_quartile_1["prediction"]))
     mae_2 = np.mean(np.abs(gt_quartile_2[marker] - pred_quartile_2["prediction"]))
@@ -102,6 +98,10 @@ def create_lgbm_predictions(save_path: Path):
             if not Path(folder_path, directory).is_dir():
                 continue
 
+            # if an element of biopsies is not in directory, skip
+            if directory not in biopsies:
+                continue
+
             biopsy_path = Path(folder_path, directory)
             if mode == "EXP":
                 biopsy = str(biopsy_path).split('/')[-1]
@@ -115,9 +115,14 @@ def create_lgbm_predictions(save_path: Path):
             experiment_biopsy_predictions = {}
 
             # load ground truth data for biopsy
-            print(f"Loading ground truth data for biopsy {biopsy}")
-            ground_truth = pd.read_csv(
-                Path("data", "cleaned_data", "ground_truth", f"{biopsy}_preprocessed_dataset.tsv"), sep='\t')
+            try:
+                print(f"Loading ground truth data for biopsy {biopsy}")
+                ground_truth = pd.read_csv(
+                    Path("data", "cleaned_data", "ground_truth", f"{biopsy}_preprocessed_dataset.tsv"), sep='\t')
+
+            except BaseException as ex:
+                print(ex)
+                raise
 
             for marker in MARKERS:
                 marker_dir = Path(biopsy_path, marker)
@@ -336,16 +341,6 @@ def create_en_predictions(save_path: Path):
 
 
 def create_ae_predictions(save_path: Path, imputation_mode: str = None):
-    if imputation_mode is None:
-        ae_save_path = Path(save_path, "ae")
-    elif imputation_mode == "Multi":
-        ae_save_path = Path(save_path, "ae_m")
-    else:
-        ae_save_path = Path(save_path, "ae_all")
-
-    if not ae_save_path.exists():
-        ae_save_path.mkdir(parents=True)
-
     logging.info(f"Creating AE predictions for {imputation_mode}...")
     columns = [marker for marker in MARKERS]
     columns.append("Biopsy")
@@ -356,13 +351,12 @@ def create_ae_predictions(save_path: Path, imputation_mode: str = None):
     predictions = pd.DataFrame(columns=columns)
     quartile_performance = pd.DataFrame(columns=["MAE", "Quartile", "Marker", "Biopsy", "Mode", "Experiment"])
 
-    load_paths = []
     if imputation_mode is None:
         load_paths = AE_PATHS
     elif imputation_mode == "Multi":
         load_paths = AE_M_PATHS
     else:
-        load_paths = AE_ALL_PATHS
+        load_paths = VAE_ALL_PATHS
 
     for load_path in load_paths:
         # print(folder_path)
@@ -466,11 +460,11 @@ def create_ae_predictions(save_path: Path, imputation_mode: str = None):
                     continue
 
     if imputation_mode is None:
-        save_path = Path("data", "cleaned_data", "predictions", "ae")
+        save_path = Path(save_path, "ae")
     elif imputation_mode == "Multi":
-        save_path = Path("data", "cleaned_data", "predictions", "ae_m")
+        save_path = Path(save_path, "ae_m")
     else:
-        save_path = Path("data", "cleaned_data", "predictions", "ae_all")
+        save_path = Path(save_path, "vae_all")
     for key in biopsy_predictions.keys():
         mean_biopsy_predictions = biopsy_predictions[key]
         # f"{biopsy}_{mode}_{replace_value}_{noise}_{radius}_{hyper}"
@@ -519,7 +513,7 @@ def setup_log_file(save_path: Path):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", "-em", action="store", choices=["EN", "LGBM", "AE", "AE M", "AE ALL"])
+    parser.add_argument("--model", "-em", action="store", choices=["EN", "LGBM", "AE", "AE M", "VAE ALL"])
     args = parser.parse_args()
 
     model: str = args.model
@@ -540,5 +534,5 @@ if __name__ == '__main__':
     elif model == "AE M":
         create_ae_predictions(save_path=save_path, imputation_mode="Multi")
 
-    elif model == "AE ALL":
-        create_ae_predictions(save_path=save_path, imputation_mode="All")
+    elif model == "VAE ALL":
+        create_ae_predictions(save_path=save_path, imputation_mode="VAE ALL")
