@@ -96,36 +96,24 @@ def create_lgbm_predictions(save_path: Path):
 
                 logging.debug("Current path: " + str(current_path))
 
-                try:
-                    scores = pd.read_csv(Path(current_path, "scores.csv"))
-                except FileNotFoundError:
-                    logging.debug(f"Scores not found for {current_path}")
-                    continue
+                path_splits: [] = current_path.parts
 
-                except KeyboardInterrupt:
-                    logging.debug("Keyboard interrupt")
-                    exit()
+                biopsy: str = path_splits[-2]
+                mode: str = "ip " if "_in_" in path_splits[1] else "exp"
+                experiment_id: int = int(path_splits[-1].split("_")[-1])
+                radius: int = 0 if "_sp" not in path_splits[1] else int(path_splits[1].split("_")[-1])
+                hyper = 0 if "_hyper" in path_splits[1] else 1
 
-                except BaseException as ex:
-                    logging.error(f"Error occurred at {datetime.datetime.now()}")
-                    logging.error(f"Error loading score files for path {current_path}")
-                    logging.error(ex)
-                    logging.error(traceback.format_exc())
-                    continue
+                logging.debug(f"Biopsy: {biopsy}")
+                logging.debug(f"Mode: {mode}")
+                logging.debug(f"Experiment ID: {experiment_id}")
+                logging.debug(f"Radius: {radius}")
+                logging.debug(f"Hyper: {hyper}")
 
-                biopsy: str = scores["Biopsy"].values[0]
-                mode: str = scores["Mode"].values[0]
-                experiment_id: int = int(scores["Experiment"].values[0])
-                replace_value: str = scores["Replace Value"].values[0]
-                noise: int = int(scores["Noise"].values[0])
-                radius: int = int(scores["FE"].values[0])
-                hyper = int(scores["HP"].values[0])
-
-                assert mode == "ip" or mode == "exp", f"Mode {mode} not in ['ip', 'exp']"
+                assert mode in ['ip', 'exp'], f"Mode {mode} not in ['ip', 'exp']"
                 assert biopsy in biopsies, f"Biopsy {biopsy} not in biopsies"
-                assert radius in [0, 23, 46, 92, 138, 184], f"Noise {noise} not in [0, 23,46,92,138,184]"
+                assert radius in [0, 23, 46, 92, 138, 184], f"Radius {radius} not in [0, 23,46,92,138,184]"
                 assert hyper in [0, 1], f"Hyper {hyper} not in [0,1]"
-                assert replace_value in ["mean", "zero"], f"Replace value {replace_value} not in ['mean', 'zero']"
 
                 try:
                     # Load prediction 5 - 9
@@ -134,7 +122,7 @@ def create_lgbm_predictions(save_path: Path):
 
                     marker_predictions = marker_predictions[MARKERS].copy()
 
-                    unique_key = f"{biopsy}||{mode}||{replace_value}||{noise}||{radius}||{hyper}"
+                    unique_key = f"{biopsy}||{mode}||{radius}||{hyper}"
 
                     if unique_key not in biopsy_predictions:
                         biopsy_counter[unique_key] = 1
@@ -163,28 +151,23 @@ def create_lgbm_predictions(save_path: Path):
 
     for key in biopsy_predictions.keys():
         mean_biopsy_predictions = biopsy_predictions[key]
-        # f"{biopsy}_{mode}_{replace_value}_{noise}_{radius}_{hyper}"
+        # f"{biopsy}||{mode}||{radius}||{hyper}"
         key_splits = key.split("||")
 
         print(key_splits)
         biopsy = key_splits[0]
         mode = key_splits[1]
-        replace_value = key_splits[2]
-        noise = int(key_splits[3])
-        fe = int(key_splits[4])
-        hp = int(key_splits[5])
+        fe = int(key_splits[2])
+        hp = int(key_splits[3])
 
         mean_biopsy_predictions["Biopsy"] = biopsy
         mean_biopsy_predictions["Mode"] = mode
-        mean_biopsy_predictions["Replace Value"] = replace_value
-        mean_biopsy_predictions["Noise"] = noise
         mean_biopsy_predictions["FE"] = fe
         mean_biopsy_predictions["HP"] = hp
 
         # convert fe , hp and noise to int
         mean_biopsy_predictions["FE"] = mean_biopsy_predictions["FE"].astype(int)
         mean_biopsy_predictions["HP"] = mean_biopsy_predictions["HP"].astype(int)
-        mean_biopsy_predictions["Noise"] = mean_biopsy_predictions["Noise"].astype(int)
 
         predictions = pd.concat([predictions, mean_biopsy_predictions], ignore_index=True)
 
@@ -482,6 +465,10 @@ def create_ae_predictions(save_path: Path, imputation_mode: str = None):
 
 def setup_log_file(save_path: Path):
     save_file = Path(save_path, "debug.log")
+
+    if save_file.exists():
+        save_file.unlink()
+
     file_logger = logging.FileHandler(save_file, 'a')
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     file_logger.setFormatter(formatter)
