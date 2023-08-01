@@ -312,7 +312,7 @@ if __name__ == '__main__':
     scores = []
     predictions = {}
     for i in range(iterations):
-        predictions[i] = pd.DataFrame(columns=test_data.columns)
+        predictions[i] = pd.DataFrame(columns=SHARED_MARKERS)
 
     # Create ae
     callbacks = [EarlyStopping(monitor='val_loss', patience=5)]
