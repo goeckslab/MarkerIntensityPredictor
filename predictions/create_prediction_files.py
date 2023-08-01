@@ -100,7 +100,7 @@ def create_lgbm_predictions(save_path: Path):
 
                 biopsy: str = path_splits[2]
                 mode: str = "ip" if "_in_" in path_splits[1] else "exp"
-                experiment_id: int = int(path_splits[-1].split("_")[-1])
+                experiment_id: int = 0 if path_splits[-1] == "experiment_run" else int(path_splits[-1].split("_")[-1])
                 radius: int = 0 if "_sp" not in path_splits[1] else int(path_splits[1].split("_")[-1])
                 hyper = 1 if "_hyper" in path_splits[1] else 0
                 protein = path_splits[3]
@@ -119,20 +119,21 @@ def create_lgbm_predictions(save_path: Path):
                 unique_key = f"{biopsy}||{mode}||{radius}||{hyper}"
                 try:
 
-
                     # Load predictions
                     marker_predictions = pd.read_csv(Path(current_path, "predictions.csv"))
 
                     if unique_key not in biopsy_predictions:
                         biopsy_counter[unique_key] = 1
-                        biopsy_predictions[unique_key][protein] = marker_predictions.values
+                        biopsy_predictions[unique_key] = pd.DataFrame(columns=MARKERS)
+                        biopsy_predictions[unique_key][protein] = marker_predictions["prediction"].values
 
                     else:
                         biopsy_counter[unique_key] += 1
                         biopsy_temp_df = biopsy_predictions[unique_key]
-                        biopsy_predictions[unique_key][protein] = biopsy_temp_df + marker_predictions
-                        biopsy_predictions[unique_key][protein] = biopsy_predictions[unique_key] / biopsy_counter[
-                            unique_key]
+                        biopsy_predictions[unique_key][protein] = biopsy_temp_df[protein] + marker_predictions[
+                            "prediction"]
+                        biopsy_predictions[unique_key][protein] = biopsy_predictions[unique_key][protein] / \
+                                                                  biopsy_counter[unique_key]
 
 
 
