@@ -91,7 +91,7 @@ def create_lgbm_predictions(save_path: Path):
         for root, sub_directories, files in os.walk(load_path):
             for sub_directory in sub_directories:
                 current_path = Path(root, sub_directory)
-                if 'experiment_run' not in str(current_path):  # or int(current_path.stem.split('_')[-1]) > 30:
+                if 'experiment_run' not in str(current_path) or 'experiment_run' not in current_path.parts[-1]:
                     continue
 
                 logging.debug("Current path: " + str(current_path))
