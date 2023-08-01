@@ -188,6 +188,7 @@ def create_lgbm_predictions(save_path: Path):
                     continue
 
                 try:
+                    print(protein)
                     if unique_key not in biopsy_predictions:
                         biopsy_counter[unique_key] = 1
                         biopsy_predictions[unique_key] = pd.DataFrame(columns=SHARED_MARKERS)
@@ -199,9 +200,10 @@ def create_lgbm_predictions(save_path: Path):
 
                         print(protein_predictions[f"{protein}_predictions"].values)
                         input()
-                        biopsy_predictions[unique_key][protein] = protein_predictions[f"{protein}_predictions"].values
+                        biopsy_predictions[unique_key][protein] = protein_predictions[f"{protein}_predictions"]
 
                         print(biopsy_predictions[unique_key])
+                        print(biopsy_predictions[unique_key][protein])
                         input()
 
                     else:
