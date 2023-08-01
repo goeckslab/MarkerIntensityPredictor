@@ -88,126 +88,113 @@ def create_lgbm_predictions(save_path: Path):
     columns.append("Biopsy")
     columns.append("Mode")
 
+    biopsy_predictions = {}
+    biopsy_counter = {}
     predictions = pd.DataFrame(columns=columns)
-    quartile_performance = pd.DataFrame(columns=["MAE", "Quartile", "Marker", "Biopsy", "Mode", "Experiment"])
 
-    for folder_path in LGBM_PATHS:
-        # iterate through all folders and subfolders
-        mode = "IP" if "in_patient" in str(folder_path) else "EXP"
-        for directory in os.listdir(folder_path):
-            if not Path(folder_path, directory).is_dir():
+    for root, sub_directories, files in LGBM_PATHS:
+        for sub_directory in sub_directories:
+            current_path = Path(root, sub_directory)
+            if 'experiment_run' not in str(current_path):  # or int(current_path.stem.split('_')[-1]) > 30:
                 continue
 
-            # if an element of biopsies is not in directory, skip
-            if directory not in biopsies:
-                continue
+            logging.debug("Current path: " + str(current_path))
 
-            biopsy_path = Path(folder_path, directory)
-            if mode == "EXP":
-                biopsy = str(biopsy_path).split('/')[-1]
-            else:
-                biopsy = str(biopsy_path).split('/')[-1]
-                if biopsy[-1] == '1':
-                    biopsy = biopsy[:-1] + '2'
-                else:
-                    biopsy = biopsy[:-1] + '1'
-
-            experiment_biopsy_predictions = {}
-
-            # load ground truth data for biopsy
             try:
-                print(f"Loading ground truth data for biopsy {biopsy}")
-                ground_truth = pd.read_csv(
-                    Path("data", "cleaned_data", "ground_truth", f"{biopsy}_preprocessed_dataset.tsv"), sep='\t')
+                scores = pd.read_csv(Path(current_path, "scores.csv"))
+            except FileNotFoundError:
+                logging.debug(f"Scores not found for {current_path}")
+                continue
+
+            except KeyboardInterrupt:
+                logging.debug("Keyboard interrupt")
+                exit()
 
             except BaseException as ex:
-                print(ex)
-                raise
+                logging.error(f"Error occurred at {datetime.datetime.now()}")
+                logging.error(f"Error loading score files for path {current_path}")
+                logging.error(ex)
+                logging.error(traceback.format_exc())
+                continue
 
-            for marker in MARKERS:
-                marker_dir = Path(biopsy_path, marker)
+            biopsy: str = scores["Biopsy"].values[0]
+            mode: str = scores["Mode"].values[0]
+            experiment_id: int = int(scores["Experiment"].values[0])
+            replace_value: str = scores["Replace Value"].values[0]
+            noise: int = int(scores["Noise"].values[0])
+            radius: int = int(scores["FE"].values[0])
+            hyper = int(scores["HP"].values[0])
 
-                for experiment_run in os.listdir(Path(marker_dir, "results")):
-                    experiment_dir = Path(marker_dir, "results", experiment_run)
-                    if not experiment_dir.is_dir():
-                        continue
+            assert mode == "ip" or mode == "exp", f"Mode {mode} not in ['ip', 'exp']"
+            assert biopsy in biopsies, f"Biopsy {biopsy} not in biopsies"
+            assert radius in [0, 23, 46, 92, 138, 184], f"Noise {noise} not in [0, 23,46,92,138,184]"
+            assert hyper in [0, 1], f"Hyper {hyper} not in [0,1]"
+            assert replace_value in ["mean", "zero"], f"Replace value {replace_value} not in ['mean', 'zero']"
 
-                    experiment_id = 0 if str(experiment_run).split('_')[-1] == "run" else str(experiment_run).split(
-                        '_')[-1]
+            try:
+                # Load prediction 5 - 9
+                marker_predictions = pd.read_csv(
+                    Path(current_path, "predictions.csv"))
 
-                    try:
-                        marker_predictions = pd.read_csv(
-                            Path(experiment_dir, f"predictions.csv"))
+                marker_predictions = marker_predictions[MARKERS].copy()
 
-                    except BaseException as ex:
-                        print(ex)
-                        continue
+                unique_key = f"{biopsy}||{mode}||{replace_value}||{noise}||{radius}||{hyper}"
 
-                    # calculate mae for all quartiles
-                    #mae_1, mae_2, mae_3, mae_4, quartiles = calculate_quartile_performance(
-                    #    ground_truth=ground_truth, marker=marker, predictions=marker_predictions, std=2)
-
-                    #quartile_performance: pd.DataFrame = pd.concat([quartile_performance, pd.DataFrame(
-                    #    {"MAE": [mae_1, mae_2, mae_3, mae_4], "Quartile": ["Q1", "Q2", "Q3", "Q4"],
-                    #     "Threshold": [quartiles[marker][0.25], quartiles[marker][0.5], quartiles[marker][0.75],
-                    #                   quartiles[marker][0.75]], "Marker": marker,
-                    #     "Biopsy": biopsy,
-                    #     "Mode": mode,
-                    #     "Load Path": str(experiment_dir),
-                    #     "Experiment": experiment_id,
-                    #     "Std": 2
-                    #     })])
-
-                    if experiment_id in experiment_biopsy_predictions:
-                        experiment_biopsy_predictions[experiment_id][marker] = marker_predictions[
-                            'prediction'].values
-                        experiment_biopsy_predictions[experiment_id]["Experiment"] = experiment_id
-                        experiment_biopsy_predictions[experiment_id]["Biopsy"] = biopsy
-                        experiment_biopsy_predictions[experiment_id]["Mode"] = mode
-                    else:
-                        # Add new experiment id to dictionary
-                        experiment_biopsy_predictions[experiment_id] = pd.DataFrame(columns=MARKERS)
-                        # add marker data to dataframe
-                        experiment_biopsy_predictions[experiment_id][marker] = marker_predictions[
-                            'prediction'].values
-                        # add biopsy id to dataframe
-                        experiment_biopsy_predictions[experiment_id]["Biopsy"] = biopsy
-                        # add mode to dataframe
-                        experiment_biopsy_predictions[experiment_id]["Mode"] = mode
-                        # add experiment id to dataframe
-                        experiment_biopsy_predictions[experiment_id]["Experiment"] = experiment_id
-
-            # calculate mean prediction dataframe from all experiments for this biopsy
-            biopsy_mean_predictions = pd.DataFrame(columns=MARKERS)
-            for experiment in experiment_biopsy_predictions.keys():
-                if len(biopsy_mean_predictions) == 0:
-                    biopsy_mean_predictions = \
-                        experiment_biopsy_predictions[experiment][MARKERS]
+                if unique_key not in biopsy_predictions:
+                    biopsy_counter[unique_key] = 1
+                    biopsy_predictions[unique_key] = marker_predictions
 
                 else:
-                    biopsy_mean_predictions = biopsy_mean_predictions + \
-                                              experiment_biopsy_predictions[experiment][
-                                                  MARKERS]
+                    biopsy_counter[unique_key] += 1
+                    biopsy_temp_df = biopsy_predictions[unique_key]
+                    biopsy_predictions[unique_key] = biopsy_temp_df + marker_predictions
+                    biopsy_predictions[unique_key] = biopsy_predictions[unique_key] / biopsy_counter[unique_key]
 
-            # divide by number of experiments
-            biopsy_mean_predictions = biopsy_mean_predictions / len(
-                experiment_biopsy_predictions.keys())
 
-            # add biopsy id to dataframe
-            biopsy_mean_predictions["Biopsy"] = biopsy
-            # add mode to dataframe
-            biopsy_mean_predictions["Mode"] = mode
 
-            predictions = pd.concat([predictions, biopsy_mean_predictions], ignore_index=True)
+            except KeyboardInterrupt as ex:
+                logging.debug("Keyboard interrupt")
+                exit()
 
-    print(predictions)
-    print(predictions["Biopsy"].unique())
-    print(predictions["Mode"].unique())
-    predictions.to_csv(Path(lgbm_save_path, "predictions.csv"), index=False)
+            except BaseException as ex:
+                logging.error(f"Error occurred at {datetime.datetime.now()}")
+                logging.error(f"Error loading prediction files for path {current_path}")
+                logging.error(ex)
+                logging.error(traceback.format_exc())
+                continue
 
-    # remove all rows with NaN values
-    quartile_performance = quartile_performance.dropna()
-    quartile_performance.to_csv(Path(lgbm_save_path, "quartile_performance.csv"), index=False)
+    save_path = Path(save_path, "lgbm")
+
+    for key in biopsy_predictions.keys():
+        mean_biopsy_predictions = biopsy_predictions[key]
+        # f"{biopsy}_{mode}_{replace_value}_{noise}_{radius}_{hyper}"
+        key_splits = key.split("||")
+
+        print(key_splits)
+        biopsy = key_splits[0]
+        mode = key_splits[1]
+        replace_value = key_splits[2]
+        noise = int(key_splits[3])
+        fe = int(key_splits[4])
+        hp = int(key_splits[5])
+
+        mean_biopsy_predictions["Biopsy"] = biopsy
+        mean_biopsy_predictions["Mode"] = mode
+        mean_biopsy_predictions["Replace Value"] = replace_value
+        mean_biopsy_predictions["Noise"] = noise
+        mean_biopsy_predictions["FE"] = fe
+        mean_biopsy_predictions["HP"] = hp
+
+        # convert fe , hp and noise to int
+        mean_biopsy_predictions["FE"] = mean_biopsy_predictions["FE"].astype(int)
+        mean_biopsy_predictions["HP"] = mean_biopsy_predictions["HP"].astype(int)
+        mean_biopsy_predictions["Noise"] = mean_biopsy_predictions["Noise"].astype(int)
+
+        predictions = pd.concat([predictions, mean_biopsy_predictions], ignore_index=True)
+
+    if not save_path.exists():
+        save_path.mkdir(parents=True, exist_ok=True)
+    predictions.to_csv(Path(save_path, f"predictions.csv"), index=False)
 
 
 def create_en_predictions(save_path: Path):
