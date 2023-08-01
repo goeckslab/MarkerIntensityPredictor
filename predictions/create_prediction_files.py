@@ -110,13 +110,16 @@ def create_lgbm_predictions(save_path: Path):
                 logging.debug(f"Experiment ID: {experiment_id}")
                 logging.debug(f"Radius: {radius}")
                 logging.debug(f"Hyper: {hyper}")
+                logging.debug(f"Protein: {protein}")
 
                 assert mode == "ip" or mode == "exp", f"Mode {mode} not in ['ip', 'exp']"
                 assert biopsy in biopsies, f"Biopsy {biopsy} not in biopsies"
                 assert radius in [0, 23, 46, 92, 138, 184], f"Radius {radius} not in [0, 23,46,92,138,184]"
                 assert hyper in [0, 1], f"Hyper {hyper} not in [0,1]"
                 assert protein in MARKERS, f"Protein {protein} not in MARKERS"
+
                 unique_key = f"{biopsy}||{mode}||{radius}||{hyper}"
+
                 try:
 
                     # Load predictions
@@ -179,6 +182,9 @@ def create_lgbm_predictions(save_path: Path):
 
     if not save_path.exists():
         save_path.mkdir(parents=True, exist_ok=True)
+
+    predictions["FE"] = predictions["FE"].astype(int)
+    predictions["HP"] = predictions["HP"].astype(int)
     predictions.to_csv(Path(save_path, f"predictions.csv"), index=False)
 
 
@@ -503,7 +509,6 @@ if __name__ == '__main__':
         print("Creating elastic net predictions...")
         create_en_predictions(save_path=save_path)
     elif model == "LGBM":
-        print("Creating lgbm & ae predictions...")
         create_lgbm_predictions(save_path=save_path)
     elif model == "AE":
         create_ae_predictions(save_path=save_path)
