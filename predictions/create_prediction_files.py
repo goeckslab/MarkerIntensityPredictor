@@ -144,19 +144,19 @@ def create_lgbm_predictions(save_path: Path):
                         continue
 
                     # calculate mae for all quartiles
-                    mae_1, mae_2, mae_3, mae_4, quartiles = calculate_quartile_performance(
-                        ground_truth=ground_truth, marker=marker, predictions=marker_predictions, std=2)
+                    #mae_1, mae_2, mae_3, mae_4, quartiles = calculate_quartile_performance(
+                    #    ground_truth=ground_truth, marker=marker, predictions=marker_predictions, std=2)
 
-                    quartile_performance: pd.DataFrame = pd.concat([quartile_performance, pd.DataFrame(
-                        {"MAE": [mae_1, mae_2, mae_3, mae_4], "Quartile": ["Q1", "Q2", "Q3", "Q4"],
-                         "Threshold": [quartiles[marker][0.25], quartiles[marker][0.5], quartiles[marker][0.75],
-                                       quartiles[marker][0.75]], "Marker": marker,
-                         "Biopsy": biopsy,
-                         "Mode": mode,
-                         "Load Path": str(experiment_dir),
-                         "Experiment": experiment_id,
-                         "Std": 2
-                         })])
+                    #quartile_performance: pd.DataFrame = pd.concat([quartile_performance, pd.DataFrame(
+                    #    {"MAE": [mae_1, mae_2, mae_3, mae_4], "Quartile": ["Q1", "Q2", "Q3", "Q4"],
+                    #     "Threshold": [quartiles[marker][0.25], quartiles[marker][0.5], quartiles[marker][0.75],
+                    #                   quartiles[marker][0.75]], "Marker": marker,
+                    #     "Biopsy": biopsy,
+                    #     "Mode": mode,
+                    #     "Load Path": str(experiment_dir),
+                    #     "Experiment": experiment_id,
+                    #     "Std": 2
+                    #     })])
 
                     if experiment_id in experiment_biopsy_predictions:
                         experiment_biopsy_predictions[experiment_id][marker] = marker_predictions[
