@@ -209,16 +209,25 @@ def create_lgbm_predictions(save_path: Path):
                     else:
                         print("Key in dict")
                         biopsy_counter[unique_key] += 1
-                        biopsy_temp_df = biopsy_predictions[unique_key].copy()
+
                         print(biopsy_predictions[unique_key])
                         input()
 
                         print(protein_predictions[f"{protein}_predictions"].values)
                         input()
-                        biopsy_predictions[unique_key][protein] = biopsy_temp_df[protein] + protein_predictions[
-                            f"{protein}_predictions"]
-                        biopsy_predictions[unique_key][protein] = biopsy_predictions[unique_key][protein] / \
-                                                                  biopsy_counter[unique_key]
+
+                        # check whether column contains nan
+                        if biopsy_predictions[unique_key][protein].isnan().values.any():
+                            biopsy_predictions[unique_key][protein] = protein_predictions[
+                                f"{protein}_predictions"].values
+
+                        else:
+                            biopsy_temp_df = biopsy_predictions[unique_key].copy()
+                            biopsy_predictions[unique_key][protein] = biopsy_temp_df[protein] + protein_predictions[
+                                f"{protein}_predictions"]
+
+                            biopsy_predictions[unique_key][protein] = biopsy_predictions[unique_key][protein] / \
+                                                                      biopsy_counter[unique_key]
 
                         print(biopsy_predictions[unique_key])
                         print(biopsy_predictions[unique_key][protein])
