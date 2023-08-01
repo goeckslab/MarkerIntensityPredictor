@@ -99,7 +99,7 @@ def create_lgbm_predictions(save_path: Path):
                 path_splits: [] = current_path.parts
 
                 biopsy: str = path_splits[2]
-                mode: str = "ip " if "_in_" in path_splits[1] else "exp"
+                mode: str = "ip" if "_in_" in path_splits[1] else "exp"
                 experiment_id: int = int(path_splits[-1].split("_")[-1])
                 radius: int = 0 if "_sp" not in path_splits[1] else int(path_splits[1].split("_")[-1])
                 hyper = 1 if "_hyper" in path_splits[1] else 0
