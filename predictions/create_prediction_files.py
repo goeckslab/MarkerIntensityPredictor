@@ -1,13 +1,14 @@
 import pandas as pd
 from pathlib import Path
-import os, shutil, argparse, logging
+import os, shutil, argparse, logging, sys
 from typing import Dict, List
 import numpy as np
 import datetime
 import traceback
+from ludwig.api import LudwigModel
 
-MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
-           'pERK', 'EGFR', 'ER']
+SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
+                  'pERK', 'EGFR', 'ER']
 biopsies = ["9_2_1", "9_2_2", "9_3_1", "9_3_2", "9_14_1", "9_14_2", "9_15_1", "9_15_2"]
 LGBM_PATHS = [
     Path("mesmer", "tumor_in_patient"),
@@ -40,6 +41,44 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
                         logging.FileHandler("predictions/debug.log"),
                         logging.StreamHandler()
                     ])
+
+
+def load_test_data_set(mode: str, biopsy: str, hyper: int, spatial_radius: int) -> pd.DataFrame:
+    if mode == "ip":
+        # change last number of biopsy to 1 if it is 2
+        if biopsy[-1] == "2":
+            test_biopsy_name = biopsy[:-1] + "1"
+        else:
+            test_biopsy_name = biopsy[:-1] + "2"
+
+        logging.debug(biopsy)
+        logging.debug(test_biopsy_name)
+        assert test_biopsy_name[-1] != biopsy[-1], "The bx should not be the same"
+        if spatial_radius == 0:
+            test_dataset: pd.DataFrame = pd.read_csv(
+                Path("data", "tumor_mesmer", "preprocessed", f"{test_biopsy_name}_preprocessed_dataset.tsv"), sep='\t')
+
+        else:
+            test_dataset: pd.DataFrame = pd.read_csv(
+                Path("data", f"tumor_mesmer_sp_{spatial_radius}", "preprocessed",
+                     f"{test_biopsy_name}_preprocessed_dataset.tsv"), sep='\t')
+
+
+    else:
+        test_biopsy_name = biopsy
+        assert test_biopsy_name == biopsy, "The bx should be the same"
+        logging.debug(test_biopsy_name)
+
+        if spatial_radius == 0:
+            test_dataset: pd.DataFrame = pd.read_csv(
+                Path("data", "tumor_mesmer", "preprocessed", f"{test_biopsy_name}_preprocessed_dataset.tsv"), sep='\t')
+
+        else:
+            test_dataset: pd.DataFrame = pd.read_csv(
+                Path("data", f"tumor_mesmer_sp_{spatial_radius}", "preprocessed",
+                     f"{test_biopsy_name}_preprocessed_dataset.tsv"), sep='\t')
+
+    return test_dataset
 
 
 def calculate_quartile_performance(ground_truth: pd.DataFrame, marker: str, predictions: pd.DataFrame, std: int):
@@ -80,7 +119,7 @@ def calculate_quartile_performance(ground_truth: pd.DataFrame, marker: str, pred
 
 def create_lgbm_predictions(save_path: Path):
     print("Creating LGBM predictions...")
-    columns = [marker for marker in MARKERS]
+    columns = [marker for marker in SHARED_MARKERS]
     columns.append("Biopsy")
     columns.append("Mode")
 
@@ -116,25 +155,49 @@ def create_lgbm_predictions(save_path: Path):
                 assert biopsy in biopsies, f"Biopsy {biopsy} not in biopsies"
                 assert radius in [0, 23, 46, 92, 138, 184], f"Radius {radius} not in [0, 23,46,92,138,184]"
                 assert hyper in [0, 1], f"Hyper {hyper} not in [0,1]"
-                assert protein in MARKERS, f"Protein {protein} not in MARKERS"
+                assert protein in SHARED_MARKERS, f"Protein {protein} not in SHARED_MARKERS"
 
                 unique_key = f"{biopsy}||{mode}||{radius}||{hyper}"
 
+                models = None
                 try:
-
-                    # Load predictions
-                    marker_predictions = pd.read_csv(Path(current_path, "predictions.csv"))
-
-                except:
-                    logging.error(f"Error loading prediction files for path {current_path}")
+                    model = LudwigModel.load(str(Path(current_path, 'model')))
+                except KeyboardInterrupt as ex:
+                    logging.debug("Keyboard interrupt")
+                    sys.exit(0)
+                except BaseException as ex:
+                    logging.error(ex)
                     continue
+
+                try:
+                    test_data: pd.DataFrame = load_test_data_set(biopsy=biopsy, mode=mode, spatial_radius=radius,
+                                                                 hyper=hyper)
+                    # predict on test_data
+                    protein_predictions, _ = model.predict(dataset=test_data)
+                    print(protein_predictions)
+                    input()
+
+                except KeyboardInterrupt as ex:
+                    logging.debug("Keyboard interrupt")
+                    sys.exit(0)
+
+                except BaseException as ex:
+                    logging.error(f"Error occurred for experiment: {experiment_id}")
+                    logging.error(f"Model loaded using path: {str(Path(current_path, 'model'))}")
+                    logging.error(ex)
+                    logging.error("Continuing to next experiment")
+                    continue
+
                 try:
                     if unique_key not in biopsy_predictions:
                         biopsy_counter[unique_key] = 1
-                        biopsy_predictions[unique_key] = pd.DataFrame(columns=MARKERS)
-                        biopsy_predictions[unique_key][protein] = marker_predictions["prediction"].values
+                        biopsy_predictions[unique_key] = pd.DataFrame(columns=SHARED_MARKERS)
+                        print(biopsy_predictions[unique_key])
+                        input()
+                        biopsy_predictions[unique_key][protein] = protein_predictions
 
                         print(biopsy_predictions[unique_key][protein])
+                        input()
 
                     else:
                         biopsy_counter[unique_key] += 1
@@ -221,7 +284,7 @@ def create_en_predictions(save_path: Path):
                 sep='\t')
 
             experiment_biopsy_predictions = {}
-            for marker in MARKERS:
+            for marker in SHARED_MARKERS:
                 print(f"Loading marker {marker} for biopsy {biopsy}...")
                 marker_dir = Path(biopsy_path, biopsy, marker)
                 for experiment_run in os.listdir(marker_dir):
@@ -267,7 +330,7 @@ def create_en_predictions(save_path: Path):
                             experiment_biopsy_predictions[experiment_id]["Mode"] = mode
                         else:
                             # Add new experiment id to dictionary
-                            experiment_biopsy_predictions[experiment_id] = pd.DataFrame(columns=MARKERS)
+                            experiment_biopsy_predictions[experiment_id] = pd.DataFrame(columns=SHARED_MARKERS)
                             # add marker data to dataframe
                             experiment_biopsy_predictions[experiment_id][marker] = marker_predictions[
                                 "prediction"].values
@@ -290,15 +353,15 @@ def create_en_predictions(save_path: Path):
             print(f"Merging predictions for biopsy {biopsy}...")
 
             # calculate mean prediction dataframe from all experiments for this biopsy
-            biopsy_mean_predictions = pd.DataFrame(columns=MARKERS)
+            biopsy_mean_predictions = pd.DataFrame(columns=SHARED_MARKERS)
             for experiment in experiment_biopsy_predictions.keys():
                 if len(biopsy_mean_predictions) == 0:
                     biopsy_mean_predictions = \
-                        experiment_biopsy_predictions[experiment][MARKERS]
+                        experiment_biopsy_predictions[experiment][SHARED_MARKERS]
 
                 else:
                     biopsy_mean_predictions = biopsy_mean_predictions + experiment_biopsy_predictions[experiment][
-                        MARKERS]
+                        SHARED_MARKERS]
 
             # divide by number of experiments
             biopsy_mean_predictions = biopsy_mean_predictions / len(
@@ -324,7 +387,7 @@ def create_en_predictions(save_path: Path):
 
 def create_ae_predictions(save_path: Path, imputation_mode: str = None):
     logging.info(f"Creating AE predictions for {imputation_mode}...")
-    columns = [marker for marker in MARKERS]
+    columns = [marker for marker in SHARED_MARKERS]
     columns.append("Biopsy")
     columns.append("Mode")
 
@@ -414,7 +477,7 @@ def create_ae_predictions(save_path: Path, imputation_mode: str = None):
                     marker_predictions = (marker_predictions_5 + marker_predictions_6 + marker_predictions_7
                                           + marker_predictions_8 + marker_predictions_9) / 5
 
-                    marker_predictions = marker_predictions[MARKERS].copy()
+                    marker_predictions = marker_predictions[SHARED_MARKERS].copy()
 
                     unique_key = f"{biopsy}||{mode}||{replace_value}||{noise}||{radius}||{hyper}"
 
