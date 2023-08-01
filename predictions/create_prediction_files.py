@@ -213,6 +213,8 @@ def create_lgbm_predictions(save_path: Path):
                         print(biopsy_predictions[unique_key])
                         input()
 
+                        print(protein_predictions[f"{protein}_predictions"].values)
+                        input()
                         biopsy_predictions[unique_key][protein] = biopsy_temp_df[protein] + protein_predictions[
                             f"{protein}_predictions"]
                         biopsy_predictions[unique_key][protein] = biopsy_predictions[unique_key][protein] / \
