@@ -221,3 +221,4 @@ data/tumor_cycif_v2.csv
 .vscode/settings.json
 mlruns.zip
 *.eps
+ludwig_prediction.err
