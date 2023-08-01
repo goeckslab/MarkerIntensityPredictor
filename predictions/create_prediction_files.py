@@ -88,7 +88,7 @@ def create_lgbm_predictions(save_path: Path):
     biopsy_counter = {}
     predictions = pd.DataFrame(columns=columns)
     for load_path in LGBM_PATHS:
-        for root, sub_directories, files in load_path:
+        for root, sub_directories, files in os.walk(load_path):
             for sub_directory in sub_directories:
                 current_path = Path(root, sub_directory)
                 if 'experiment_run' not in str(current_path):  # or int(current_path.stem.split('_')[-1]) > 30:
