@@ -219,6 +219,7 @@ def create_lgbm_predictions(save_path: Path):
                                                                   biopsy_counter[unique_key]
 
                         print(biopsy_predictions[unique_key])
+                        print(biopsy_predictions[unique_key][protein])
                         input()
 
 
