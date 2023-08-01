@@ -134,13 +134,17 @@ def create_lgbm_predictions(save_path: Path):
                         biopsy_predictions[unique_key] = pd.DataFrame(columns=MARKERS)
                         biopsy_predictions[unique_key][protein] = marker_predictions["prediction"].values
 
+                        print(biopsy_predictions[unique_key][protein])
+
                     else:
                         biopsy_counter[unique_key] += 1
-                        biopsy_temp_df = biopsy_predictions[unique_key]
+                        biopsy_temp_df = biopsy_predictions[unique_key].copy()
                         biopsy_predictions[unique_key][protein] = biopsy_temp_df[protein] + marker_predictions[
                             "prediction"]
                         biopsy_predictions[unique_key][protein] = biopsy_predictions[unique_key][protein] / \
                                                                   biopsy_counter[unique_key]
+
+                        print(biopsy_predictions[unique_key][protein])
 
 
 
