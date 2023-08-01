@@ -103,6 +103,7 @@ def create_lgbm_predictions(save_path: Path):
                 experiment_id: int = int(path_splits[-1].split("_")[-1])
                 radius: int = 0 if "_sp" not in path_splits[1] else int(path_splits[1].split("_")[-1])
                 hyper = 1 if "_hyper" in path_splits[1] else 0
+                protein = path_splits[3]
 
                 logging.debug(f"Biopsy: {biopsy}")
                 logging.debug(f"Mode: {mode}")
@@ -114,25 +115,24 @@ def create_lgbm_predictions(save_path: Path):
                 assert biopsy in biopsies, f"Biopsy {biopsy} not in biopsies"
                 assert radius in [0, 23, 46, 92, 138, 184], f"Radius {radius} not in [0, 23,46,92,138,184]"
                 assert hyper in [0, 1], f"Hyper {hyper} not in [0,1]"
-
+                assert protein in MARKERS, f"Protein {protein} not in MARKERS"
+                unique_key = f"{biopsy}||{mode}||{radius}||{hyper}"
                 try:
-                    # Load prediction 5 - 9
-                    marker_predictions = pd.read_csv(
-                        Path(current_path, "predictions.csv"))
 
-                    marker_predictions = marker_predictions[MARKERS].copy()
 
-                    unique_key = f"{biopsy}||{mode}||{radius}||{hyper}"
+                    # Load predictions
+                    marker_predictions = pd.read_csv(Path(current_path, "predictions.csv"))
 
                     if unique_key not in biopsy_predictions:
                         biopsy_counter[unique_key] = 1
-                        biopsy_predictions[unique_key] = marker_predictions
+                        biopsy_predictions[unique_key][protein] = marker_predictions.values
 
                     else:
                         biopsy_counter[unique_key] += 1
                         biopsy_temp_df = biopsy_predictions[unique_key]
-                        biopsy_predictions[unique_key] = biopsy_temp_df + marker_predictions
-                        biopsy_predictions[unique_key] = biopsy_predictions[unique_key] / biopsy_counter[unique_key]
+                        biopsy_predictions[unique_key][protein] = biopsy_temp_df + marker_predictions
+                        biopsy_predictions[unique_key][protein] = biopsy_predictions[unique_key] / biopsy_counter[
+                            unique_key]
 
 
 
@@ -143,6 +143,7 @@ def create_lgbm_predictions(save_path: Path):
                 except BaseException as ex:
                     logging.error(f"Error occurred at {datetime.datetime.now()}")
                     logging.error(f"Error loading prediction files for path {current_path}")
+                    logging.error(unique_key)
                     logging.error(ex)
                     logging.error(traceback.format_exc())
                     continue
