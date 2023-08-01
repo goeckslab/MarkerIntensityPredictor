@@ -122,6 +122,10 @@ def create_lgbm_predictions(save_path: Path):
                     # Load predictions
                     marker_predictions = pd.read_csv(Path(current_path, "predictions.csv"))
 
+                except:
+                    logging.error(f"Error loading prediction files for path {current_path}")
+                    continue
+                try:
                     if unique_key not in biopsy_predictions:
                         biopsy_counter[unique_key] = 1
                         biopsy_predictions[unique_key] = pd.DataFrame(columns=MARKERS)
@@ -143,7 +147,7 @@ def create_lgbm_predictions(save_path: Path):
 
                 except BaseException as ex:
                     logging.error(f"Error occurred at {datetime.datetime.now()}")
-                    logging.error(f"Error loading prediction files for path {current_path}")
+                    logging.error(f"Error saving predictions for protein {protein}")
                     logging.error(unique_key)
                     logging.error(ex)
                     logging.error(traceback.format_exc())
