@@ -163,11 +163,11 @@ def create_lgbm_predictions(save_path: Path):
                 logging.debug("Unique key: " + unique_key)
 
                 sub_dir = 0
-                error_occured = True
-                while error_occured:
+                error_occurred = True
+                while error_occurred:
                     try:
                         model = LudwigModel.load(str(Path(current_path, 'model')))
-                        error_occured = False
+                        error_occurred = False
                     except KeyboardInterrupt as ex:
                         logging.debug("Keyboard interrupt")
                         sys.exit(0)
@@ -175,11 +175,11 @@ def create_lgbm_predictions(save_path: Path):
                     except FileNotFoundError as ex:
                         sub_dir += 1
                         if sub_dir > 40:
-                            error_occured = False
-
-                        current_path = Path(f"{str(current_path).rstrip()}_{sub_dir}")
-                        logging.debug("File not found, trying: " + str(current_path))
-                        error_occured = True
+                            error_occurred = False
+                        else:
+                            current_path = Path(root, f"{sub_directory}_{sub_dir}")
+                            logging.debug("File not found, trying: " + str(current_path))
+                            error_occurred = True
                     except BaseException as ex:
                         logging.error(ex)
                         continue
