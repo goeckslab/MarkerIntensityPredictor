@@ -217,14 +217,14 @@ def create_lgbm_predictions(save_path: Path):
                         input()
 
                         # check whether column contains nan
-                        if biopsy_predictions[unique_key][protein].isnan().values.any():
+                        if biopsy_predictions[unique_key][protein].isnull().values.any():
                             biopsy_predictions[unique_key][protein] = protein_predictions[
                                 f"{protein}_predictions"].values
 
                         else:
                             biopsy_temp_df = biopsy_predictions[unique_key].copy()
                             biopsy_predictions[unique_key][protein] = biopsy_temp_df[protein] + protein_predictions[
-                                f"{protein}_predictions"]
+                                f"{protein}_predictions"].values
 
                             biopsy_predictions[unique_key][protein] = biopsy_predictions[unique_key][protein] / \
                                                                       biopsy_counter[unique_key]
