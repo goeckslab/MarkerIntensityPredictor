@@ -188,34 +188,16 @@ def create_lgbm_predictions(save_path: Path):
                     continue
 
                 try:
-                    print(protein)
                     if unique_key not in biopsy_predictions:
                         biopsy_counter[unique_key] = 1
                         biopsy_predictions[unique_key] = pd.DataFrame(columns=SHARED_MARKERS)
-                        print("Key not in dict")
-                        print(biopsy_predictions[unique_key])
-                        input()
 
                         # add protein predictions to biopsy_predictions
-
-                        print(protein_predictions[f"{protein}_predictions"].values)
-                        input()
                         biopsy_predictions[unique_key][protein] = protein_predictions[f"{protein}_predictions"]
 
-                        print(biopsy_predictions[unique_key])
-                        print(biopsy_predictions[unique_key][protein])
-                        input()
 
                     else:
-                        print("Key in dict")
                         biopsy_counter[unique_key] += 1
-
-                        print(biopsy_predictions[unique_key])
-                        input()
-
-                        print(protein_predictions[f"{protein}_predictions"].values)
-                        input()
-
                         # check whether column contains nan
                         if biopsy_predictions[unique_key][protein].isnull().values.any():
                             biopsy_predictions[unique_key][protein] = protein_predictions[
@@ -228,10 +210,6 @@ def create_lgbm_predictions(save_path: Path):
 
                             biopsy_predictions[unique_key][protein] = biopsy_predictions[unique_key][protein] / \
                                                                       biopsy_counter[unique_key]
-
-                        print(biopsy_predictions[unique_key])
-                        print(biopsy_predictions[unique_key][protein])
-                        input()
 
 
 
