@@ -177,7 +177,7 @@ def create_lgbm_predictions(save_path: Path):
                         if sub_dir > 40:
                             error_occurred = False
                         else:
-                            current_path = Path(root, f"{str(sub_directory).rsplit()}_{sub_dir}")
+                            current_path = Path(root, f"{str(sub_directory).rsplit()[0]}_{sub_dir}")
                             logging.debug("File not found, trying: " + str(current_path))
                             error_occurred = True
                     except BaseException as ex:
