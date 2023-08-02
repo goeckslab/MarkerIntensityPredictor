@@ -163,9 +163,11 @@ def create_lgbm_predictions(save_path: Path):
                 logging.debug("Unique key: " + unique_key)
 
                 sub_dir = 0
-                while (error_occured):
+                error_occured = True
+                while error_occured:
                     try:
                         model = LudwigModel.load(str(Path(current_path, 'model')))
+                        error_occured = False
                     except KeyboardInterrupt as ex:
                         logging.debug("Keyboard interrupt")
                         sys.exit(0)
