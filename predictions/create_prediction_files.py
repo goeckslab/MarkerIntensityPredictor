@@ -160,6 +160,7 @@ def create_lgbm_predictions(save_path: Path):
                 assert protein in SHARED_MARKERS, f"Protein {protein} not in SHARED_MARKERS"
 
                 unique_key = f"{biopsy}||{mode}||{radius}||{hyper}"
+                logging.debug("Unique key: " + unique_key)
 
                 try:
                     model = LudwigModel.load(str(Path(current_path, 'model')))
