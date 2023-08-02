@@ -7,6 +7,8 @@ import datetime
 import traceback
 from ludwig.api import LudwigModel
 
+log_file = "predictions/debug.log"
+
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
 biopsies = ["9_2_1", "9_2_2", "9_3_1", "9_3_2", "9_14_1", "9_14_2", "9_15_1", "9_15_2"]
@@ -38,7 +40,7 @@ VAE_ALL_PATHS = [
 logging.root.handlers = []
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[
-                        logging.FileHandler("predictions/debug.log"),
+                        logging.FileHandler(log_file),
                         logging.StreamHandler()
                     ])
 
@@ -159,7 +161,6 @@ def create_lgbm_predictions(save_path: Path):
 
                 unique_key = f"{biopsy}||{mode}||{radius}||{hyper}"
 
-                models = None
                 try:
                     model = LudwigModel.load(str(Path(current_path, 'model')))
                 except KeyboardInterrupt as ex:
@@ -247,7 +248,7 @@ def create_lgbm_predictions(save_path: Path):
         mean_biopsy_predictions["FE"] = mean_biopsy_predictions["FE"].astype(int)
         mean_biopsy_predictions["HP"] = mean_biopsy_predictions["HP"].astype(int)
 
-        predictions = pd.concat([predictions, mean_biopsy_predictions], ignore_index=True)
+        predictions: pd.DataFrame = pd.concat([predictions, mean_biopsy_predictions], ignore_index=True)
 
     if not save_path.exists():
         save_path.mkdir(parents=True, exist_ok=True)
@@ -544,24 +545,10 @@ def create_ae_predictions(save_path: Path, imputation_mode: str = None):
     predictions.to_csv(Path(save_path, f"predictions.csv"), index=False)
 
 
-def setup_log_file(save_path: Path):
-    save_file = Path(save_path, "debug.log")
-
-    if save_file.exists():
-        save_file.unlink()
-
-    file_logger = logging.FileHandler(save_file, 'a')
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    file_logger.setFormatter(formatter)
-
-    log = logging.getLogger()  # root logger
-    for handler in log.handlers[:]:  # remove all old handlers
-        log.removeHandler(handler)
-    log.addHandler(file_logger)
-    log.addHandler(logging.StreamHandler())
-
-
 if __name__ == '__main__':
+    # clear log file
+    if Path(log_file).exists():
+        Path(log_file).unlink()
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", "-em", action="store", choices=["EN", "LGBM", "AE", "AE M", "VAE ALL"])
