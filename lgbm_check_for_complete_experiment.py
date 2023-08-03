@@ -45,10 +45,23 @@ def setup_log_file(save_path: Path):
     log.addHandler(file_logger)
     log.addHandler(logging.StreamHandler())
 
+def delete_all_markers_for_failed_experiment(experiment_path: Path):
+    logging.debug(f"Path: {experiment_path}")
+    experiment: str = experiment_path.parts[-1]
+    biopsy: str = experiment_path.parts[-4]
+
+    for marker in SHARED_MARKERS:
+        marker_path = Path(experiment_path.parts[0], experiment_path.parts[1], biopsy, marker, 'results', experiment)
+        logging.debug(f"Marker path: {marker_path}")
+        # delete marker_path if exists
+        if marker_path.exists():
+            shutil.rmtree(marker_path)
+            logging.debug("Removed: " + str(marker_path))
+
 
 if __name__ == '__main__':
 
-    setup_log_file("")
+    setup_log_file(Path.cwd())
 
     unfinished_experiment_paths = []
     for load_path in SEARCH_PATHS:
@@ -69,24 +82,11 @@ if __name__ == '__main__':
                 except BaseException as ex:
                     logging.debug(f"Found missing experiment {current_path}. Adding to list. ")
                     unfinished_experiment_paths.append(current_path)
+                    delete_all_markers_for_failed_experiment(current_path)
                     logging.debug(f"List contains {len(unfinished_experiment_paths)} elements")
 
 # mesmer/tumor_in_patient/9_2_2/Vimentin/results/experiment_run
-        for path in unfinished_experiment_paths:
-            logging.debug(f"Path: {path}")
-            experiment: str = path.parts[-1]
-            biopsy: str = path.parts[-4]
 
-            for marker in SHARED_MARKERS:
-                marker_path = Path(path.parts[0],path.parts[1], biopsy, marker, 'results', experiment)
-                logging.debug(f"Marker path: {marker_path}")
-                input()
-                # delete marker_path if exists
-                if marker_path.exists():
-                    shutil.rmtree(marker_path)
-                    logging.debug("Removed: " + str(marker_path))
 
-        logging.debug(f"Removed {len(unfinished_experiment_paths)} elements from path {load_path}")
 
-        # Reset list
-        unfinished_experiment_paths = []
+
