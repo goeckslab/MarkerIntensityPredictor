@@ -2,7 +2,8 @@ import logging, sys, os
 from pathlib import Path
 from ludwig.api import LudwigModel
 
-SHARED_MARKER = []
+SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
+                  'pERK', 'EGFR', 'ER']
 
 SEARCH_PATHS = [
     Path("mesmer", "tumor_in_patient"),
@@ -74,7 +75,7 @@ if __name__ == '__main__':
             logging.debug(f"Path: {path}")
             experiment: str = path.parts[-1]
             biopsy: str = path.parts[-4]
-            for marker in SHARED_MARKER:
+            for marker in SHARED_MARKERS:
                 marker_path = Path(path[0], biopsy, marker, 'results', experiment)
                 logging.debug(f"Marker path: {marker_path}")
                 input()
