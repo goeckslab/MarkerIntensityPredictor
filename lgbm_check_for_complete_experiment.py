@@ -71,12 +71,14 @@ if __name__ == '__main__':
                     unfinished_experiment_paths.append(current_path)
                     logging.debug(f"List contains {len(unfinished_experiment_paths)} elements")
 
+# mesmer/tumor_in_patient/9_2_2/Vimentin/results/experiment_run
         for path in unfinished_experiment_paths:
             logging.debug(f"Path: {path}")
             experiment: str = path.parts[-1]
             biopsy: str = path.parts[-4]
+
             for marker in SHARED_MARKERS:
-                marker_path = Path(path[0], biopsy, marker, 'results', experiment)
+                marker_path = Path(path.parts[0],path.parts[1], biopsy, marker, 'results', experiment)
                 logging.debug(f"Marker path: {marker_path}")
                 input()
                 # delete marker_path if exists
