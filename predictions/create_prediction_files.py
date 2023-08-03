@@ -7,8 +7,6 @@ import datetime
 import traceback
 from ludwig.api import LudwigModel
 
-log_file = "predictions/debug.log"
-
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
 biopsies = ["9_2_1", "9_2_2", "9_3_1", "9_3_2", "9_14_1", "9_14_2", "9_15_1", "9_15_2"]
@@ -40,9 +38,26 @@ VAE_ALL_PATHS = [
 logging.root.handlers = []
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[
-                        logging.FileHandler(log_file),
+                        logging.FileHandler("predictions/debug.log"),
                         logging.StreamHandler()
                     ])
+
+
+def setup_log_file(save_path: Path):
+    save_file = Path(save_path, "debug.log")
+
+    if save_file.exists():
+        save_file.unlink()
+
+    file_logger = logging.FileHandler(save_file, 'a')
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_logger.setFormatter(formatter)
+
+    log = logging.getLogger()  # root logger
+    for handler in log.handlers[:]:  # remove all old handlers
+        log.removeHandler(handler)
+    log.addHandler(file_logger)
+    log.addHandler(logging.StreamHandler())
 
 
 def load_test_data_set(mode: str, biopsy: str, hyper: int, spatial_radius: int) -> pd.DataFrame:
@@ -81,42 +96,6 @@ def load_test_data_set(mode: str, biopsy: str, hyper: int, spatial_radius: int) 
                      f"{test_biopsy_name}_preprocessed_dataset.tsv"), sep='\t')
 
     return test_dataset
-
-
-def calculate_quartile_performance(ground_truth: pd.DataFrame, marker: str, predictions: pd.DataFrame, std: int):
-    if std > 0:
-        # keep only the rows that are within 3 standard deviations of the mean
-        ground_truth = ground_truth[
-            np.abs(ground_truth[marker] - ground_truth[marker].mean()) <= (std * ground_truth[marker].std())].copy()
-
-    # select all indexes of predictions which are in the ground truth index
-    predictions = predictions.loc[ground_truth.index].copy()
-
-    # extract the quartiles
-    quartiles = ground_truth.quantile([0.25, 0.5, 0.75])
-
-    # select the rows that are in the quartiles from the predictions and ground truth
-    gt_quartile_1 = ground_truth[ground_truth[marker] <= quartiles[marker][0.25]]
-    gt_quartile_2 = ground_truth[
-        (ground_truth[marker] > quartiles[marker][0.25]) & (
-                ground_truth[marker] <= quartiles[marker][0.5])]
-    gt_quartile_3 = ground_truth[
-        (ground_truth[marker] > quartiles[marker][0.5]) & (
-                ground_truth[marker] <= quartiles[marker][0.75])]
-    gt_quartile_4 = ground_truth[ground_truth[marker] > quartiles[marker][0.75]]
-
-    pred_quartile_1 = predictions.loc[gt_quartile_1.index]
-    pred_quartile_2 = predictions.loc[gt_quartile_2.index]
-    pred_quartile_3 = predictions.loc[gt_quartile_3.index]
-    pred_quartile_4 = predictions.loc[gt_quartile_4.index]
-
-    # Calculate MAE for all quartiles
-    mae_1 = np.mean(np.abs(gt_quartile_1[marker] - pred_quartile_1["prediction"]))
-    mae_2 = np.mean(np.abs(gt_quartile_2[marker] - pred_quartile_2["prediction"]))
-    mae_3 = np.mean(np.abs(gt_quartile_3[marker] - pred_quartile_3["prediction"]))
-    mae_4 = np.mean(np.abs(gt_quartile_4[marker] - pred_quartile_4["prediction"]))
-
-    return mae_1, mae_2, mae_3, mae_4, quartiles
 
 
 def create_lgbm_predictions(save_path: Path):
@@ -192,6 +171,8 @@ def create_lgbm_predictions(save_path: Path):
                                                                  hyper=hyper)
                     # predict on test_data
                     protein_predictions, _ = model.predict(dataset=test_data)
+                    print(protein_predictions)
+                    input()
 
 
                 except KeyboardInterrupt as ex:
@@ -319,28 +300,8 @@ def create_en_predictions(save_path: Path):
                         print("Could not parse experiment id")
                         continue
                     try:
-                        # load json file using json library
-                        marker_predictions: pd.DataFrame = pd.read_csv(
-                            Path(experiment_run_dir, f"{marker}_predictions.csv"),
-                            header=None)
-
-                        # rename column 0 to prediction
-                        marker_predictions = marker_predictions.rename(columns={0: "prediction"})
-
-                        # calculate mae for all quartiles
-                        mae_1, mae_2, mae_3, mae_4, quartiles = calculate_quartile_performance(
-                            ground_truth=ground_truth, marker=marker, predictions=marker_predictions, std=2)
-
-                        quartile_performance: pd.DataFrame = pd.concat([quartile_performance, pd.DataFrame(
-                            {"MAE": [mae_1, mae_2, mae_3, mae_4], "Quartile": ["Q1", "Q2", "Q3", "Q4"],
-                             "Threshold": [quartiles[marker][0.25], quartiles[marker][0.5], quartiles[marker][0.75],
-                                           quartiles[marker][0.75]], "Marker": marker,
-                             "Biopsy": biopsy,
-                             "Mode": mode,
-                             "Load Path": str(experiment_run_dir),
-                             "Experiment": experiment_id,
-                             "Std": 2
-                             })])
+                        marker_predictions = pd.read_csv(Path(experiment_run_dir, f"{marker}_predictions.csv"))
+                        marker_predictions.rename(columns={marker_predictions.columns[0]: "prediction"}, inplace=True)
 
                         if experiment_id in experiment_biopsy_predictions:
                             experiment_biopsy_predictions[experiment_id][marker] = marker_predictions[
@@ -414,7 +375,6 @@ def create_ae_predictions(save_path: Path, imputation_mode: str = None):
     biopsy_predictions = {}
     biopsy_counter = {}
     predictions = pd.DataFrame(columns=columns)
-    quartile_performance = pd.DataFrame(columns=["MAE", "Quartile", "Marker", "Biopsy", "Mode", "Experiment"])
 
     if imputation_mode is None:
         load_paths = AE_PATHS
@@ -428,7 +388,8 @@ def create_ae_predictions(save_path: Path, imputation_mode: str = None):
         for root, sub_directories, files in os.walk(load_path):
             for sub_directory in sub_directories:
                 current_path = Path(root, sub_directory)
-                if 'experiment_run' not in str(current_path):  # or int(current_path.stem.split('_')[-1]) > 30:
+                if 'experiment_run' not in str(current_path) or 'experiment_run' not in current_path.parts[
+                    -1]:  # or int(current_path.stem.split('_')[-1]) > 30:
                     continue
 
                 logging.debug("Current path: " + str(current_path))
@@ -563,9 +524,7 @@ def create_ae_predictions(save_path: Path, imputation_mode: str = None):
 
 
 if __name__ == '__main__':
-    # clear log file
-    if Path(log_file).exists():
-        Path(log_file).unlink()
+    setup_log_file(Path("predictions"))
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", "-em", action="store", choices=["EN", "LGBM", "AE", "AE M", "VAE ALL"])
