@@ -1,4 +1,6 @@
-import logging
+import logging, sys, os
+from pathlib import Path
+from ludwig.api import LudwigModel
 
 SHARED_MARKER = []
 
@@ -18,7 +20,32 @@ SEARCH_PATHS  = [
 
 ]
 
+logging.root.handlers = []
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s',
+                    handlers=[
+                        logging.FileHandler("quartile_performance/debug.log"),
+                        logging.StreamHandler()
+                    ])
+
+def setup_log_file(save_path: Path):
+    save_file = Path(save_path, "debug.log")
+
+    if save_file.exists():
+        save_file.unlink()
+
+    file_logger = logging.FileHandler(save_file, 'a')
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_logger.setFormatter(formatter)
+
+    log = logging.getLogger()  # root logger
+    for handler in log.handlers[:]:  # remove all old handlers
+        log.removeHandler(handler)
+    log.addHandler(file_logger)
+    log.addHandler(logging.StreamHandler())
+
 if __name__ == '__main__':
+
+    setup_log_file("")
 
     unfinished_experiment_paths = []
     for load_path in SEARCH_PATHS:
