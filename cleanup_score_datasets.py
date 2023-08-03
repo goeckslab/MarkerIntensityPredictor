@@ -86,8 +86,6 @@ def prepare_lbgm_scores(save_path: Path):
             scores.append(load_lgbm_scores(ip_path, "IP", "LGBM"))
             scores.append(load_lgbm_scores(exp_path, "EXP", "LGBM"))
 
-        print(scores)
-        input()
         scores = pd.concat(scores, axis=0).sort_values(by=["Marker"])
 
         print(scores)
