@@ -67,8 +67,8 @@ if __name__ == '__main__':
 
                 except BaseException as ex:
                     logging.debug(f"Found missing experiment {current_path}. Adding to list. ")
-                    logging.debug(f"List contains {len(unfinished_experiment_paths)} elements")
                     unfinished_experiment_paths.append(current_path)
+                    logging.debug(f"List contains {len(unfinished_experiment_paths)} elements")
 
         for path in unfinished_experiment_paths:
             logging.debug(f"Path: {path}")
