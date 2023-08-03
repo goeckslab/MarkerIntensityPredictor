@@ -1,4 +1,4 @@
-import logging, sys, os
+import logging, sys, os, shutil
 from pathlib import Path
 from ludwig.api import LudwigModel
 
@@ -55,7 +55,7 @@ if __name__ == '__main__':
         for root, sub_directories, files in os.walk(load_path):
             for sub_directory in sub_directories:
                 current_path = Path(root, sub_directory)
-                if 'experiment_run' not in str(current_path) or 'experiment_run' != current_path.parts[-1]:
+                if 'experiment_run' not in str(current_path):
                     continue
 
                 logging.debug("Current path: " + str(current_path))
