@@ -74,7 +74,19 @@ if __name__ == '__main__':
                 logging.debug("Current path: " + str(current_path))
 
                 try:
-                    model = LudwigModel.load(str(Path(current_path, 'model')))
+                    model_hyper_json: Path = Path(current_path, 'model', 'model_hyperparameters.json')
+                    training_set_metadata_json: Path = Path(current_path, 'model', 'training_set_metadata.json')
+
+                    if not model_hyper_json.exists() or not training_set_metadata_json.exists():
+                        logging.debug(f"Found missing files! Deleting experiment: {current_path}")
+                        delete_all_markers_for_failed_experiment(current_path)
+                        continue
+
+                    #model = LudwigModel.load(str(Path(current_path, 'model')))
+
+                    #  /home/groups/OMSAtlas/Code/kirchgae/MarkerIntensityPredictor/mesmer/tumor_in_patient/9_3_1/CK14/results/experiment_run_58/model/model_hyperparameters.json
+                    # /home/groups/OMSAtlas/Code/kirchgae/MarkerIntensityPredictor/mesmer/tumor_in_patient/9_3_1/CK14/results/experiment_run_58/model/training_set_metadata.json
+
                 except KeyboardInterrupt as ex:
                     logging.debug("Keyboard interrupt")
                     sys.exit(0)
