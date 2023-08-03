@@ -18,7 +18,7 @@ RANDOM_SEED=$(random_seed)
 
 # Run a ludwig experiment using the preprocessed dataset. Results are placed into the $(SAMPLE) directory.
 ludwig-experiment: "$(SAMPLE)_final_config.yaml"
-	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" --config "../../$(SAMPLE)_$(MARKER)_final_config.yaml" -rs $(RANDOM_SEED)s
+	mkdir -p $(OUTPUT_DIRECTORY) && pushd $(OUTPUT_DIRECTORY) && ludwig experiment --dataset "../../$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" --config "../../$(SAMPLE)_$(MARKER)_final_config.yaml" -rs $(RANDOM_SEED)
 
 ludwig-evaluate:
 	python ../../shared_scripts/prepare_data_fe.py "$(DATA_DIRECTORY)/$(TEST_ID).csv" "$(DATA_DIRECTORY_PREPROCESSED)/$(TEST_ID)_preprocessed_dataset.tsv"
