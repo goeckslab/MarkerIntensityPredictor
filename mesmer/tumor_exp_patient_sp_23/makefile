@@ -26,7 +26,7 @@ RANDOM_SEED=$(random_seed)
 
 # Create final configuration file.
 "$(TEST_ID)_$(MARKER)_final_config.yaml": "$(DATA_DIRECTORY_COMBINED)/combined" "$(DATA_DIRECTORY_PREPROCESSED)/$(PREPROCESSED_DATASET)" "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_PREPROCESSED_DATA)"
-	python ../../shared_scripts/create_input_features.py "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_PREPROCESSED_DATA)" "$(MARKER)" "$(TEST_ID)_$(MARKER)_input_features.yaml"; cat "$(TEST_ID)_$(MARKER)_input_features.yaml" base_config.yaml > "$(TEST_ID)_$(MARKER)_final_config.yaml"
+	python ../../shared_scripts/create_input_features.py "$(DATA_DIRECTORY_COMBINED_PREPROCESSED)/$(COMBINED_PREPROCESSED_DATA)" "$(MARKER)" "$(TEST_ID)_$(MARKER)_input_features.yaml" --spatial 23; cat "$(TEST_ID)_$(MARKER)_input_features.yaml" base_config.yaml > "$(TEST_ID)_$(MARKER)_final_config.yaml"
 
 
 # Run a ludwig experiment using the preprocessed dataset. Results are placed into the $(TEST_ID) directory.

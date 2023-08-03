@@ -9,7 +9,7 @@ for marker in "${markers[@]}"; do
   echo test_id="${test_id}" marker="${marker}" patient_id="${patient}"
 
   make -f makefile ludwig-experiment test_id="${test_id}" marker="${marker}" patient_id="${patient}" random_seed=456 &&
-    make -f makefile ludwig-evaluate test_id="${test_id}" marker="${marker}" patient_id="${patient}" random_seed=456  &&
-    make -f makefile ludwig-plots test_id="${test_id}" marker="${marker}" patient_id="${patient}" random_seed=456  &&
-    make -f makefile clean test_id="${test_id}" marker="${marker}" patient_id="${patient}"  random_seed=456
+  #make -f makefile ludwig-evaluate test_id="${test_id}" marker="${marker}" patient_id="${patient}" random_seed=456  &&
+  #make -f makefile ludwig-plots test_id="${test_id}" marker="${marker}" patient_id="${patient}" random_seed=456  &&
+  make -f makefile clean test_id="${test_id}" marker="${marker}" patient_id="${patient}"  random_seed=456
 done
