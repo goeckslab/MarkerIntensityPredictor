@@ -4,7 +4,7 @@ from ludwig.api import LudwigModel
 
 SHARED_MARKER = []
 
-SEARCH_PATHS  = [
+SEARCH_PATHS = [
     Path("mesmer", "tumor_in_patient"),
     Path("mesmer", "tumor_in_patient_sp_23"),
     Path("mesmer", "tumor_in_patient_sp_46"),
@@ -27,8 +27,9 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
                         logging.StreamHandler()
                     ])
 
+
 def setup_log_file(save_path: Path):
-    save_file = Path(save_path, "debug.log")
+    save_file = Path(save_path, "lgbm_check_for_complete_experiment.log")
 
     if save_file.exists():
         save_file.unlink()
@@ -42,6 +43,7 @@ def setup_log_file(save_path: Path):
         log.removeHandler(handler)
     log.addHandler(file_logger)
     log.addHandler(logging.StreamHandler())
+
 
 if __name__ == '__main__':
 
@@ -68,20 +70,18 @@ if __name__ == '__main__':
                     logging.debug(f"List contains {len(unfinished_experiment_paths)} elements")
                     unfinished_experiment_paths.append(current_path)
 
+        for path in unfinished_experiment_paths:
+            logging.debug(f"Path: {path}")
+            experiment: str = path.parts[-1]
+            biopsy: str = path.parts[-4]
+            for marker in SHARED_MARKER:
+                marker_path = Path(path[0], biopsy, marker, 'results', experiment)
+                logging.debug(f"Marker path: {marker_path}")
+                input()
+                # delete marker_path if exists
+                if marker_path.exists():
+                    shutil.rmtree(marker_path)
+                    logging.debug("Removed: " + str(marker_path))
 
-    for path in unfinished_experiment_paths:
-        logging.debug(f"Path: {path}")
-        experiment: str = path.parts[-1]
-        biopsy: str = path.parts[-4]
-        for marker in SHARED_MARKER:
-            marker_path = Path(path[0], biopsy, marker, 'results', experiment)
-            logging.debug(f"Marker path: {marker_path}")
-            input()
-            # delete marker_path if exists
-            if marker_path.exists():
-                shutil.rmtree(marker_path)
-                logging.debug("Removed: " + str(marker_path))
-
-
-
-
+        # Reset list
+        unfinished_experiment_paths = []
