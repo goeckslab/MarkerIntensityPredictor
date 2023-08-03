@@ -55,7 +55,7 @@ if __name__ == '__main__':
         for root, sub_directories, files in os.walk(load_path):
             for sub_directory in sub_directories:
                 current_path = Path(root, sub_directory)
-                if 'experiment_run' not in str(current_path):
+                if 'experiment_run' not in str(current_path) or 'experiment_run' not in current_path.parts[-1]:
                     continue
 
                 logging.debug("Current path: " + str(current_path))
@@ -85,6 +85,8 @@ if __name__ == '__main__':
                 if marker_path.exists():
                     shutil.rmtree(marker_path)
                     logging.debug("Removed: " + str(marker_path))
+
+        logging.debug(f"Removed {len(unfinished_experiment_paths)} elements from path {load_path}")
 
         # Reset list
         unfinished_experiment_paths = []
