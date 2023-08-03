@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --job-name=vae
+#SBATCH --job-name=vae_all
 #SBATCH --time=9-00:00:00
 #SBATCH --partition=exacloud
 #SBATCH --qos=long_jobs
@@ -13,32 +13,9 @@
 
 biopsy=$1
 mode=$2
-replace_value=$3
-noise=$4
-spatial=$5
-repetitions=$6
+subsets=$3
 
 source venv/bin/activate
-
-
-  if [ "$spatial" != "" ]; then
-    echo "spatial is set"
-
-    if [ "$noise" != "" ]; then
-      python3 ./vae_imputation_all/vae.py -m "${mode}" -b "${biopsy}" -i 10 -sp "${spatial}" -rm "${replace_value}" -an -r "${repetitions}"
-
-    else
-      python3 ./vae_imputation_all/vae.py -m "${mode}" -b "${biopsy}" -i 10 -sp "${spatial}" -rm "${replace_value}" -r "${repetitions}"
-    fi
-
-  else
-    echo "spatial is not set"
-    if [ "$noise" != "" ]; then
-      python3 ./vae_imputation_all/vae.py -m "${mode}" -b "${biopsy}" -i 10 -rm "${replace_value}" -an -r "${repetitions}"
-
-    else
-      python3 ./vae_imputation_all/vae.py -m "${mode}" -b "${biopsy}" -i 10 -rm "${replace_value}" -r "${repetitions}"
-    fi
-  fi
+python3 ./vae_imputation_all/vae.py -m "${mode}" -b "${biopsy}" -i 10 -s "${subsets}"
 
 
