@@ -23,7 +23,7 @@ SEARCH_PATHS = [
 logging.root.handlers = []
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[
-                        logging.FileHandler("quartile_performance/debug.log"),
+                        logging.FileHandler("debug.log"),
                         logging.StreamHandler()
                     ])
 
