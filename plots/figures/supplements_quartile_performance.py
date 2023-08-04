@@ -42,7 +42,7 @@ def create_boxen_plot(results: pd.DataFrame, metric: str, save_path: Path, model
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", "-m", action="store", choices=["EN", "LGBM", "AE", "AE M", "VAE ALL"])
+    parser.add_argument("--model", "-m", action="store", choices=["EN", "LGBM", "AE", "AE M", "VAE ALL", "GNN"])
     args = parser.parse_args()
 
     save_path = Path("plots", "figures", "supplements", "quartile_performance")
@@ -55,7 +55,9 @@ if __name__ == '__main__':
     if model == "EN":
         pass
     elif model == "LGBM":
-        pass
+        quartile_performance = pd.read_csv(
+            Path("data", "cleaned_data", "quartile_performance", "lgbm", "quartile_performance.csv"))
+        create_boxen_plot(quartile_performance, "MAE", save_path=save_path, model="lgbm")
     elif model == "AE":
         quartile_performance = pd.read_csv(
             Path("data", "cleaned_data", "quartile_performance", "ae", "quartile_performance.csv"))
@@ -64,3 +66,7 @@ if __name__ == '__main__':
         quartile_performance = pd.read_csv(
             Path("data", "cleaned_data", "quartile_performance", "ae_m", "quartile_performance.csv"))
         create_boxen_plot(quartile_performance, "MAE", save_path=save_path, model="ae_m")
+    elif model == "GNN":
+        quartile_performance = pd.read_csv(
+            Path("data", "cleaned_data", "quartile_performance", "gnn", "quartile_performance.csv"))
+        create_boxen_plot(quartile_performance, "MAE", save_path=save_path, model="gnn")

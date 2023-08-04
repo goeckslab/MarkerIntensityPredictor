@@ -20,6 +20,11 @@ AE_PATHS = [
     Path("ae_imputation", "exp", "mean"),
 ]
 
+GNN_PATH = [
+    Path("gnn", "results", "ip", "mean"),
+    Path("gnn", "results", "exp", "mean"),
+]
+
 EN_PATHS = [
     Path("mesmer", "tumor_in_patient_en"),
     Path("mesmer", "tumor_exp_patient_en"),
@@ -506,11 +511,141 @@ def create_ae_predictions(save_path: Path, imputation_mode: str = None):
     predictions.to_csv(Path(save_path, f"predictions.csv"), index=False)
 
 
+def create_gnn_predictions(save_path: Path):
+    logging.info(f"Creating GNN predictions ...")
+    columns = [marker for marker in SHARED_MARKERS]
+    columns.append("Biopsy")
+    columns.append("Mode")
+
+    biopsy_predictions = {}
+    biopsy_counter = {}
+    predictions = pd.DataFrame(columns=columns)
+
+    load_paths = GNN_PATH
+    for load_path in load_paths:
+        # print(folder_path)
+        for root, sub_directories, files in os.walk(load_path):
+            for sub_directory in sub_directories:
+                current_path = Path(root, sub_directory)
+                if 'experiment_run' not in str(current_path) or 'experiment_run' not in current_path.parts[
+                    -1]:  # or int(current_path.stem.split('_')[-1]) > 30:
+                    continue
+
+                logging.debug("Current path: " + str(current_path))
+
+                try:
+                    scores = pd.read_csv(Path(current_path, "scores.csv"))
+                except FileNotFoundError:
+                    logging.debug(f"Scores not found for {current_path}")
+                    continue
+
+                except KeyboardInterrupt:
+                    logging.debug("Keyboard interrupt")
+                    exit()
+
+                except BaseException as ex:
+                    logging.error(f"Error occurred at {datetime.datetime.now()}")
+                    logging.error(f"Error loading score files for path {current_path}")
+                    logging.error(ex)
+                    logging.error(traceback.format_exc())
+                    continue
+
+                biopsy: str = scores["Biopsy"].values[0]
+                mode: str = scores["Mode"].values[0]
+                experiment_id: int = int(scores["Experiment"].values[0])
+                replace_value: str = scores["Replace Value"].values[0]
+                noise: int = int(scores["Noise"].values[0])
+                radius: int = int(scores["FE"].values[0])
+                hyper = int(scores["HP"].values[0])
+
+                assert mode == "ip" or mode == "exp", f"Mode {mode} not in ['ip', 'exp']"
+                assert biopsy in biopsies, f"Biopsy {biopsy} not in biopsies"
+                assert radius in [0, 23, 46, 92, 138, 184], f"Noise {noise} not in [0, 23,46,92,138,184]"
+                assert hyper in [0, 1], f"Hyper {hyper} not in [0,1]"
+                assert replace_value in ["mean", "zero"], f"Replace value {replace_value} not in ['mean', 'zero']"
+
+                try:
+                    # Load prediction 5 - 9
+                    marker_predictions_5 = pd.read_csv(
+                        Path(current_path, "5_predictions.csv"))
+                    marker_predictions_6 = pd.read_csv(
+                        Path(current_path, "6_predictions.csv"))
+                    marker_predictions_7 = pd.read_csv(
+                        Path(current_path, "7_predictions.csv"))
+                    marker_predictions_8 = pd.read_csv(
+                        Path(current_path, "8_predictions.csv"))
+                    marker_predictions_9 = pd.read_csv(
+                        Path(current_path, "9_predictions.csv"))
+
+                    # calculate mean per cell over all marker predictions
+                    marker_predictions = (marker_predictions_5 + marker_predictions_6 + marker_predictions_7
+                                          + marker_predictions_8 + marker_predictions_9) / 5
+
+                    marker_predictions = marker_predictions[SHARED_MARKERS].copy()
+
+                    unique_key = f"{biopsy}||{mode}||{replace_value}||{noise}||{radius}||{hyper}"
+
+                    if unique_key not in biopsy_predictions:
+                        biopsy_counter[unique_key] = 1
+                        biopsy_predictions[unique_key] = marker_predictions
+
+                    else:
+                        biopsy_counter[unique_key] += 1
+                        biopsy_temp_df = biopsy_predictions[unique_key]
+                        biopsy_predictions[unique_key] = biopsy_temp_df + marker_predictions
+                        biopsy_predictions[unique_key] = biopsy_predictions[unique_key] / biopsy_counter[unique_key]
+
+
+
+                except KeyboardInterrupt as ex:
+                    logging.debug("Keyboard interrupt")
+                    exit()
+
+                except BaseException as ex:
+                    logging.error(f"Error occurred at {datetime.datetime.now()}")
+                    logging.error(f"Error loading prediction files for path {current_path}")
+                    logging.error(ex)
+                    logging.error(traceback.format_exc())
+                    continue
+
+    save_path = Path(save_path, "gnn")
+    for key in biopsy_predictions.keys():
+        mean_biopsy_predictions = biopsy_predictions[key]
+        # f"{biopsy}_{mode}_{replace_value}_{noise}_{radius}_{hyper}"
+        key_splits = key.split("||")
+
+        print(key_splits)
+        biopsy = key_splits[0]
+        mode = key_splits[1]
+        replace_value = key_splits[2]
+        noise = int(key_splits[3])
+        fe = int(key_splits[4])
+        hp = int(key_splits[5])
+
+        mean_biopsy_predictions["Biopsy"] = biopsy
+        mean_biopsy_predictions["Mode"] = mode
+        mean_biopsy_predictions["Replace Value"] = replace_value
+        mean_biopsy_predictions["Noise"] = noise
+        mean_biopsy_predictions["FE"] = fe
+        mean_biopsy_predictions["HP"] = hp
+
+        # convert fe , hp and noise to int
+        mean_biopsy_predictions["FE"] = mean_biopsy_predictions["FE"].astype(int)
+        mean_biopsy_predictions["HP"] = mean_biopsy_predictions["HP"].astype(int)
+        mean_biopsy_predictions["Noise"] = mean_biopsy_predictions["Noise"].astype(int)
+
+        predictions = pd.concat([predictions, mean_biopsy_predictions], ignore_index=True)
+
+    if not save_path.exists():
+        save_path.mkdir(parents=True, exist_ok=True)
+    predictions.to_csv(Path(save_path, f"predictions.csv"), index=False)
+
+
 if __name__ == '__main__':
     setup_log_file(Path("predictions"))
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", "-em", action="store", choices=["EN", "LGBM", "AE", "AE M", "VAE ALL"])
+    parser.add_argument("--model", "-m", action="store", choices=["EN", "LGBM", "AE", "AE M", "VAE ALL", "GNN"])
     args = parser.parse_args()
 
     model: str = args.model
@@ -529,6 +664,7 @@ if __name__ == '__main__':
         create_ae_predictions(save_path=save_path)
     elif model == "AE M":
         create_ae_predictions(save_path=save_path, imputation_mode="Multi")
-
     elif model == "VAE ALL":
         create_ae_predictions(save_path=save_path, imputation_mode="VAE ALL")
+    elif model == "GNN":
+        create_ae_predictions(save_path=save_path)

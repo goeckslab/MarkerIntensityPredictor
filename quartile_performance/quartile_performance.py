@@ -87,67 +87,71 @@ def calculate_quartile_performance(ground_truth: pd.DataFrame, marker: str, pred
     return mae_1, mae_2, mae_3, mae_4, quartiles
 
 
-def create_lgbm_quartile_performance():
+def create_lgbm_quartile_performance(save_path: Path):
     predictions: pd.DataFrame = pd.read_csv(Path("data", "cleaned_data", "predictions", "lgbm", "predictions.csv"))
     quartile_performance = pd.DataFrame(columns=["MAE", "Quartile", "Marker", "Biopsy", "Mode", "Experiment"])
 
     # convert mode to upper cose in predictions
     predictions["Mode"] = predictions["Mode"].str.upper()
 
-    mode: str = "EXP"
     for biopsy in predictions["Biopsy"].unique():
-        biopsy_predictions = predictions[predictions["Biopsy"] == biopsy].copy()
-        # select only exp
-        biopsy_predictions = biopsy_predictions[biopsy_predictions["Mode"] == mode].copy()
-        # select only FE  == 0
-        if "FE" in biopsy_predictions.columns:
-            biopsy_predictions = biopsy_predictions[biopsy_predictions["FE"] == 0].copy()
-        # select no hyper
-        if "HP" in biopsy_predictions.columns:
-            biopsy_predictions = biopsy_predictions[biopsy_predictions["HP"] == 0].copy()
+        for mode in predictions["Mode"].unique():
+            biopsy_predictions = predictions[predictions["Biopsy"] == biopsy].copy()
+            # select only exp
+            biopsy_predictions = biopsy_predictions[biopsy_predictions["Mode"] == mode].copy()
+            # select only FE  == 0
+            if "FE" in biopsy_predictions.columns:
+                biopsy_predictions = biopsy_predictions[biopsy_predictions["FE"] == 0].copy()
+            # select no hyper
+            if "HP" in biopsy_predictions.columns:
+                biopsy_predictions = biopsy_predictions[biopsy_predictions["HP"] == 0].copy()
 
-        if "Noise" in biopsy_predictions.columns:
-            biopsy_predictions = biopsy_predictions[biopsy_predictions["Noise"] == 0].copy()
+            if "Noise" in biopsy_predictions.columns:
+                biopsy_predictions = biopsy_predictions[biopsy_predictions["Noise"] == 0].copy()
 
-        biopsy_predictions.reset_index(drop=True, inplace=True)
-        ground_truth: pd.DataFrame = load_test_data_set("exp", biopsy, 0)
+            biopsy_predictions.reset_index(drop=True, inplace=True)
+            ground_truth: pd.DataFrame = load_test_data_set("exp", biopsy, 0)
 
-        # remove biopsy mode FE and HP columns from biopsy predictions
-        if "FE" in biopsy_predictions.columns:
-            biopsy_predictions.drop(columns=["FE"], inplace=True)
-        if "HP" in biopsy_predictions.columns:
-            biopsy_predictions.drop(columns=["HP"], inplace=True)
-        if "Noise" in biopsy_predictions.columns:
-            biopsy_predictions.drop(columns=["Noise"], inplace=True)
-        if "Mode" in biopsy_predictions.columns:
-            biopsy_predictions.drop(columns=["Mode"], inplace=True)
-        if "Biopsy" in biopsy_predictions.columns:
-            biopsy_predictions.drop(columns=["Biopsy"], inplace=True)
+            # remove biopsy mode FE and HP columns from biopsy predictions
+            if "FE" in biopsy_predictions.columns:
+                biopsy_predictions.drop(columns=["FE"], inplace=True)
+            if "HP" in biopsy_predictions.columns:
+                biopsy_predictions.drop(columns=["HP"], inplace=True)
+            if "Noise" in biopsy_predictions.columns:
+                biopsy_predictions.drop(columns=["Noise"], inplace=True)
+            if "Mode" in biopsy_predictions.columns:
+                biopsy_predictions.drop(columns=["Mode"], inplace=True)
+            if "Biopsy" in biopsy_predictions.columns:
+                biopsy_predictions.drop(columns=["Biopsy"], inplace=True)
 
-        print(ground_truth)
-        input()
+            print(ground_truth)
+            input()
 
-        print(biopsy_predictions)
-        input()
+            print(biopsy_predictions)
+            input()
 
-        assert biopsy_predictions.empty is not True, "The predictions should not be empty"
-        assert ground_truth.empty is not True, "The ground truth should not be empty"
+            assert biopsy_predictions.empty is not True, "The predictions should not be empty"
+            assert ground_truth.empty is not True, "The ground truth should not be empty"
 
-        for protein in ground_truth.columns:
-            # calculate mae for all quartiles
-            mae_1, mae_2, mae_3, mae_4, quartiles = calculate_quartile_performance(
-                ground_truth=ground_truth, marker=protein, predictions=biopsy_predictions, std=2)
+            for protein in ground_truth.columns:
+                # calculate mae for all quartiles
+                mae_1, mae_2, mae_3, mae_4, quartiles = calculate_quartile_performance(
+                    ground_truth=ground_truth, marker=protein, predictions=biopsy_predictions, std=2)
 
-            quartile_performance: pd.DataFrame = pd.concat([quartile_performance, pd.DataFrame(
-                {"MAE": [mae_1, mae_2, mae_3, mae_4], "Quartile": ["Q1", "Q2", "Q3", "Q4"],
-                 "Threshold": [quartiles[protein][0.25], quartiles[protein][0.5], quartiles[protein][0.75],
-                               quartiles[protein][0.75]], "Marker": protein,
-                 "Biopsy": biopsy,
-                 "Mode": mode,
-                 "Std": 2
-                 })])
+                quartile_performance: pd.DataFrame = pd.concat([quartile_performance, pd.DataFrame(
+                    {"MAE": [mae_1, mae_2, mae_3, mae_4], "Quartile": ["Q1", "Q2", "Q3", "Q4"],
+                     "Threshold": [quartiles[protein][0.25], quartiles[protein][0.5], quartiles[protein][0.75],
+                                   quartiles[protein][0.75]], "Marker": protein,
+                     "Biopsy": biopsy,
+                     "Mode": mode,
+                     "Std": 2
+                     })])
 
-    print(quartile_performance)
+    save_path = Path(save_path, "lgbm")
+    if not save_path.exists():
+        save_path.mkdir(parents=True)
+        # save quartile performance
+    quartile_performance.to_csv(Path(save_path, "quartile_performance.csv"))
 
 
 def create_ae_quartile_performance(save_path: Path, imputation: str = None):
@@ -287,7 +291,7 @@ if __name__ == '__main__':
     if model == "EN":
         pass
     elif model == "LGBM":
-        create_lgbm_quartile_performance()
+        create_lgbm_quartile_performance(save_path=save_path)
 
     elif model == "AE":
         create_ae_quartile_performance(save_path=save_path)
