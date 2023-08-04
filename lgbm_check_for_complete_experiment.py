@@ -62,7 +62,7 @@ def delete_all_markers_for_failed_experiment(experiment_path: Path):
 if __name__ == '__main__':
 
     setup_log_file(Path.cwd())
-
+    logging.debug("Started searching...")
     unfinished_experiment_paths = []
     for load_path in SEARCH_PATHS:
         for root, sub_directories, files in os.walk(load_path):

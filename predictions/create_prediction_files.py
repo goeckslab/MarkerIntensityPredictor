@@ -117,6 +117,7 @@ def create_lgbm_predictions(save_path: Path):
                 logging.debug("Current path: " + str(current_path))
 
                 path_splits: [] = current_path.parts
+                #mesmer/tumor_in_patient_sp_23/9_3_2/pERK/results/experiment_run_10
 
                 biopsy: str = path_splits[2]
                 mode: str = "ip" if "_in_" in path_splits[1] else "exp"
@@ -171,8 +172,6 @@ def create_lgbm_predictions(save_path: Path):
                                                                  hyper=hyper)
                     # predict on test_data
                     protein_predictions, _ = model.predict(dataset=test_data)
-                    print(protein_predictions)
-                    input()
 
 
                 except KeyboardInterrupt as ex:
