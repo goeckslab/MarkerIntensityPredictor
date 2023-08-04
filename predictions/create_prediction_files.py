@@ -68,8 +68,6 @@ def load_test_data_set(mode: str, biopsy: str, hyper: int, spatial_radius: int) 
         else:
             test_biopsy_name = biopsy[:-1] + "2"
 
-        logging.debug(biopsy)
-        logging.debug(test_biopsy_name)
         assert test_biopsy_name[-1] != biopsy[-1], "The bx should not be the same"
         if spatial_radius == 0:
             test_dataset: pd.DataFrame = pd.read_csv(
@@ -117,7 +115,7 @@ def create_lgbm_predictions(save_path: Path):
                 logging.debug("Current path: " + str(current_path))
 
                 path_splits: [] = current_path.parts
-                #mesmer/tumor_in_patient_sp_23/9_3_2/pERK/results/experiment_run_10
+                # mesmer/tumor_in_patient_sp_23/9_3_2/pERK/results/experiment_run_10
 
                 biopsy: str = path_splits[2]
                 mode: str = "ip" if "_in_" in path_splits[1] else "exp"
@@ -142,30 +140,16 @@ def create_lgbm_predictions(save_path: Path):
                 unique_key = f"{biopsy}||{mode}||{radius}||{hyper}"
                 logging.debug("Unique key: " + unique_key)
 
-                sub_dir = 0
-                error_occurred = True
-                while error_occurred:
-                    try:
-                        model = LudwigModel.load(str(Path(current_path, 'model')))
-                        error_occurred = False
-                    except KeyboardInterrupt as ex:
-                        logging.debug("Keyboard interrupt")
-                        sys.exit(0)
+                try:
+                    model = LudwigModel.load(str(Path(current_path, 'model')))
 
-                    except FileNotFoundError as ex:
-                        sub_dir += 1
-                        if sub_dir > 40:
-                            error_occurred = False
-                        else:
-                            current_path = Path(root, f"{str(sub_directory).rsplit()[0]}_{sub_dir}")
-                            logging.debug("File not found, trying: " + str(current_path))
-                            error_occurred = True
-                    except BaseException as ex:
-                        logging.error(ex)
-                        break
+                except KeyboardInterrupt as ex:
+                    logging.debug("Keyboard interrupt")
+                    sys.exit(0)
 
-                if error_occurred:
-                    continue
+                except BaseException as ex:
+                    logging.debug(ex)
+                    sys.exit()
 
                 try:
                     test_data: pd.DataFrame = load_test_data_set(biopsy=biopsy, mode=mode, spatial_radius=radius,

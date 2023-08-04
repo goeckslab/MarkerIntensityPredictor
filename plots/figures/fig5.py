@@ -115,6 +115,11 @@ if __name__ == '__main__':
     # ae_m_scores = ae_m_scores[np.abs(ae_m_scores["RMSE"] - ae_m_scores["RMSE"].mean()) <= (3 * ae_m_scores["RMSE"].std())]
 
     gnn_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "gnn", "scores.csv"))
+
+    print(len(gnn_scores["Marker"].unique()))
+    input()
+
+
     # sort by markers
     gnn_scores.sort_values(by=["Marker"], inplace=True)
     # select only the scores for the 0 µm, 23 µm, 92 µm, 184 µm
@@ -145,6 +150,8 @@ if __name__ == '__main__':
     gnn_scores["FE"] = gnn_scores["FE"].astype(str) + " µm"
     gnn_scores["FE"] = pd.Categorical(gnn_scores['FE'], ["23 µm", "46 µm", "92 µm", "184 µm"])
     gnn_scores.sort_values(by=["Marker", "FE"], inplace=True)
+
+
 
     dpi = 300
     cm = 1 / 2.54  # centimeters in inches
@@ -180,6 +187,8 @@ if __name__ == '__main__':
     # remove box from ax4
     plt.box(False)
     # ax4.imshow(ae_results)
+
+
     ax3 = create_boxen_plot(data=gnn_scores, metric="MAE", ylim=[0, 0.5],
                             microns=["23 µm", "46 µm", "92 µm", "184 µm"], model="GNN")
 
