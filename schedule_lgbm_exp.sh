@@ -14,6 +14,8 @@
 
 spatial=$1
 
+echo spatial="${spatial}" "EXP"
+
 if [ "${spatial}" == "0" ]; then
  cd mesmer/tumor_exp_patient
  # perform a loop 5 times
