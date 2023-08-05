@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --job-name=lgbm_exp
+#SBATCH --job-name=lgbm
 #SBATCH --time=9-00:00:00
 #SBATCH --partition=exacloud
 #SBATCH --qos=long_jobs
@@ -40,10 +40,10 @@ else
 
     if [ "${spatial}" == "0" ]; then
       echo "spatial is 0"
-      cd mesmer/tumor_ip_patient
+      cd mesmer/tumor_in_patient
     else
       echo "spatial is 1"
-      cd mesmer/tumor_ip_patient_sp_${spatial}
+      cd mesmer/tumor_in_patient_sp_${spatial}
     fi
 
 
