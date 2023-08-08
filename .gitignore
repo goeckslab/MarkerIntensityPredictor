@@ -1,7 +1,10 @@
 
 output_reports/
 error_reports/
-
+*.test*
+*.validation*
+*.training*
+*.meta*
 gnn/data/*
 gnn/results/*
 
