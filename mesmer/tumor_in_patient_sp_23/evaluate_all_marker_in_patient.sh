@@ -10,5 +10,5 @@ for marker in "${markers[@]}"; do
   make -f makefile ludwig-experiment sample_id="${sample_id}" test_id="${test_id}" marker="${marker}" random_seed=456 && \
   #make -f makefile ludwig-evaluate sample_id="${sample_id}" test_id="${test_id}" marker="${marker}" random_seed=456 && \
   #make -f makefile ludwig-plots sample_id="${sample_id}" test_id="${test_id}" marker="${marker}" random_seed=456 && \
-  make -f makefile clean sample_id="${sample_id}" test_id="${test_id}" marker="${marker}" random_seed=456
+  #make -f makefile clean sample_id="${sample_id}" test_id="${test_id}" marker="${marker}" random_seed=456
 done
