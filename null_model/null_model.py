@@ -12,7 +12,7 @@ SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', '
                   'pERK', 'EGFR', 'ER']
 
 logging.root.handlers = []
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s',
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[
                         logging.FileHandler("ae_imputation_m/debug.log"),
                         logging.StreamHandler()
@@ -45,72 +45,76 @@ if __name__ == '__main__':
     experiments: int = args.experiments
 
     biopsy_evaluation = []
+    try:
+        for i in range(experiments):
+            logging.info(f"Started {i} experiment...")
+            for biopsy in BIOPSIES:
 
-    for i in range(experiments):
-        logging.debug(f"Started {i} experiment...")
-        for biopsy in BIOPSIES:
+                patient: str = '_'.join(biopsy.split('_')[:2])
+                logging.debug(f"Processing biopsy: {biopsy} and patient {patient}")
+                # load ground truth
+                # test_data: pd.DataFrame = pd.read_csv(
+                #    Path("data", "tumor_mesmer", "preprocessed", f"{biopsy}_preprocessed_dataset.tsv"), sep="\t")
 
-            patient: str = '_'.join(biopsy.split('_')[:2])
-            logging.debug(f"Processing biopsy: {biopsy} and patient {patient}")
-            # load ground truth
-            # test_data: pd.DataFrame = pd.read_csv(
-            #    Path("data", "tumor_mesmer", "preprocessed", f"{biopsy}_preprocessed_dataset.tsv"), sep="\t")
+                train_data: pd.DataFrame = pd.read_csv(
+                    Path("data", "tumor_mesmer", "combined", "preprocessed", f"{patient}_excluded_dataset.tsv"),
+                    sep="\t")
 
-            train_data: pd.DataFrame = pd.read_csv(
-                Path("data", "tumor_mesmer", "combined", "preprocessed", f"{patient}_excluded_dataset.tsv"), sep="\t")
+                # assert ground truth is not empty
+                assert train_data.shape[0] > 0, "Ground truth is empty"
 
-            # assert ground truth is not empty
-            assert train_data.shape[0] > 0, "Ground truth is empty"
+                for marker in tqdm(train_data.columns):
+                    X = train_data.drop(marker, axis=1)
+                    y = train_data[marker]
 
-            for marker in tqdm(train_data.columns):
-                X = train_data.drop(marker, axis=1)
-                y = train_data[marker]
+                    # split data into train and test using train test split
+                    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
 
-                # split data into train and test using train test split
-                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+                    regression_model = LinearRegression().fit(X_train, y_train)
 
-                regression_model = LinearRegression().fit(X_train, y_train)
+                    # draw one random samples from test data
+                    x_truth = X_test.sample(n=1, random_state=42)
+                    # draw same sample from y_test
+                    y_truth = y_test.loc[x_truth.index]
 
-                # draw one random samples from test data
-                x_truth = X_test.sample(n=1, random_state=42)
-                # draw same sample from y_test
-                y_truth = y_test.loc[x_truth.index]
+                    # draw sample for ludwig with the evaluates sample index
+                    evaluation_sample = train_data.loc[x_truth.index]
 
-                # draw sample for ludwig with the evaluates sample index
-                evaluation_sample = train_data.loc[x_truth.index]
+                    # assert that test sample shape is one
+                    assert evaluation_sample.shape[0] == 1, "Test sample is not one"
 
-                # assert that test sample shape is one
-                assert evaluation_sample.shape[0] == 1, "Test sample is not one"
+                    y_hat = regression_model.predict(x_truth)
 
-                y_hat = regression_model.predict(x_truth)
+                    biopsy_evaluation.append({
+                        "Biopsy": biopsy,
+                        "Marker": marker,
+                        "MAE": mean_absolute_error(y_truth, y_hat),
+                        "MSE": mean_squared_error(y_truth, y_hat),
+                        "RMSE": mean_squared_error(y_truth, y_hat, squared=False),
+                        "Sample Index": evaluation_sample.index[0],
+                        "Null Model": 1,
+                        "Model Path": ""
+                    })
 
-                biopsy_evaluation.append({
-                    "Biopsy": biopsy,
-                    "Marker": marker,
-                    "MAE": mean_absolute_error(y_truth, y_hat),
-                    "MSE": mean_squared_error(y_truth, y_hat),
-                    "RMSE": mean_squared_error(y_truth, y_hat, squared=False),
-                    "Sample Index": evaluation_sample.index[0],
-                    "Null Model": 1,
-                    "Model Path": ""
-                })
+                    model_path: Path = Path("mesmer", "tumor_exp_patient", biopsy, marker, "results", "experiment_run",
+                                            "model")
+                    # load model for marker and biopsy
+                    model = LudwigModel.load(str(model_path))
+                    own_eval_stats, _, _ = model.evaluate(evaluation_sample)
 
-                model_path: Path = Path("mesmer", "tumor_exp_patient", biopsy, marker, "results", "experiment_run",
-                                        "model")
-                # load model for marker and biopsy
-                model = LudwigModel.load(str(model_path))
-                own_eval_stats, _, _ = model.evaluate(evaluation_sample)
-
-                biopsy_evaluation.append({
-                    "Biopsy": biopsy,
-                    "Marker": marker,
-                    "MAE": own_eval_stats[marker]['mean_absolute_error'],
-                    "MSE": own_eval_stats[marker]['mean_squared_error'],
-                    "RMSE": own_eval_stats[marker]['root_mean_squared_error'],
-                    "Sample Index": evaluation_sample.index[0],
-                    "Null Model": 0,
-                    "Model Path": str(model_path)
-                })
+                    biopsy_evaluation.append({
+                        "Biopsy": biopsy,
+                        "Marker": marker,
+                        "MAE": own_eval_stats[marker]['mean_absolute_error'],
+                        "MSE": own_eval_stats[marker]['mean_squared_error'],
+                        "RMSE": own_eval_stats[marker]['root_mean_squared_error'],
+                        "Sample Index": evaluation_sample.index[0],
+                        "Null Model": 0,
+                        "Model Path": str(model_path)
+                    })
+    except BaseException as ex:
+        logging.error(ex)
+        print("Saving current results...")
 
     try:
         biopsy_evaluation = pd.DataFrame(biopsy_evaluation)
