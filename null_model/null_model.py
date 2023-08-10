@@ -5,13 +5,39 @@ from tqdm import tqdm
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-import argparse
+import argparse, logging
 
 BIOPSIES = ["9_2_1", "9_2_2", "9_3_1", "9_3_2", "9_14_1", "9_14_2", "9_15_1", "9_15_2"]
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
                   'pERK', 'EGFR', 'ER']
 
+logging.root.handlers = []
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s',
+                    handlers=[
+                        logging.FileHandler("ae_imputation_m/debug.log"),
+                        logging.StreamHandler()
+                    ])
+
+
+def setup_log_file(save_path: Path):
+    save_file = Path(save_path, "debug.log")
+
+    if save_file.exists():
+        save_path.unlink()
+
+    file_logger = logging.FileHandler(save_file, 'a')
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_logger.setFormatter(formatter)
+
+    log = logging.getLogger()  # root logger
+    for handler in log.handlers[:]:  # remove all old handlers
+        log.removeHandler(handler)
+    log.addHandler(file_logger)
+    log.addHandler(logging.StreamHandler())
+
+
 if __name__ == '__main__':
+    setup_log_file(save_path=Path("null_model"))
 
     parser = argparse.ArgumentParser(description='Run null model')
     parser.add_argument('--experiments', "-ex", type=int, default=1, help='The amount of experiments to run')
@@ -21,10 +47,11 @@ if __name__ == '__main__':
     biopsy_evaluation = []
 
     for i in range(experiments):
+        logging.debug(f"Started {i} experiment...")
         for biopsy in BIOPSIES:
 
             patient: str = '_'.join(biopsy.split('_')[:2])
-            print(f"Processing biopsy: {biopsy} and patient {patient}")
+            logging.debug(f"Processing biopsy: {biopsy} and patient {patient}")
             # load ground truth
             # test_data: pd.DataFrame = pd.read_csv(
             #    Path("data", "tumor_mesmer", "preprocessed", f"{biopsy}_preprocessed_dataset.tsv"), sep="\t")
@@ -70,7 +97,6 @@ if __name__ == '__main__':
 
                 model_path: Path = Path("mesmer", "tumor_exp_patient", biopsy, marker, "results", "experiment_run",
                                         "model")
-                print(f"Loading model from: {model_path}")
                 # load model for marker and biopsy
                 model = LudwigModel.load(str(model_path))
                 own_eval_stats, _, _ = model.evaluate(evaluation_sample)
@@ -95,6 +121,6 @@ if __name__ == '__main__':
 
         biopsy_evaluation.to_csv(save_path, index=False)
     except BaseException as ex:
-        print(ex)
+        logging.error(ex)
         biopsy_evaluation = pd.DataFrame(biopsy_evaluation)
         biopsy_evaluation.to_csv(Path("null_model_sample_performance.csv"), index=False)
