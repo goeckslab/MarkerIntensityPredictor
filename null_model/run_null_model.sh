@@ -11,5 +11,4 @@
 #SBATCH --mail-type=BEGIN,FAIL
 #SBATCH --mail-user=kirchgae@ohsu.edu
 
-
-sbatch python3 null_model/null_model.py -ex 10000
+python3 null_model/null_model.py -ex 10000
