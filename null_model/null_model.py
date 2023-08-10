@@ -88,7 +88,12 @@ if __name__ == '__main__':
 
     try:
         biopsy_evaluation = pd.DataFrame(biopsy_evaluation)
-        biopsy_evaluation.to_csv(Path("null_model", "sample_performance.csv"), index=False)
+
+        save_path: Path = Path("data", "cleaned_data", "null_model", "performance.csv")
+        if not save_path.parent.exists():
+            save_path.parent.mkdir(parents=True)
+
+        biopsy_evaluation.to_csv(save_path, index=False)
     except BaseException as ex:
         print(ex)
         biopsy_evaluation = pd.DataFrame(biopsy_evaluation)
