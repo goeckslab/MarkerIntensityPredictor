@@ -5,6 +5,7 @@ from tqdm import tqdm
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+import argparse
 
 BIOPSIES = ["9_2_1", "9_2_2", "9_3_1", "9_3_2", "9_14_1", "9_14_2", "9_15_1", "9_15_2"]
 SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
@@ -12,9 +13,14 @@ SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', '
 
 if __name__ == '__main__':
 
+    parser = argparse.ArgumentParser(description='Run null model')
+    parser.add_argument('--experiments', "-ex", type=int, default=1, help='The amount of experiments to run')
+    args = parser.parse_args()
+    experiments: int = args.experiments
+
     biopsy_evaluation = []
 
-    for i in range(101):
+    for i in range(experiments):
         for biopsy in BIOPSIES:
 
             patient: str = '_'.join(biopsy.split('_')[:2])
@@ -62,7 +68,8 @@ if __name__ == '__main__':
                     "Model Path": ""
                 })
 
-                model_path: Path = Path("mesmer", "tumor_exp_patient", biopsy, marker, "results", "experiment_run", "model")
+                model_path: Path = Path("mesmer", "tumor_exp_patient", biopsy, marker, "results", "experiment_run",
+                                        "model")
                 print(f"Loading model from: {model_path}")
                 # load model for marker and biopsy
                 model = LudwigModel.load(str(model_path))
@@ -79,5 +86,10 @@ if __name__ == '__main__':
                     "Model Path": str(model_path)
                 })
 
-    biopsy_evaluation = pd.DataFrame(biopsy_evaluation)
-    biopsy_evaluation.to_csv(Path("null_model", "sample_performance.csv"), index=False)
+    try:
+        biopsy_evaluation = pd.DataFrame(biopsy_evaluation)
+        biopsy_evaluation.to_csv(Path("null_model", "sample_performance.csv"), index=False)
+    except BaseException as ex:
+        print(ex)
+        biopsy_evaluation = pd.DataFrame(biopsy_evaluation)
+        biopsy_evaluation.to_csv(Path("null_model_sample_performance.csv"), index=False)
