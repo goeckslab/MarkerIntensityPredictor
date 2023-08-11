@@ -45,6 +45,10 @@ if __name__ == '__main__':
     experiments: int = args.experiments
 
     biopsy_evaluation = []
+    lgbm_loaded_models = {}
+    train_data_sets = {}
+    test_data_sets = {}
+
     try:
         for i in range(experiments):
             logging.info(f"Started {i} experiment...")
@@ -53,12 +57,22 @@ if __name__ == '__main__':
                 patient: str = '_'.join(biopsy.split('_')[:2])
                 logging.debug(f"Processing biopsy: {biopsy} and patient {patient}")
                 # load ground truth
+
+                if biopsy not in test_data_sets:
+                    pd.read_csv(Path("data", "tumor_mesmer", "preprocessed", f"{biopsy}_preprocessed_dataset.tsv"),
+                                sep="\t")
+
                 # test_data: pd.DataFrame = pd.read_csv(
                 #    Path("data", "tumor_mesmer", "preprocessed", f"{biopsy}_preprocessed_dataset.tsv"), sep="\t")
 
-                train_data: pd.DataFrame = pd.read_csv(
-                    Path("data", "tumor_mesmer", "combined", "preprocessed", f"{patient}_excluded_dataset.tsv"),
-                    sep="\t")
+                # load train data
+                if patient not in train_data_sets:
+                    train_data_sets[patient] = pd.read_csv(
+                        Path("data", "tumor_mesmer", "combined", "preprocessed", f"{patient}_excluded_dataset.tsv"),
+                        sep="\t")
+
+                # load train data from dict
+                train_data: pd.DataFrame = train_data_sets[patient]
 
                 # assert ground truth is not empty
                 assert train_data.shape[0] > 0, "Ground truth is empty"
@@ -98,8 +112,12 @@ if __name__ == '__main__':
 
                     model_path: Path = Path("mesmer", "tumor_exp_patient", biopsy, marker, "results", "experiment_run",
                                             "model")
+
+                    if f"{biopsy}_{marker}" not in lgbm_loaded_models:
+                        lgbm_loaded_models[f"{biopsy}_{marker}"] = LudwigModel.load(str(model_path))
+
                     # load model for marker and biopsy
-                    model = LudwigModel.load(str(model_path))
+                    model = lgbm_loaded_models[f"{biopsy}_{marker}"]
                     own_eval_stats, _, _ = model.evaluate(evaluation_sample)
 
                     biopsy_evaluation.append({
