@@ -225,3 +225,4 @@ data/tumor_cycif_v2.csv
 mlruns.zip
 *.eps
 ludwig_prediction.err
+artificial_data/.lock_preprocessing
