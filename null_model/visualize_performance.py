@@ -49,12 +49,13 @@ def create_bar_chart(data: pd.DataFrame):
 
 
 if __name__ == '__main__':
-    df = pd.read_csv(Path("null_model", "sample_performance.csv"))
-
+    df = pd.read_csv(Path("data", "cleaned_data", "null_model", "performance.csv"))
     # create new df and pair mae values of null model and biopsy model in two columns
     new_df = df[["Biopsy", "Marker", "MAE", "Null Model"]]
+
+
     # create new df that puts null model and biopsy model mae values in two columns
-    new_df = new_df.pivot(index=["Biopsy", "Marker"], columns="Null Model", values="MAE")
+    new_df = new_df.pivot_table(index=["Biopsy", "Marker"], columns="Null Model", values="MAE", aggfunc="mean")
     # create new columns using the biopsy
     new_df["Biopsy"] = new_df.index.get_level_values(0)
     # rename to 0 biopsy model and 1 to null model
@@ -63,8 +64,6 @@ if __name__ == '__main__':
     new_df.reset_index(level="Marker", inplace=True)
     # drop index
     new_df.reset_index(drop=True, inplace=True)
-
-    print(new_df[new_df["Biopsy"] == "9_2_1"])
 
     # calculate mean performance for markers for both biopsy model and mull model
     mean_df = new_df.groupby("Marker").mean()
