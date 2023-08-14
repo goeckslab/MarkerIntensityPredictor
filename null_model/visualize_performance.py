@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 from statannotations.Annotator import Annotator
+import sys
 
 
 def create_bar_chart(data: pd.DataFrame):
     print(data)
-    input()
     hue = "Model"
     hue_order = ["LGBM", "Null Model"]
     pairs = [
@@ -31,7 +31,7 @@ def create_bar_chart(data: pd.DataFrame):
     ]
 
     fig, ax = plt.subplots(figsize=(15, 10))
-    sns.barplot(x="Marker", y="MAE", data=mean_df, ax=ax, hue=hue)
+    sns.boxenplot(x="Marker", y="MAE", data=mean_df, ax=ax, hue=hue)
 
     order = ["AR", "CK14", "CK17", "CK19", "CD45", "Ecad", "EGFR", "ER", "HER2", "Ki67", "PR", "Vimentin", "aSMA",
              "p21", "pERK", "pRB"]
@@ -40,22 +40,30 @@ def create_bar_chart(data: pd.DataFrame):
     annotator.configure(test='Mann-Whitney', text_format='star', loc='outside')
     annotator.apply_and_annotate()
 
+    plt.title("Null model vs LGBM model performance", x=0.5, y=1.10, fontsize=20)
     # plot bar plot for mean_df
     sns.set_theme(style="whitegrid")
     sns.set_context("paper")
     sns.set(font_scale=1.5)
 
-    plt.show()
+    save_path = Path("plots", "figures", "null_model", "performance")
+    if not save_path.exists():
+        save_path.mkdir(parents=True)
+
+    plt.savefig(Path(save_path, "null_model_vs_lgbm_model_performance.png"), dpi=300)
 
 
 if __name__ == '__main__':
     df = pd.read_csv(Path("data", "cleaned_data", "null_model", "performance.csv"))
+
+    # select only train data
+    df = df[df["Train"] == 1]
+
     # create new df and pair mae values of null model and biopsy model in two columns
     new_df = df[["Biopsy", "Marker", "MAE", "Null Model"]]
 
-
     # create new df that puts null model and biopsy model mae values in two columns
-    new_df = new_df.pivot_table(index=["Biopsy", "Marker"], columns="Null Model", values="MAE", aggfunc="mean")
+    new_df = new_df.pivot_table(index=["Biopsy", "Marker"], columns="Null Model", values="MAE")
     # create new columns using the biopsy
     new_df["Biopsy"] = new_df.index.get_level_values(0)
     # rename to 0 biopsy model and 1 to null model
@@ -66,13 +74,13 @@ if __name__ == '__main__':
     new_df.reset_index(drop=True, inplace=True)
 
     # calculate mean performance for markers for both biopsy model and mull model
-    mean_df = new_df.groupby("Marker").mean()
+    # mean_df = new_df.groupby("Marker").mean()
 
     # reset indx
-    mean_df.reset_index(inplace=True)
+    # mean_df.reset_index(inplace=True)
 
     # Combine columns Biopsy Model MAE and NUll Model MAE to be one column
-    mean_df = mean_df.melt(id_vars=["Marker"], value_vars=["Biopsy Model MAE", "Null Model MAE"])
+    mean_df = new_df.melt(id_vars=["Marker"], value_vars=["Biopsy Model MAE", "Null Model MAE"])
     # rename value column to MAE
     mean_df.rename(columns={"value": "MAE"}, inplace=True)
     # rename Null Model to Model
@@ -83,7 +91,7 @@ if __name__ == '__main__':
     mean_df["Model"].replace({"Null Model MAE": "Null Model"}, inplace=True)
 
     create_bar_chart(data=mean_df)
-
+    sys.exit(0)
     # plot scatterplot
     sns.set_theme(style="whitegrid")
     sns.set_context("paper")
