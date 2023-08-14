@@ -45,7 +45,7 @@ else
       echo "spatial is 1"
       cd mesmer/tumor_in_patient_sp_${spatial}
     fi
-    
+
   ./evaluate_all_marker_in_patient.sh $biopsy $test_biopsy
   ./evaluate_all_marker_in_patient.sh $biopsy $test_biopsy
   ./evaluate_all_marker_in_patient.sh $biopsy $test_biopsy
