@@ -46,15 +46,15 @@ def create_bar_chart(data: pd.DataFrame):
     sns.set_context("paper")
     sns.set(font_scale=1.5)
 
-    save_path = Path("plots", "figures", "null_model", "performance")
+    save_path = Path("plots", "figures", "null_model")
     if not save_path.exists():
         save_path.mkdir(parents=True)
 
-    plt.savefig(Path(save_path, "null_model_vs_lgbm_model_performance.png"), dpi=300)
+    plt.savefig(Path(save_path, "random_draw_vs_lgbm_model_performance.png"), dpi=300)
 
 
 if __name__ == '__main__':
-    df = pd.read_csv(Path("data", "cleaned_data", "null_model", "performance.csv"))
+    df = pd.read_csv(Path("data", "cleaned_data", "null_model", "random_draw_performance.csv"))
 
     # select only train data
     df = df[df["Train"] == 1]
