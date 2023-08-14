@@ -34,11 +34,6 @@ then
   ./evaluate_all_marker_out_patient.sh $biopsy $patient
   ./evaluate_all_marker_out_patient.sh $biopsy $patient
   ./evaluate_all_marker_out_patient.sh $biopsy $patient
-  ./evaluate_all_marker_out_patient.sh $biopsy $patient
-  ./evaluate_all_marker_out_patient.sh $biopsy $patient
-  ./evaluate_all_marker_out_patient.sh $biopsy $patient
-  ./evaluate_all_marker_out_patient.sh $biopsy $patient
-  ./evaluate_all_marker_out_patient.sh $biopsy $patient
 else
   test_biopsy=$3
   echo mode="${mode}" biopsy="${biopsy}" test_biopsy="${test_biopsy}" spatial="${spatial}"
@@ -50,13 +45,7 @@ else
       echo "spatial is 1"
       cd mesmer/tumor_in_patient_sp_${spatial}
     fi
-
-
-  ./evaluate_all_marker_in_patient.sh $biopsy $test_biopsy
-  ./evaluate_all_marker_in_patient.sh $biopsy $test_biopsy
-  ./evaluate_all_marker_in_patient.sh $biopsy $test_biopsy
-  ./evaluate_all_marker_in_patient.sh $biopsy $test_biopsy
-  ./evaluate_all_marker_in_patient.sh $biopsy $test_biopsy
+    
   ./evaluate_all_marker_in_patient.sh $biopsy $test_biopsy
   ./evaluate_all_marker_in_patient.sh $biopsy $test_biopsy
   ./evaluate_all_marker_in_patient.sh $biopsy $test_biopsy
