@@ -38,38 +38,38 @@ def setup_log_file(save_path: Path):
 def evaluate_samples(marker: str, train_set: pd.DataFrame, test_set: pd.DataFrame, biopsy: str, train_set_used: bool):
     try:
 
-        y_truth = test_set[marker]
-
         # draw random samples from train set for each test set sample
         y_hat = train_set.sample(n=len(test_set), replace=True)[marker]
 
-        biopsy_predictions.append({
-            "Biopsy": biopsy,
-            "Marker": marker,
-            "y_hat": y_hat.values[0],
-            "y_truth": y_truth.values[0],
-            "Null Model": 1,
-            "Train": int(train_set_used),
-        })
+        temp_df = pd.DataFrame()
+        temp_df["y_hat"] = y_hat.values
+        temp_df["y_truth"] = test_set[marker].values
+        temp_df["Null Model"] = 1
+        temp_df["Marker"] = marker
+        temp_df["Train"] = int(train_set_used)
+        temp_df["Biopsy"] = biopsy
+
+        biopsy_predictions.append(temp_df)
+
         model_path: Path = Path("mesmer", "tumor_exp_patient", biopsy, marker, "results", "experiment_run",
                                 "model")
 
         if f"{biopsy}_{marker}" not in lgbm_loaded_models:
             lgbm_loaded_models[f"{biopsy}_{marker}"] = LudwigModel.load(str(model_path))
 
-
         # load model for marker and biopsy
         model = lgbm_loaded_models[f"{biopsy}_{marker}"]
         predict = model.predict(test_set)
 
-        biopsy_predictions.append({
-            "Biopsy": biopsy,
-            "Marker": marker,
-            "y_hat": predict[0][f"{marker}_predictions"][0],
-            "y_truth": test_set[marker].values[0],
-            "Null Model": 0,
-            "Train": int(train_set_used),
-        })
+        temp_df = pd.DataFrame()
+        temp_df["y_hat"] = predict[0][f"{marker}_predictions"]
+        temp_df["y_truth"] = test_set[marker].values
+        temp_df["Null Model"] = 0
+        temp_df["Marker"] = marker
+        temp_df["Train"] = int(train_set_used)
+        temp_df["Biopsy"] = biopsy
+
+        biopsy_predictions.append(temp_df)
 
 
 
@@ -132,7 +132,7 @@ if __name__ == '__main__':
         print("Saving current results...")
 
     try:
-        biopsy_predictions = pd.DataFrame(biopsy_predictions)
+        biopsy_predictions = pd.concat(biopsy_predictions)
 
         save_path: Path = Path("data", "cleaned_data", "null_model", "random_draw_all_predictions.csv")
         if not save_path.parent.exists():
@@ -141,5 +141,5 @@ if __name__ == '__main__':
         biopsy_predictions.to_csv(save_path, index=False)
     except BaseException as ex:
         logging.error(ex)
-        biopsy_predictions = pd.DataFrame(biopsy_predictions)
+        biopsy_predictions = pd.concat(biopsy_predictions)
         biopsy_predictions.to_csv(Path("null_model_random_draw_all_predictions.csv"), index=False)
