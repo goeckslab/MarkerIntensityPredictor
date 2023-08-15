@@ -7,7 +7,7 @@ error_reports/
 *.meta*
 gnn/data/*
 gnn/results/*
-
+artificial_data/results
 ae_imputation/ae_hyperopt
 
 
