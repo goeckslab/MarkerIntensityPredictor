@@ -54,7 +54,7 @@ def create_bar_chart(data: pd.DataFrame):
 
 
 if __name__ == '__main__':
-    df = pd.read_csv(Path("data", "cleaned_data", "null_model", "random_draw_performance.csv"))
+    df = pd.read_csv(Path("data", "cleaned_data", "null_model", "random_draw_all_performance.csv"))
 
     # select only train data
     df = df[df["Train"] == 1]
