@@ -1,0 +1,1062 @@
+{
+    "backend": null,
+    "combiner": {
+        "activation": "relu",
+        "bias_initializer": "zeros",
+        "dropout": 0.0,
+        "fc_layers": null,
+        "flatten_inputs": false,
+        "norm": null,
+        "norm_params": null,
+        "num_fc_layers": 0,
+        "output_size": 256,
+        "residual": false,
+        "type": "concat",
+        "use_bias": true,
+        "weights_initializer": "xavier_uniform"
+    },
+    "defaults": {
+        "audio": {
+            "encoder": {
+                "activation": "relu",
+                "bias_initializer": "zeros",
+                "conv_layers": null,
+                "dropout": 0.0,
+                "embedding_size": 256,
+                "embeddings_on_cpu": false,
+                "embeddings_trainable": true,
+                "fc_layers": null,
+                "filter_size": 3,
+                "max_sequence_length": null,
+                "norm": null,
+                "norm_params": null,
+                "num_conv_layers": null,
+                "num_fc_layers": null,
+                "num_filters": 256,
+                "output_size": 256,
+                "pool_function": "max",
+                "pool_size": null,
+                "pretrained_embeddings": null,
+                "reduce_output": "sum",
+                "representation": "dense",
+                "should_embed": true,
+                "skip": false,
+                "type": "parallel_cnn",
+                "use_bias": true,
+                "vocab": null,
+                "weights_initializer": "xavier_uniform"
+            },
+            "preprocessing": {
+                "audio_file_length_limit_in_s": 7.5,
+                "computed_fill_value": null,
+                "fill_value": null,
+                "in_memory": true,
+                "missing_value_strategy": "bfill",
+                "norm": null,
+                "num_fft_points": null,
+                "num_filter_bands": 80,
+                "padding_value": 0.0,
+                "type": "fbank",
+                "window_length_in_s": 0.04,
+                "window_shift_in_s": 0.02,
+                "window_type": "hamming"
+            }
+        },
+        "bag": {
+            "encoder": {
+                "activation": "relu",
+                "bias_initializer": "zeros",
+                "dropout": 0.0,
+                "embedding_size": 50,
+                "embeddings_on_cpu": false,
+                "embeddings_trainable": true,
+                "fc_layers": null,
+                "force_embedding_size": false,
+                "norm": null,
+                "norm_params": null,
+                "num_fc_layers": 0,
+                "output_size": 10,
+                "pretrained_embeddings": null,
+                "representation": "dense",
+                "skip": false,
+                "type": "embed",
+                "use_bias": true,
+                "vocab": null,
+                "weights_initializer": "xavier_uniform"
+            },
+            "preprocessing": {
+                "computed_fill_value": "<UNK>",
+                "fill_value": "<UNK>",
+                "lowercase": false,
+                "missing_value_strategy": "fill_with_const",
+                "most_common": 10000,
+                "tokenizer": "space"
+            }
+        },
+        "binary": {
+            "decoder": {
+                "bias_initializer": "zeros",
+                "fc_activation": "relu",
+                "fc_bias_initializer": "zeros",
+                "fc_dropout": 0.0,
+                "fc_layers": null,
+                "fc_norm": null,
+                "fc_norm_params": null,
+                "fc_output_size": 256,
+                "fc_use_bias": true,
+                "fc_weights_initializer": "xavier_uniform",
+                "input_size": null,
+                "num_fc_layers": 0,
+                "type": "regressor",
+                "use_bias": true,
+                "weights_initializer": "xavier_uniform"
+            },
+            "encoder": {
+                "skip": false,
+                "type": "passthrough"
+            },
+            "loss": {
+                "confidence_penalty": 0,
+                "positive_class_weight": null,
+                "robust_lambda": 0,
+                "type": "binary_weighted_cross_entropy",
+                "weight": 1.0
+            },
+            "preprocessing": {
+                "computed_fill_value": null,
+                "fallback_true_label": null,
+                "fill_value": null,
+                "missing_value_strategy": "fill_with_false"
+            }
+        },
+        "category": {
+            "decoder": {
+                "bias_initializer": "zeros",
+                "fc_activation": "relu",
+                "fc_bias_initializer": "zeros",
+                "fc_dropout": 0.0,
+                "fc_layers": null,
+                "fc_norm": null,
+                "fc_norm_params": null,
+                "fc_output_size": 256,
+                "fc_use_bias": true,
+                "fc_weights_initializer": "xavier_uniform",
+                "input_size": null,
+                "num_classes": null,
+                "num_fc_layers": 0,
+                "type": "classifier",
+                "use_bias": true,
+                "weights_initializer": "xavier_uniform"
+            },
+            "encoder": {
+                "dropout": 0.0,
+                "embedding_initializer": null,
+                "embedding_size": 50,
+                "embeddings_on_cpu": false,
+                "embeddings_trainable": true,
+                "pretrained_embeddings": null,
+                "skip": false,
+                "type": "dense",
+                "vocab": null
+            },
+            "loss": {
+                "class_similarities": null,
+                "class_similarities_temperature": 0,
+                "class_weights": null,
+                "confidence_penalty": 0,
+                "robust_lambda": 0,
+                "type": "softmax_cross_entropy",
+                "weight": 1.0
+            },
+            "preprocessing": {
+                "computed_fill_value": "<UNK>",
+                "fill_value": "<UNK>",
+                "lowercase": false,
+                "missing_value_strategy": "fill_with_const",
+                "most_common": 10000
+            }
+        },
+        "date": {
+            "encoder": {
+                "activation": "relu",
+                "bias_initializer": "zeros",
+                "dropout": 0.0,
+                "embedding_size": 10,
+                "embeddings_on_cpu": false,
+                "fc_layers": null,
+                "norm": null,
+                "norm_params": null,
+                "num_fc_layers": 0,
+                "output_size": 10,
+                "skip": false,
+                "type": "embed",
+                "use_bias": true,
+                "weights_initializer": "xavier_uniform"
+            },
+            "preprocessing": {
+                "computed_fill_value": "",
+                "datetime_format": null,
+                "fill_value": "",
+                "missing_value_strategy": "fill_with_const"
+            }
+        },
+        "h3": {
+            "encoder": {
+                "activation": "relu",
+                "bias_initializer": "zeros",
+                "dropout": 0.0,
+                "embedding_size": 10,
+                "embeddings_on_cpu": false,
+                "fc_layers": null,
+                "norm": null,
+                "norm_params": null,
+                "num_fc_layers": 0,
+                "output_size": 10,
+                "reduce_output": "sum",
+                "skip": false,
+                "type": "embed",
+                "use_bias": true,
+                "weights_initializer": "xavier_uniform"
+            },
+            "preprocessing": {
+                "computed_fill_value": 576495936675512319,
+                "fill_value": 576495936675512319,
+                "missing_value_strategy": "fill_with_const"
+            }
+        },
+        "image": {
+            "augmentation": [],
+            "encoder": {
+                "conv_activation": "relu",
+                "conv_dropout": 0.0,
+                "conv_layers": null,
+                "conv_norm": null,
+                "conv_norm_params": null,
+                "conv_use_bias": true,
+                "dilation": 1,
+                "fc_activation": "relu",
+                "fc_bias_initializer": "zeros",
+                "fc_dropout": 0.0,
+                "fc_layers": null,
+                "fc_norm": null,
+                "fc_norm_params": null,
+                "fc_use_bias": true,
+                "fc_weights_initializer": "xavier_uniform",
+                "groups": 1,
+                "height": null,
+                "kernel_size": 3,
+                "num_channels": null,
+                "num_conv_layers": null,
+                "num_fc_layers": 1,
+                "out_channels": 32,
+                "output_size": 128,
+                "padding": "valid",
+                "padding_mode": "zeros",
+                "pool_dilation": 1,
+                "pool_function": "max",
+                "pool_kernel_size": 2,
+                "pool_padding": 0,
+                "pool_stride": null,
+                "skip": false,
+                "stride": 1,
+                "type": "stacked_cnn",
+                "width": null
+            },
+            "preprocessing": {
+                "computed_fill_value": null,
+                "fill_value": null,
+                "height": null,
+                "in_memory": true,
+                "infer_image_dimensions": true,
+                "infer_image_max_height": 256,
+                "infer_image_max_width": 256,
+                "infer_image_num_channels": true,
+                "infer_image_sample_size": 100,
+                "missing_value_strategy": "bfill",
+                "num_channels": null,
+                "num_processes": 1,
+                "requires_equal_dimensions": false,
+                "resize_method": "interpolate",
+                "standardize_image": null,
+                "width": null
+            }
+        },
+        "number": {
+            "decoder": {
+                "bias_initializer": "zeros",
+                "fc_activation": "relu",
+                "fc_bias_initializer": "zeros",
+                "fc_dropout": 0.0,
+                "fc_layers": null,
+                "fc_norm": null,
+                "fc_norm_params": null,
+                "fc_output_size": 256,
+                "fc_use_bias": true,
+                "fc_weights_initializer": "xavier_uniform",
+                "input_size": null,
+                "num_fc_layers": 0,
+                "type": "regressor",
+                "use_bias": true,
+                "weights_initializer": "xavier_uniform"
+            },
+            "encoder": {
+                "skip": false,
+                "type": "passthrough"
+            },
+            "loss": {
+                "type": "mean_squared_error",
+                "weight": 1.0
+            },
+            "preprocessing": {
+                "computed_fill_value": 0.0,
+                "computed_outlier_fill_value": 0.0,
+                "fill_value": 0.0,
+                "missing_value_strategy": "fill_with_const",
+                "normalization": "zscore",
+                "outlier_strategy": null,
+                "outlier_threshold": 3.0
+            }
+        },
+        "sequence": {
+            "decoder": {
+                "cell_type": "gru",
+                "fc_activation": "relu",
+                "fc_bias_initializer": "zeros",
+                "fc_dropout": 0.0,
+                "fc_layers": null,
+                "fc_norm": null,
+                "fc_norm_params": null,
+                "fc_output_size": 256,
+                "fc_use_bias": true,
+                "fc_weights_initializer": "xavier_uniform",
+                "input_size": 256,
+                "max_sequence_length": null,
+                "num_fc_layers": 0,
+                "num_layers": 1,
+                "reduce_input": "sum",
+                "type": "generator",
+                "vocab_size": null
+            },
+            "encoder": {
+                "dropout": 0.0,
+                "embedding_size": 256,
+                "embeddings_on_cpu": false,
+                "embeddings_trainable": true,
+                "max_sequence_length": null,
+                "pretrained_embeddings": null,
+                "reduce_output": "sum",
+                "representation": "dense",
+                "skip": false,
+                "type": "embed",
+                "vocab": null,
+                "weights_initializer": "uniform"
+            },
+            "loss": {
+                "class_similarities": null,
+                "class_similarities_temperature": 0,
+                "class_weights": null,
+                "confidence_penalty": 0,
+                "robust_lambda": 0,
+                "type": "sequence_softmax_cross_entropy",
+                "unique": false,
+                "weight": 1.0
+            },
+            "preprocessing": {
+                "cache_encoder_embeddings": false,
+                "computed_fill_value": "<UNK>",
+                "fill_value": "<UNK>",
+                "lowercase": false,
+                "max_sequence_length": 256,
+                "missing_value_strategy": "fill_with_const",
+                "most_common": 20000,
+                "ngram_size": 2,
+                "padding": "right",
+                "padding_symbol": "<PAD>",
+                "sequence_length": null,
+                "tokenizer": "space",
+                "unknown_symbol": "<UNK>",
+                "vocab_file": null
+            }
+        },
+        "set": {
+            "decoder": {
+                "bias_initializer": "zeros",
+                "fc_activation": "relu",
+                "fc_bias_initializer": "zeros",
+                "fc_dropout": 0.0,
+                "fc_layers": null,
+                "fc_norm": null,
+                "fc_norm_params": null,
+                "fc_output_size": 256,
+                "fc_use_bias": true,
+                "fc_weights_initializer": "xavier_uniform",
+                "input_size": null,
+                "num_classes": null,
+                "num_fc_layers": 0,
+                "type": "classifier",
+                "use_bias": true,
+                "weights_initializer": "xavier_uniform"
+            },
+            "encoder": {
+                "activation": "relu",
+                "bias_initializer": "zeros",
+                "dropout": 0.0,
+                "embedding_size": 50,
+                "embeddings_on_cpu": false,
+                "embeddings_trainable": true,
+                "fc_layers": null,
+                "norm": null,
+                "norm_params": null,
+                "num_fc_layers": 0,
+                "output_size": 10,
+                "pretrained_embeddings": null,
+                "representation": "dense",
+                "skip": false,
+                "type": "embed",
+                "use_bias": true,
+                "vocab": null,
+                "weights_initializer": "xavier_uniform"
+            },
+            "loss": {
+                "class_weights": null,
+                "type": "sigmoid_cross_entropy",
+                "weight": 1.0
+            },
+            "preprocessing": {
+                "computed_fill_value": "<UNK>",
+                "fill_value": "<UNK>",
+                "lowercase": false,
+                "missing_value_strategy": "fill_with_const",
+                "most_common": 10000,
+                "tokenizer": "space"
+            }
+        },
+        "text": {
+            "decoder": {
+                "cell_type": "gru",
+                "fc_activation": "relu",
+                "fc_bias_initializer": "zeros",
+                "fc_dropout": 0.0,
+                "fc_layers": null,
+                "fc_norm": null,
+                "fc_norm_params": null,
+                "fc_output_size": 256,
+                "fc_use_bias": true,
+                "fc_weights_initializer": "xavier_uniform",
+                "input_size": 256,
+                "max_sequence_length": null,
+                "num_fc_layers": 0,
+                "num_layers": 1,
+                "reduce_input": "sum",
+                "type": "generator",
+                "vocab_size": null
+            },
+            "encoder": {
+                "activation": "relu",
+                "bias_initializer": "zeros",
+                "conv_layers": null,
+                "dropout": 0.0,
+                "embedding_size": 256,
+                "embeddings_on_cpu": false,
+                "embeddings_trainable": true,
+                "fc_layers": null,
+                "filter_size": 3,
+                "max_sequence_length": null,
+                "norm": null,
+                "norm_params": null,
+                "num_conv_layers": null,
+                "num_fc_layers": null,
+                "num_filters": 256,
+                "output_size": 256,
+                "pool_function": "max",
+                "pool_size": null,
+                "pretrained_embeddings": null,
+                "reduce_output": "sum",
+                "representation": "dense",
+                "should_embed": true,
+                "skip": false,
+                "type": "parallel_cnn",
+                "use_bias": true,
+                "vocab": null,
+                "weights_initializer": "xavier_uniform"
+            },
+            "loss": {
+                "class_similarities": null,
+                "class_similarities_temperature": 0,
+                "class_weights": null,
+                "confidence_penalty": 0,
+                "robust_lambda": 0,
+                "type": "sequence_softmax_cross_entropy",
+                "unique": false,
+                "weight": 1.0
+            },
+            "preprocessing": {
+                "cache_encoder_embeddings": false,
+                "computed_fill_value": "<UNK>",
+                "fill_value": "<UNK>",
+                "lowercase": true,
+                "max_sequence_length": 256,
+                "missing_value_strategy": "fill_with_const",
+                "most_common": 20000,
+                "ngram_size": 2,
+                "padding": "right",
+                "padding_symbol": "<PAD>",
+                "pretrained_model_name_or_path": null,
+                "sequence_length": null,
+                "tokenizer": "space_punct",
+                "unknown_symbol": "<UNK>",
+                "vocab_file": null
+            }
+        },
+        "timeseries": {
+            "encoder": {
+                "activation": "relu",
+                "bias_initializer": "zeros",
+                "conv_layers": null,
+                "dropout": 0.0,
+                "embedding_size": 256,
+                "embeddings_on_cpu": false,
+                "embeddings_trainable": true,
+                "fc_layers": null,
+                "filter_size": 3,
+                "max_sequence_length": null,
+                "norm": null,
+                "norm_params": null,
+                "num_conv_layers": null,
+                "num_fc_layers": null,
+                "num_filters": 256,
+                "output_size": 256,
+                "pool_function": "max",
+                "pool_size": null,
+                "pretrained_embeddings": null,
+                "reduce_output": "sum",
+                "representation": "dense",
+                "should_embed": true,
+                "skip": false,
+                "type": "parallel_cnn",
+                "use_bias": true,
+                "vocab": null,
+                "weights_initializer": "xavier_uniform"
+            },
+            "preprocessing": {
+                "computed_fill_value": "",
+                "fill_value": "",
+                "missing_value_strategy": "fill_with_const",
+                "padding": "right",
+                "padding_value": 0.0,
+                "timeseries_length_limit": 256,
+                "tokenizer": "space"
+            }
+        },
+        "vector": {
+            "decoder": {
+                "activation": null,
+                "bias_initializer": "zeros",
+                "clip": null,
+                "fc_activation": "relu",
+                "fc_bias_initializer": "zeros",
+                "fc_dropout": 0.0,
+                "fc_layers": null,
+                "fc_norm": null,
+                "fc_norm_params": null,
+                "fc_output_size": 256,
+                "fc_use_bias": true,
+                "fc_weights_initializer": "xavier_uniform",
+                "input_size": null,
+                "num_fc_layers": 0,
+                "output_size": null,
+                "type": "projector",
+                "use_bias": true,
+                "weights_initializer": "xavier_uniform"
+            },
+            "encoder": {
+                "activation": "relu",
+                "bias_initializer": "zeros",
+                "dropout": 0.0,
+                "fc_layers": null,
+                "input_size": null,
+                "norm": null,
+                "norm_params": null,
+                "num_layers": 1,
+                "output_size": 256,
+                "skip": false,
+                "type": "dense",
+                "use_bias": true,
+                "weights_initializer": "xavier_uniform"
+            },
+            "loss": {
+                "type": "mean_squared_error",
+                "weight": 1.0
+            },
+            "preprocessing": {
+                "computed_fill_value": "",
+                "fill_value": "",
+                "missing_value_strategy": "fill_with_const",
+                "vector_size": null
+            }
+        }
+    },
+    "hyperopt": null,
+    "input_features": [
+        {
+            "active": true,
+            "column": "pRB",
+            "encoder": {
+                "input_size": 1,
+                "saved_weights_in_checkpoint": true,
+                "skip": false,
+                "type": "passthrough"
+            },
+            "name": "pRB",
+            "preprocessing": {
+                "computed_fill_value": 0.0,
+                "computed_outlier_fill_value": 0.0,
+                "fill_value": 0.0,
+                "missing_value_strategy": "fill_with_const",
+                "normalization": "zscore",
+                "outlier_strategy": null,
+                "outlier_threshold": 3.0
+            },
+            "proc_column": "pRB_sMoadH",
+            "tied": null,
+            "type": "number"
+        },
+        {
+            "active": true,
+            "column": "CD45",
+            "encoder": {
+                "input_size": 1,
+                "saved_weights_in_checkpoint": true,
+                "skip": false,
+                "type": "passthrough"
+            },
+            "name": "CD45",
+            "preprocessing": {
+                "computed_fill_value": 0.0,
+                "computed_outlier_fill_value": 0.0,
+                "fill_value": 0.0,
+                "missing_value_strategy": "fill_with_const",
+                "normalization": "zscore",
+                "outlier_strategy": null,
+                "outlier_threshold": 3.0
+            },
+            "proc_column": "CD45_sMoadH",
+            "tied": null,
+            "type": "number"
+        },
+        {
+            "active": true,
+            "column": "CK19",
+            "encoder": {
+                "input_size": 1,
+                "saved_weights_in_checkpoint": true,
+                "skip": false,
+                "type": "passthrough"
+            },
+            "name": "CK19",
+            "preprocessing": {
+                "computed_fill_value": 0.0,
+                "computed_outlier_fill_value": 0.0,
+                "fill_value": 0.0,
+                "missing_value_strategy": "fill_with_const",
+                "normalization": "zscore",
+                "outlier_strategy": null,
+                "outlier_threshold": 3.0
+            },
+            "proc_column": "CK19_sMoadH",
+            "tied": null,
+            "type": "number"
+        },
+        {
+            "active": true,
+            "column": "Ki67",
+            "encoder": {
+                "input_size": 1,
+                "saved_weights_in_checkpoint": true,
+                "skip": false,
+                "type": "passthrough"
+            },
+            "name": "Ki67",
+            "preprocessing": {
+                "computed_fill_value": 0.0,
+                "computed_outlier_fill_value": 0.0,
+                "fill_value": 0.0,
+                "missing_value_strategy": "fill_with_const",
+                "normalization": "zscore",
+                "outlier_strategy": null,
+                "outlier_threshold": 3.0
+            },
+            "proc_column": "Ki67_sMoadH",
+            "tied": null,
+            "type": "number"
+        },
+        {
+            "active": true,
+            "column": "aSMA",
+            "encoder": {
+                "input_size": 1,
+                "saved_weights_in_checkpoint": true,
+                "skip": false,
+                "type": "passthrough"
+            },
+            "name": "aSMA",
+            "preprocessing": {
+                "computed_fill_value": 0.0,
+                "computed_outlier_fill_value": 0.0,
+                "fill_value": 0.0,
+                "missing_value_strategy": "fill_with_const",
+                "normalization": "zscore",
+                "outlier_strategy": null,
+                "outlier_threshold": 3.0
+            },
+            "proc_column": "aSMA_sMoadH",
+            "tied": null,
+            "type": "number"
+        },
+        {
+            "active": true,
+            "column": "Ecad",
+            "encoder": {
+                "input_size": 1,
+                "saved_weights_in_checkpoint": true,
+                "skip": false,
+                "type": "passthrough"
+            },
+            "name": "Ecad",
+            "preprocessing": {
+                "computed_fill_value": 0.0,
+                "computed_outlier_fill_value": 0.0,
+                "fill_value": 0.0,
+                "missing_value_strategy": "fill_with_const",
+                "normalization": "zscore",
+                "outlier_strategy": null,
+                "outlier_threshold": 3.0
+            },
+            "proc_column": "Ecad_sMoadH",
+            "tied": null,
+            "type": "number"
+        },
+        {
+            "active": true,
+            "column": "CK14",
+            "encoder": {
+                "input_size": 1,
+                "saved_weights_in_checkpoint": true,
+                "skip": false,
+                "type": "passthrough"
+            },
+            "name": "CK14",
+            "preprocessing": {
+                "computed_fill_value": 0.0,
+                "computed_outlier_fill_value": 0.0,
+                "fill_value": 0.0,
+                "missing_value_strategy": "fill_with_const",
+                "normalization": "zscore",
+                "outlier_strategy": null,
+                "outlier_threshold": 3.0
+            },
+            "proc_column": "CK14_sMoadH",
+            "tied": null,
+            "type": "number"
+        },
+        {
+            "active": true,
+            "column": "HER2",
+            "encoder": {
+                "input_size": 1,
+                "saved_weights_in_checkpoint": true,
+                "skip": false,
+                "type": "passthrough"
+            },
+            "name": "HER2",
+            "preprocessing": {
+                "computed_fill_value": 0.0,
+                "computed_outlier_fill_value": 0.0,
+                "fill_value": 0.0,
+                "missing_value_strategy": "fill_with_const",
+                "normalization": "zscore",
+                "outlier_strategy": null,
+                "outlier_threshold": 3.0
+            },
+            "proc_column": "HER2_sMoadH",
+            "tied": null,
+            "type": "number"
+        },
+        {
+            "active": true,
+            "column": "AR",
+            "encoder": {
+                "input_size": 1,
+                "saved_weights_in_checkpoint": true,
+                "skip": false,
+                "type": "passthrough"
+            },
+            "name": "AR",
+            "preprocessing": {
+                "computed_fill_value": 0.0,
+                "computed_outlier_fill_value": 0.0,
+                "fill_value": 0.0,
+                "missing_value_strategy": "fill_with_const",
+                "normalization": "zscore",
+                "outlier_strategy": null,
+                "outlier_threshold": 3.0
+            },
+            "proc_column": "AR_sMoadH",
+            "tied": null,
+            "type": "number"
+        },
+        {
+            "active": true,
+            "column": "CK17",
+            "encoder": {
+                "input_size": 1,
+                "saved_weights_in_checkpoint": true,
+                "skip": false,
+                "type": "passthrough"
+            },
+            "name": "CK17",
+            "preprocessing": {
+                "computed_fill_value": 0.0,
+                "computed_outlier_fill_value": 0.0,
+                "fill_value": 0.0,
+                "missing_value_strategy": "fill_with_const",
+                "normalization": "zscore",
+                "outlier_strategy": null,
+                "outlier_threshold": 3.0
+            },
+            "proc_column": "CK17_sMoadH",
+            "tied": null,
+            "type": "number"
+        },
+        {
+            "active": true,
+            "column": "p21",
+            "encoder": {
+                "input_size": 1,
+                "saved_weights_in_checkpoint": true,
+                "skip": false,
+                "type": "passthrough"
+            },
+            "name": "p21",
+            "preprocessing": {
+                "computed_fill_value": 0.0,
+                "computed_outlier_fill_value": 0.0,
+                "fill_value": 0.0,
+                "missing_value_strategy": "fill_with_const",
+                "normalization": "zscore",
+                "outlier_strategy": null,
+                "outlier_threshold": 3.0
+            },
+            "proc_column": "p21_sMoadH",
+            "tied": null,
+            "type": "number"
+        },
+        {
+            "active": true,
+            "column": "Vimentin",
+            "encoder": {
+                "input_size": 1,
+                "saved_weights_in_checkpoint": true,
+                "skip": false,
+                "type": "passthrough"
+            },
+            "name": "Vimentin",
+            "preprocessing": {
+                "computed_fill_value": 0.0,
+                "computed_outlier_fill_value": 0.0,
+                "fill_value": 0.0,
+                "missing_value_strategy": "fill_with_const",
+                "normalization": "zscore",
+                "outlier_strategy": null,
+                "outlier_threshold": 3.0
+            },
+            "proc_column": "Vimentin_sMoadH",
+            "tied": null,
+            "type": "number"
+        },
+        {
+            "active": true,
+            "column": "pERK",
+            "encoder": {
+                "input_size": 1,
+                "saved_weights_in_checkpoint": true,
+                "skip": false,
+                "type": "passthrough"
+            },
+            "name": "pERK",
+            "preprocessing": {
+                "computed_fill_value": 0.0,
+                "computed_outlier_fill_value": 0.0,
+                "fill_value": 0.0,
+                "missing_value_strategy": "fill_with_const",
+                "normalization": "zscore",
+                "outlier_strategy": null,
+                "outlier_threshold": 3.0
+            },
+            "proc_column": "pERK_sMoadH",
+            "tied": null,
+            "type": "number"
+        },
+        {
+            "active": true,
+            "column": "EGFR",
+            "encoder": {
+                "input_size": 1,
+                "saved_weights_in_checkpoint": true,
+                "skip": false,
+                "type": "passthrough"
+            },
+            "name": "EGFR",
+            "preprocessing": {
+                "computed_fill_value": 0.0,
+                "computed_outlier_fill_value": 0.0,
+                "fill_value": 0.0,
+                "missing_value_strategy": "fill_with_const",
+                "normalization": "zscore",
+                "outlier_strategy": null,
+                "outlier_threshold": 3.0
+            },
+            "proc_column": "EGFR_sMoadH",
+            "tied": null,
+            "type": "number"
+        },
+        {
+            "active": true,
+            "column": "ER",
+            "encoder": {
+                "input_size": 1,
+                "saved_weights_in_checkpoint": true,
+                "skip": false,
+                "type": "passthrough"
+            },
+            "name": "ER",
+            "preprocessing": {
+                "computed_fill_value": 0.0,
+                "computed_outlier_fill_value": 0.0,
+                "fill_value": 0.0,
+                "missing_value_strategy": "fill_with_const",
+                "normalization": "zscore",
+                "outlier_strategy": null,
+                "outlier_threshold": 3.0
+            },
+            "proc_column": "ER_sMoadH",
+            "tied": null,
+            "type": "number"
+        }
+    ],
+    "ludwig_version": "0.7.4",
+    "model_type": "ecd",
+    "output_features": [
+        {
+            "active": true,
+            "clip": null,
+            "column": "PR",
+            "decoder": {
+                "bias_initializer": "zeros",
+                "fc_activation": "relu",
+                "fc_bias_initializer": "zeros",
+                "fc_dropout": 0.0,
+                "fc_layers": null,
+                "fc_norm": null,
+                "fc_norm_params": null,
+                "fc_output_size": 256,
+                "fc_use_bias": true,
+                "fc_weights_initializer": "xavier_uniform",
+                "input_size": 15,
+                "num_fc_layers": 0,
+                "type": "regressor",
+                "use_bias": true,
+                "weights_initializer": "xavier_uniform"
+            },
+            "default_validation_metric": "mean_squared_error",
+            "dependencies": [],
+            "input_size": 15,
+            "loss": {
+                "type": "mean_squared_error",
+                "weight": 1.0
+            },
+            "name": "PR",
+            "num_classes": null,
+            "preprocessing": {
+                "computed_fill_value": 0.0,
+                "computed_outlier_fill_value": 0.0,
+                "fill_value": 0.0,
+                "missing_value_strategy": "drop_row",
+                "normalization": null,
+                "outlier_strategy": null,
+                "outlier_threshold": 3.0
+            },
+            "proc_column": "PR_VO1XAD",
+            "reduce_dependencies": "sum",
+            "reduce_input": "sum",
+            "type": "number"
+        }
+    ],
+    "preprocessing": {
+        "oversample_minority": null,
+        "sample_ratio": 1.0,
+        "split": {
+            "probabilities": [
+                0.7,
+                0.1,
+                0.2
+            ],
+            "type": "random"
+        },
+        "undersample_majority": null
+    },
+    "trainer": {
+        "batch_size": 32,
+        "bucketing_field": null,
+        "checkpoints_per_epoch": 0,
+        "compile": false,
+        "early_stop": 5,
+        "epochs": 100,
+        "eval_batch_size": 32,
+        "evaluate_training_set": false,
+        "gradient_clipping": {
+            "clipglobalnorm": 0.5,
+            "clipnorm": null,
+            "clipvalue": null
+        },
+        "increase_batch_size_eval_metric": "loss",
+        "increase_batch_size_eval_split": "training",
+        "increase_batch_size_on_plateau": 0,
+        "increase_batch_size_on_plateau_patience": 5,
+        "increase_batch_size_on_plateau_rate": 2.0,
+        "learning_rate": 0.001,
+        "learning_rate_scaling": "linear",
+        "learning_rate_scheduler": {
+            "decay": null,
+            "decay_rate": 0.96,
+            "decay_steps": 10000,
+            "reduce_eval_metric": "loss",
+            "reduce_eval_split": "training",
+            "reduce_on_plateau": 0,
+            "reduce_on_plateau_patience": 10,
+            "reduce_on_plateau_rate": 0.1,
+            "staircase": false,
+            "warmup_evaluations": 0,
+            "warmup_fraction": 0.0
+        },
+        "max_batch_size": 1099511627776,
+        "optimizer": {
+            "amsgrad": false,
+            "betas": [
+                0.9,
+                0.999
+            ],
+            "eps": 1e-08,
+            "type": "adam",
+            "weight_decay": 0.0
+        },
+        "regularization_lambda": 0.0,
+        "regularization_type": "l2",
+        "should_shuffle": true,
+        "steps_per_checkpoint": 0,
+        "train_steps": null,
+        "use_mixed_precision": false,
+        "validation_field": "PR",
+        "validation_metric": "mean_squared_error"
+    }
+}
