@@ -20,14 +20,13 @@ if __name__ == '__main__':
     # remove Correlation -1 from df
     df = df[df["Correlation"] != -1]
 
-
     color_palette = {-1.0: "blue", 0.0: "red", 0.5: "orange", 0.9: "green"}
     # plot boxenplots
     sns.set_theme(style="whitegrid")
     sns.set_context("paper")
     sns.set(font_scale=1.5)
     fig, ax = plt.subplots(figsize=(15, 10))
-    sns.boxenplot(x="Marker", y="MAE", data=df, ax=ax, hue="Correlation", palette=color_palette)
+    sns.barplot(x="Marker", y="MAE", data=df, ax=ax, hue="Correlation", palette=color_palette)
     # move legend outside of plot
     plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     plt.title(title)
