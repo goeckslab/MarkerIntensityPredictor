@@ -42,70 +42,37 @@ if __name__ == '__main__':
     if not base_path.exists():
         base_path.mkdir(parents=True)
 
-    argparse = ArgumentParser()
-    argparse.add_argument("--model", choices=["EN", "LGBM", "AE", "GNN", "AE M", "VAE ALL"], help="the model used",
-                          required=True)
-    args = argparse.parse_args()
-
-    model: str = args.model
-
     setup_log_file(save_path=base_path)
-
-    logging.debug(f"Model: {model}")
 
     for biopsy in BIOPSIES:
         patient: str = '_'.join(biopsy.split("_")[:2])
 
-        save_path = Path(base_path, model, biopsy)
+        save_path = Path(base_path, biopsy)
         if not save_path.exists():
             save_path.mkdir(parents=True)
 
-        if model == "LGBM":
-            ground_truth: pd.DataFrame = pd.read_csv(
-                Path("data", "cleaned_data", "ground_truth", f"{biopsy}_preprocessed_dataset.tsv"), sep="\t")
-
-        elif model == "EN":
-            ground_truth: pd.DataFrame = pd.read_csv(
-                Path("data", "cleaned_data", "ground_truth", f"{biopsy}_preprocessed_dataset.tsv"), sep="\t")
-
-        elif model == "AE":
-            ground_truth: pd.DataFrame = pd.read_csv(
-                Path("data", "cleaned_data", "ground_truth", f"{biopsy}_preprocessed_dataset.tsv"), sep="\t")
-
-        elif model == "GNN":
-            ground_truth: pd.DataFrame = pd.read_csv(
-                Path("data", "cleaned_data", "ground_truth", f"{biopsy}_preprocessed_dataset.tsv"), sep="\t")
-
-        elif model == "AE M":
-            ground_truth: pd.DataFrame = pd.read_csv(
-                Path("data", "cleaned_data", "ground_truth", f"{biopsy}_preprocessed_dataset.tsv"), sep="\t")
-
-        elif model == "VAE ALL":
-            ground_truth: pd.DataFrame = pd.read_csv(
-                Path("data", "cleaned_data", "ground_truth", f"{biopsy}_preprocessed_dataset.tsv"), sep="\t")
-
-
-        else:
-            raise ValueError("Model not recognized")
+        ground_truth: pd.DataFrame = pd.read_csv(
+            Path("data", "cleaned_data", "ground_truth", f"{biopsy}_preprocessed_dataset.tsv"), sep="\t")
 
         variance_scores = []
         for protein in ground_truth.columns:
             gt = ground_truth[protein]
             # train = train_data[protein]
 
-            sns.histplot(gt, color="blue", label="GT", kde=True)
+            sns.histplot(gt, color="blue", label="Expression", kde=True)
             # sns.histplot(train, color="green", label="TRAIN", kde=True)
 
             # change y axis label to cell count
             plt.ylabel("Cell Count")
             plt.xlabel(f"{protein} Expression")
-            plt.legend()
-            plt.savefig(Path(save_path, f"{protein}.png"))
+            # plt.legend()
+            plt.savefig(Path(save_path, f"{protein}.png"), dpi=300)
             # close figure
             plt.close()
 
         # plot violin plot for each biopsy
         fig = plt.figure(figsize=(10, 5), dpi=300)
         sns.violinplot(data=ground_truth)
-        plt.savefig(Path(save_path, f"{biopsy}.png"))
+        plt.title(biopsy.replace("_", " "))
+        plt.savefig(Path(save_path, f"{biopsy}.png"), dpi=300)
         plt.close()
