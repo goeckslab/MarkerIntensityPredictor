@@ -50,7 +50,7 @@ def create_bar_chart(data: pd.DataFrame):
     if not save_path.exists():
         save_path.mkdir(parents=True)
 
-    plt.savefig(Path(save_path, "random_draw_vs_lgbm_model_performance.png"), dpi=300)
+    plt.savefig(Path(save_path, "null_model_vs_lgbm_model_performance.png"), dpi=300, bbox_inches='tight')
 
 
 if __name__ == '__main__':
