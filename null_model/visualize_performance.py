@@ -45,11 +45,11 @@ def create_bar_chart(data: pd.DataFrame):
     sns.set_context("paper")
     sns.set(font_scale=1.5)
 
-    save_path = Path("plots", "figures", "null_model")
+    save_path = Path("plots", "figures", "supplements", "null_model")
     if not save_path.exists():
         save_path.mkdir(parents=True)
 
-    plt.savefig(Path(save_path, "null_model_vs_lgbm_model_performance.png"), dpi=300, bbox_inches='tight')
+    plt.savefig(Path(save_path, "performance.png"), dpi=300, bbox_inches='tight')
 
 
 if __name__ == '__main__':
@@ -91,13 +91,3 @@ if __name__ == '__main__':
 
     create_bar_chart(data=mean_df)
     sys.exit(0)
-    # plot scatterplot
-    sns.set_theme(style="whitegrid")
-    sns.set_context("paper")
-    sns.set(font_scale=1.5)
-    fig, ax = plt.subplots(figsize=(15, 10))
-    # change x axis label to null model
-    ax.set_xlabel("Null Model")
-    ax.set_ylabel("Biopsy Model")
-    sns.scatterplot(x="Null Model MAE", y="Biopsy Model MAE", data=new_df, ax=ax, hue="Biopsy")
-    plt.show()
