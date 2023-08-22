@@ -18,11 +18,6 @@ def create_boxen_plot_ip_vs_exp_quartile(data: pd.DataFrame, metric: str) -> plt
     hue = "Mode"
     hue_order = ["IP", "EXP"]
     pairs = [
-        # (("Q1", "IP"), ("Q1", "EXP")),
-        # (("Q2", "IP"), ("Q2", "EXP")),
-        # (("Q3", "IP"), ("Q3", "EXP")),
-        # (("Q4", "IP"), ("Q4", "EXP")),
-        # (("All", "IP"), ("All", "EXP")),
         (("Q1", "IP"), ("Q2", "IP")),
         (("Q2", "IP"), ("Q3", "IP")),
         (("Q3", "IP"), ("Q4", "IP")),
@@ -30,7 +25,6 @@ def create_boxen_plot_ip_vs_exp_quartile(data: pd.DataFrame, metric: str) -> plt
         (("Q1", "EXP"), ("Q2", "EXP")),
         (("Q2", "EXP"), ("Q3", "EXP")),
         (("Q3", "EXP"), ("Q4", "EXP")),
-        # (("Q4", "EXP"), ("All", "EXP")),
     ]
     order = ["Q1", "Q2", "Q3", "Q4"]
     annotator = Annotator(ax, pairs, data=data, x="Quartile", y=metric, order=order, hue=hue, hue_order=hue_order,
@@ -130,49 +124,47 @@ if __name__ == '__main__':
     ae_scores.sort_values(by=["Marker"], inplace=True)
     ae_scores = ae_scores[np.abs(ae_scores["MAE"] - ae_scores["MAE"].mean()) <= (3 * ae_scores["MAE"].std())]
 
-    # load image from images fig2 folder
-    train_test_split = plt.imread(Path("images", "fig2", "train_test_split.png"))
 
-    # ax1 = fig.add_subplot(2, 2, 1)
-    # fig.add_subplot(2, 2, 3).set_title("223")
-    # fig.add_subplot(1, 2, 2).set_title("122")
+    # load image from images fig2 folder
+    train_test_split = plt.imread(Path("images", "fig2", "train_test_split_2.png"))
 
     fig = plt.figure(figsize=(10, 7), dpi=150)
-    gspec = fig.add_gridspec(3, 3)
-    ax1 = fig.add_subplot(gspec[0, :1])
+    gspec = fig.add_gridspec(5, 4)
+
+    ax1 = fig.add_subplot(gspec[:2, :2])
     # remove box from ax1
     plt.box(False)
     # remove ticks from ax1
     ax1.set_xticks([])
     ax1.set_yticks([])
-    ax1.text(-0.1, 1.15, "A", transform=ax1.transAxes,
-             fontsize=16, fontweight='bold', va='top', ha='right')
+    ax1.text(-0.2, 1, "A", transform=ax1.transAxes,
+             fontsize=7, fontweight='bold', va='top', ha='right')
 
     # add image to figure
     ax1.imshow(train_test_split, aspect='auto')
 
-    ax2 = fig.add_subplot(gspec[1, :])
+    ax2 = fig.add_subplot(gspec[2, :])
     ax2.text(-0.1, 1.15, "B", transform=ax2.transAxes,
-             fontsize=16, fontweight='bold', va='top', ha='right')
+             fontsize=7, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    ax2.set_title('Elastic Net', rotation='vertical', x=-0.1, y=0, fontsize=12)
+    ax2.set_title('Elastic Net', rotation='vertical', x=-0.1, y=0, fontsize=7)
     ax2 = create_boxen_plot(data=en_scores, metric="MAE", ylim=[0.0, 0.4])
 
-    ax3 = fig.add_subplot(gspec[2, :])
+    ax3 = fig.add_subplot(gspec[3, :])
     ax3.text(-0.1, 1.15, "C", transform=ax3.transAxes,
-             fontsize=16, fontweight='bold', va='top', ha='right')
+             fontsize=7, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    ax3.set_title('LBGM', rotation='vertical', x=-0.1, y=0, fontsize=12)
+    ax3.set_title('LBGM', rotation='vertical', x=-0.1, y=0, fontsize=7)
     ax3 = create_boxen_plot(data=lgbm_scores, metric="MAE", ylim=[0.0, 0.4])
 
-    ax4 = fig.add_subplot(gspec[2, :])
-    ax4.text(-0.1, 1.15, "D", transform=ax3.transAxes,
-             fontsize=16, fontweight='bold', va='top', ha='right')
+    ax4 = fig.add_subplot(gspec[4, :])
+    ax4.text(-0.1, 1.15, "D", transform=ax4.transAxes,
+             fontsize=7, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    ax4.set_title('AE', rotation='vertical', x=-0.1, y=0, fontsize=12)
+    ax4.set_title('AE', rotation='vertical', x=-0.1, y=0, fontsize=7)
     ax4 = create_boxen_plot(data=ae_scores, metric="MAE", ylim=[0.0, 0.4])
 
     plt.tight_layout()
 
-    plt.savefig(Path("images", "fig2", "fig2.png"), dpi=300)
+    plt.savefig(Path("images", "fig2", "fig2.png"), dpi=300, bbox_inches='tight')
     sys.exit()
