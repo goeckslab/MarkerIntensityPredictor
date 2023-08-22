@@ -7,7 +7,6 @@ import sys
 
 
 def create_bar_chart(data: pd.DataFrame):
-    print(data)
     hue = "Model"
     hue_order = ["LGBM", "Null Model"]
     pairs = [
