@@ -107,8 +107,6 @@ if __name__ == '__main__':
              fontsize=7, fontweight='bold', va='top', ha='right')
     # remove box from ax3
     plt.box(False)
-
-    # ax3 = ax3.imshow(lgbm_results)
     ax2 = create_boxen_plot(data=lgbm_scores, metric="MAE", ylim=[0, 0.5],
                             microns=["0 µm", "23 µm", "92 µm", "184 µm"])
 

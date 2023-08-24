@@ -124,7 +124,6 @@ if __name__ == '__main__':
     ae_scores.sort_values(by=["Marker"], inplace=True)
     ae_scores = ae_scores[np.abs(ae_scores["MAE"] - ae_scores["MAE"].mean()) <= (3 * ae_scores["MAE"].std())]
 
-
     # load image from images fig2 folder
     train_test_split = plt.imread(Path("images", "fig2", "train_test_split_2.png"))
 
@@ -167,4 +166,5 @@ if __name__ == '__main__':
     plt.tight_layout()
 
     plt.savefig(Path("images", "fig2", "fig2.png"), dpi=300, bbox_inches='tight')
+    plt.savefig(Path("images", "fig2", "fig2.eps"), dpi=300, bbox_inches='tight', format='eps')
     sys.exit()

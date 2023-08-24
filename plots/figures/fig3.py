@@ -87,9 +87,10 @@ def create_boxen_plot_by_mode_only(data: pd.DataFrame, metric: str, ylim: List) 
     hue = "Network"
     x = "Mode"
     order = ["IP", "AP"]
-    hue_order = ["EN", "LGBM", "AE", "AE ALL"]
+    hue_order = ["EN", "LGBM", "AE", "AE M"]
     ax = sns.boxenplot(data=data, x=x, y=metric, hue=hue, order=order,
-                       palette={"EN": "purple", "LGBM": "green", "AE": "grey", "AE M": "darkgrey", "AE ALL": "lightgrey"})
+                       palette={"EN": "purple", "LGBM": "green", "AE": "grey", "AE M": "darkgrey",
+                                "AE ALL": "lightgrey"})
 
     # plt.title(title)
     # remove y axis label
@@ -104,15 +105,16 @@ def create_boxen_plot_by_mode_only(data: pd.DataFrame, metric: str, ylim: List) 
     # set y ticks of fig
     plt.box(False)
     # remove legend from fig
-    plt.legend().set_visible(False)
+    plt.legend(prop={"size": 7}, loc='upper center')
+    # plt.legend().set_visible(False)
 
     pairs = [
         (("IP", "EN"), ("IP", "LGBM")),
         (("IP", "LGBM"), ("IP", "AE")),
-        (("IP", "AE"), ("IP", "AE ALL")),
+        (("IP", "AE"), ("IP", "AE M")),
         (("AP", "EN"), ("AP", "LGBM")),
         (("AP", "LGBM"), ("AP", "AE")),
-        (("AP", "AE"), ("AP", "AE ALL")),
+        (("AP", "AE"), ("AP", "AE M")),
     ]
 
     annotator = Annotator(ax, pairs, data=data, x=x, y=metric, order=order, hue=hue, hue_order=hue_order,
@@ -159,8 +161,6 @@ if __name__ == '__main__':
 
     ae_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "ae", "scores.csv"))
     ae_m_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "ae_m", "scores.csv"))
-    ae_all_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "ae_all", "scores.csv"))
-
 
     # Select ae scores where fe  == 0, replace value == mean and noise  == 0
     ae_scores = ae_scores[
@@ -176,21 +176,13 @@ if __name__ == '__main__':
     ae_m_scores = ae_m_scores[ae_m_scores["HP"] == 0]
     ae_m_scores.sort_values(by=["Marker"], inplace=True)
 
-    # Select ae scores where fe  == 0, replace value == mean and noise  == 0
-    ae_all_scores = ae_all_scores[
-        (ae_all_scores["FE"] == 0) & (ae_all_scores["Replace Value"] == "mean") & (ae_all_scores["Noise"] == 0)]
-    # select only non hp scores
-    ae_all_scores = ae_all_scores[ae_all_scores["HP"] == 0]
-    ae_all_scores.sort_values(by=["Marker"], inplace=True)
-
     # assert that FE column only contains 0
     assert (lgbm_scores["FE"] == 0).all(), "FE column should only contain 0 for lgbm_scores"
     assert (ae_m_scores["FE"] == 0).all(), "FE column should only contain 0 for ae_m_scores"
-    assert (ae_all_scores["FE"] == 0).all(), "FE column should only contain 0 for ae_all_scores"
     assert (ae_scores["FE"] == 0).all(), "FE column should only contain 0 for ae_scores"
 
     # merge all scores together
-    all_scores = pd.concat([lgbm_scores, en_scores, ae_scores, ae_m_scores, ae_all_scores], axis=0)
+    all_scores = pd.concat([lgbm_scores, en_scores, ae_scores, ae_m_scores], axis=0)
 
     # remove column hyper, experiment, Noise, Replace Value
     all_scores.drop(columns=["HP", "Experiment", "Noise", "Replace Value", "Hyper"], inplace=True)
@@ -198,12 +190,11 @@ if __name__ == '__main__':
     all_scores["Mode"] = all_scores["Mode"].replace({"EXP": "AP"})
 
     # load image from images fig2 folder
-    image = plt.imread(Path("images", "fig3", "ae_workflow.png"))
+    image = plt.imread(Path("images", "fig3", "ae_workflow_2.png"))
 
-    dpi = 96
-    fig = plt.figure(figsize=(10, 9), dpi=dpi)
-    gspec = fig.add_gridspec(4, 3)
-    ax1 = fig.add_subplot(gspec[0, :2])
+    fig = plt.figure(figsize=(10, 8), dpi=300)
+    gspec = fig.add_gridspec(9, 3)
+    ax1 = fig.add_subplot(gspec[:3, :2])
     # remove box from ax1
     plt.box(False)
     # remove ticks from ax1
@@ -215,21 +206,21 @@ if __name__ == '__main__':
     # add image to figure
     ax1.imshow(image, aspect='auto')
 
-    ax2 = fig.add_subplot(gspec[1, :])
+    ax2 = fig.add_subplot(gspec[3:5, :])
     ax2.text(-0.1, 1.15, "B", transform=ax2.transAxes,
              fontsize=7, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    ax2.set_title("AE (Multi Marker)", rotation='vertical', x=-0.1, y=-0.2, fontsize=7)
+    ax2.set_title("AE (Single Protein)", rotation='vertical', x=-0.1, y=-0, fontsize=7)
     ax2 = create_boxen_plot(data=ae_scores, metric="MAE", ylim=[0.0, 0.8])
 
-    ax3 = fig.add_subplot(gspec[2, :])
+    ax3 = fig.add_subplot(gspec[5:7, :])
     ax3.text(-0.1, 1.15, "C", transform=ax3.transAxes,
              fontsize=7, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    ax3.set_title('AE (All Markers)', rotation='vertical', x=-0.1, y=0, fontsize=7)
-    ax3 = create_boxen_plot(data=ae_all_scores, metric="MAE", ylim=[0.0, 0.8])
+    ax3.set_title('AE (Multi Protein)', rotation='vertical', x=-0.1, y=0, fontsize=7)
+    ax3 = create_boxen_plot(data=ae_m_scores, metric="MAE", ylim=[0.0, 0.8])
 
-    ax4 = fig.add_subplot(gspec[3, :2])
+    ax4 = fig.add_subplot(gspec[7:9, :2])
     ax4.text(-0.15, 1.15, "D", transform=ax4.transAxes,
              fontsize=7, fontweight='bold', va='top', ha='right')
     plt.box(False)
@@ -244,4 +235,5 @@ if __name__ == '__main__':
 
     # save figure
     fig.savefig(Path("images", "fig3", "fig3.png"), dpi=300, bbox_inches='tight')
+    fig.savefig(Path("images", "fig3", "fig3.eps"), dpi=300, bbox_inches='tight', format='eps')
     sys.exit()
