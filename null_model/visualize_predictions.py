@@ -4,69 +4,44 @@ import seaborn as sns
 from pathlib import Path
 from statannotations.Annotator import Annotator
 import sys
-
-
-def create_bar_chart(data: pd.DataFrame):
-    print(data)
-    hue = "Model"
-    hue_order = ["LGBM", "Null Model"]
-    pairs = [
-        (("AR", "LGBM"), ("AR", "Null Model")),
-        (("CK14", "LGBM"), ("CK14", "Null Model")),
-        (("CK17", "LGBM"), ("CK17", "Null Model")),
-        (("CK19", "LGBM"), ("CK19", "Null Model")),
-        (("CD45", "LGBM"), ("CD45", "Null Model")),
-        (("Ecad", "LGBM"), ("Ecad", "Null Model")),
-        (("EGFR", "LGBM"), ("EGFR", "Null Model")),
-        (("ER", "LGBM"), ("ER", "Null Model")),
-        (("HER2", "LGBM"), ("HER2", "Null Model")),
-        (("Ki67", "LGBM"), ("Ki67", "Null Model")),
-        (("PR", "LGBM"), ("PR", "Null Model")),
-        (("Vimentin", "LGBM"), ("Vimentin", "Null Model")),
-        (("aSMA", "LGBM"), ("aSMA", "Null Model")),
-        (("p21", "LGBM"), ("p21", "Null Model")),
-        (("pERK", "LGBM"), ("pERK", "Null Model")),
-        (("pRB", "LGBM"), ("pRB", "Null Model")),
-
-    ]
-
-    fig, ax = plt.subplots(figsize=(15, 10))
-    sns.boxenplot(x="Marker", y="MAE", data=mean_df, ax=ax, hue=hue)
-
-    order = ["AR", "CK14", "CK17", "CK19", "CD45", "Ecad", "EGFR", "ER", "HER2", "Ki67", "PR", "Vimentin", "aSMA",
-             "p21", "pERK", "pRB"]
-    annotator = Annotator(ax, pairs, data=data, x="Marker", y="MAE", order=order, hue=hue, hue_order=hue_order,
-                          verbose=1)
-    annotator.configure(test='Mann-Whitney', text_format='star', loc='outside')
-    annotator.apply_and_annotate()
-
-    plt.title("Null model vs LGBM model performance", x=0.5, y=1.10, fontsize=20)
-    # plot bar plot for mean_df
-    sns.set_theme(style="whitegrid")
-    sns.set_context("paper")
-    sns.set(font_scale=1.5)
-
-    save_path = Path("plots", "figures", "null_model")
-    if not save_path.exists():
-        save_path.mkdir(parents=True)
-
-    plt.savefig(Path(save_path, "random_draw_vs_lgbm_model_performance.png"), dpi=300)
-
+import argparse
 
 if __name__ == '__main__':
     df = pd.read_csv(Path("data", "cleaned_data", "null_model", "random_draw_all_predictions.csv"))
 
-    # select only train data
     df = df[df["Train"] == 1]
-    df = df[df["Null Model"] == 1]
+    # select only random rows from df, but include all columns, the null model and lgbm
+    df = df.sample(n=1000, random_state=42)
 
-    print(df)
-
+    # calculate orrelation between y_hat and y_truth for null model == 0 and null model == 1
+    lgbm_correlation = df[df["Null Model"] == 0][["y_hat", "y_truth"]].corr().iloc[0, 1]
+    null_model_correlation = df[df["Null Model"] == 1][["y_hat", "y_truth"]].corr().iloc[0, 1]
 
     # create scatter plot
     sns.set_theme(style="whitegrid")
     sns.set_context("paper")
     sns.set(font_scale=1.5)
+    fig, ax = plt.subplots(figsize=(10, 7))
     sns.scatterplot(data=df, x="y_hat", y="y_truth", hue="Null Model")
-    plt.show()
+    # change y and x axis labels
+    plt.xlabel("Predicted expression")
+    plt.ylabel("True expression")
+    # place legend out of plot
 
+    plt.title("Null model predictions vs ground truth")
+    # add correlation as text
+    plt.text(0.05, 0.975, f"LGBM Corr: {round(lgbm_correlation, 2)}", transform=ax.transAxes, fontsize=14,
+             verticalalignment='top')
+    plt.text(0.3, 0.975, f"NM Corr: {round(null_model_correlation, 2)}", transform=ax.transAxes, fontsize=14,
+             verticalalignment='top')
+    # change legend names
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles=handles, labels=["LGBM", "Null Model"])
+    plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    plt.tight_layout()
+
+    save_path = Path("plots", "figures", "supplements", "null_model")
+    if not save_path.exists():
+        save_path.mkdir(parents=True)
+
+    plt.savefig(Path(save_path, "predictions_vs_ground_truth.png"), dpi=300, bbox_inches='tight')
