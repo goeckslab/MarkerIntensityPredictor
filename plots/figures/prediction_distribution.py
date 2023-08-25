@@ -39,6 +39,8 @@ if __name__ == '__main__':
 
     argparse = ArgumentParser()
     argparse.add_argument("--biopsy", "-b", help="the biopsy used. Should be just 9_2_1", required=True)
+    argparse.add_argument("-sp", "--spatial", action="store", help="The spatial radius used",
+                          choices=[0, 23, 46, 92, 138, 184], type=int, default=0)
     # argparse.add_argument("--mode", choices=["ip", "exp"], default="ip", help="the mode used")
     argparse.add_argument("--model", choices=["EN", "LGBM", "AE", "GNN", "AE M", "VAE ALL"], help="the model used",
                           required=True)
@@ -47,9 +49,10 @@ if __name__ == '__main__':
     biopsy: str = args.biopsy
     # mode: str = args.mode
     model: str = args.model
+    spatial: int = args.spatial
     patient: str = '_'.join(biopsy.split("_")[:2])
 
-    save_path = Path(save_path, model, biopsy)
+    save_path = Path(save_path, model, biopsy, str(spatial))
     if not save_path.exists():
         save_path.mkdir(parents=True)
 
@@ -58,6 +61,7 @@ if __name__ == '__main__':
     logging.debug(f"Biopsy: {biopsy}")
     logging.debug(f"Model: {model}")
     logging.debug(f"Patient: {patient}")
+    logging.debug(f"Spatial: {spatial}")
 
     assert patient in biopsy, "The biopsy should be of the form 9_2_1, where 9_2 is the patient and 1 is the biopsy. Patient should be in biopsy"
 
@@ -66,6 +70,7 @@ if __name__ == '__main__':
             Path("data", "cleaned_data", "ground_truth", f"{biopsy}_preprocessed_dataset.tsv"), sep="\t")
         predictions: pd.DataFrame = pd.read_csv(Path("data", "cleaned_data", "predictions", "lgbm", "predictions.csv"),
                                                 sep=",")
+
         train_data: pd.DataFrame = pd.read_csv(
             Path("data", "tumor_mesmer", "combined", "preprocessed", f"{patient}_excluded_dataset.tsv"),
             sep="\t")
@@ -143,7 +148,7 @@ if __name__ == '__main__':
         predictions = predictions[predictions["Noise"] == 0]
 
     if "FE" in predictions.columns:
-        predictions = predictions[predictions["FE"] == 0]
+        predictions = predictions[predictions["FE"] == spatial]
 
     if "Replace Value" in predictions.columns:
         if model == "VAE ALL":
@@ -187,17 +192,17 @@ if __name__ == '__main__':
             "Variance Score": explained_variance_score(gt, pred)
         })
 
-        sns.histplot(pred, color="orange", label="PRED", kde=True)
+        sns.histplot(pred, color="orange", label="Predicted", kde=True)
         # scale y-axis of gt and train to match pred
 
-        sns.histplot(gt, color="blue", label="GT", kde=True)
+        sns.histplot(gt, color="blue", label="Ground Truth", kde=True)
         # sns.histplot(train, color="green", label="TRAIN", kde=True)
 
         # change y axis label to cell count
         plt.ylabel("Cell Count")
         plt.xlabel(f"{protein} Expression")
         plt.legend()
-        plt.savefig(Path(save_path, f"{protein}.png"))
+        plt.savefig(Path(save_path, f"{protein}.png"), dpi=300)
         plt.close('all')
 
     # convert variance scores to df
