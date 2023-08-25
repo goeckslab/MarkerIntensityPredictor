@@ -31,23 +31,6 @@ def load_lgbm_scores(load_path: str, mode: str, network: str) -> pd.DataFrame:
         print(e)
 
 
-def load_lgbm_predictions(load_path: str) -> pd.DataFrame:
-    try:
-        predictions = []
-        for root, dirs, files in os.walk(load_path):
-            for name in files:
-                if Path(name).suffix == ".csv":
-                    file_name = os.path.join(root, name)
-                    prediction = pd.read_csv(file_name, sep=",", header=0)
-                    predictions.append(prediction)
-
-        assert len(predictions) == 8, f"Not all biopsies could be loaded for load path {load_path}"
-        predictions = pd.concat(predictions, axis=0)
-        return predictions
-    except Exception as e:
-        print(e)
-
-
 def load_en_scores(load_path: str, mode: str, network: str) -> pd.DataFrame:
     scores = []
     for root, dirs, files in os.walk(load_path):
@@ -96,21 +79,13 @@ def prepare_lbgm_scores(save_path: Path):
 
         microns = [0, 23, 46, 92, 138, 184]
         scores = []
-        predictions = []
         for micron in tqdm(microns):
             ip_path = f"data/scores/lgbm/ip/{micron}"
             exp_path = f"data/scores/lgbm/exp/{micron}"
             scores.append(load_lgbm_scores(ip_path, "IP", "LGBM"))
             scores.append(load_lgbm_scores(exp_path, "EXP", "LGBM"))
 
-        for micron in tqdm(microns):
-            ip_path = f"data/scores/lgbm/ip/{micron}"
-            exp_path = f"data/scores/lgbm/exp/{micron}"
-            predictions.append(load_lgbm_predictions(ip_path))
-            predictions.append(load_lgbm_predictions(exp_path))
-
         scores = pd.concat(scores, axis=0).sort_values(by=["Marker"])
-        predictions = pd.concat(predictions, axis=0)
 
         # replace _ with '' for biopsy column
         scores["Biopsy"] = scores["Biopsy"].apply(lambda x: x.replace("_", " "))
@@ -129,7 +104,7 @@ def prepare_lbgm_scores(save_path: Path):
             scores = scores.rename(columns={"Hyper": "HP"})
 
         scores.to_csv(Path(lgbm_path, "scores.csv"), index=False)
-        predictions.to_csv(Path(lgbm_path, "predictions.csv"), index=False)
+
     except BaseException as ex:
         print(ex)
         print("LGBM scores could not be cleaned up")
