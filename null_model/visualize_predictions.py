@@ -10,6 +10,10 @@ if __name__ == '__main__':
     df = pd.read_csv(Path("data", "cleaned_data", "null_model", "random_draw_all_predictions.csv"))
 
     df = df[df["Train"] == 1]
+    # remove prediction with 0 and truth of 0
+    df = df[(df["y_hat"] != 0) & (df["y_truth"] != 0)]
+
+
     # select only random rows from df, but include all columns, the null model and lgbm
     df = df.sample(n=1000, random_state=42)
 
@@ -26,18 +30,16 @@ if __name__ == '__main__':
     # change y and x axis labels
     plt.xlabel("Predicted expression")
     plt.ylabel("True expression")
-    # place legend out of plot
 
-    plt.title("Null model predictions vs ground truth")
+    plt.title("Predictions vs. ground truth")
     # add correlation as text
     plt.text(0.05, 0.975, f"LGBM Corr: {round(lgbm_correlation, 2)}", transform=ax.transAxes, fontsize=14,
              verticalalignment='top')
     plt.text(0.3, 0.975, f"NM Corr: {round(null_model_correlation, 2)}", transform=ax.transAxes, fontsize=14,
              verticalalignment='top')
-    # change legend names
+    # change legend names and place legend outside of plot
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles=handles, labels=["LGBM", "Null Model"])
-    plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    ax.legend(handles=handles, labels=["LGBM", "Null Model"], bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     plt.tight_layout()
 
     save_path = Path("plots", "figures", "supplements", "null_model")
