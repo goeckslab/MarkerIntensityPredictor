@@ -23,6 +23,7 @@ data/tumor_mesmer_sp_92/*
 data/tumor_mesmer_sp_138/*
 data/tumor_mesmer_sp_184/*
 data/tumor_mesmer_sp_23/*
+data/tumor_mesmer_z_scores/*/
 data/cleaned_data/*
 unmicst_s3_non_snr/tumor_in_patient_hyper/*
 unmicst_s3_non_snr/tumor_out_patient_hyper/*
@@ -64,6 +65,7 @@ mesmer/tumor_out_patient_sp_23/9_*
 
 mesmer/tumor_exp_patient_en/9_*
 mesmer/tumor_exp_patient/9_*
+mesmer/tumor_exp_patient_z_scores/9_*
 mesmer/tumor_exp_patient_sp_23/9_*
 mesmer/tumor_exp_patient_sp_46/9_*
 mesmer/tumor_exp_patient_sp_92/9_*
