@@ -42,12 +42,10 @@ def create_scores_dir(mode: str, radius: int, hyper: bool) -> Path:
     scores_directory = Path("data/scores/lgbm")
     scores_directory = Path(scores_directory, mode)
 
-    if radius is not None:
+    if not hyper:
         scores_directory = Path(scores_directory, f"{radius}")
-    elif hyper:
-        scores_directory = Path(scores_directory, f"Ludwig_hyper")
     else:
-        scores_directory = Path(scores_directory, "0")
+        scores_directory = Path(scores_directory, f"Ludwig_hyper")
 
     scores_directory = Path(scores_directory)
 
@@ -55,6 +53,24 @@ def create_scores_dir(mode: str, radius: int, hyper: bool) -> Path:
         scores_directory.mkdir(parents=True, exist_ok=True)
 
     return scores_directory
+
+
+def save_predictions(save_folder: Path, file_name: str, predictions: List):
+    logging.debug(f"Temp saving predictions")
+    predictions = pd.DataFrame(predictions)
+
+    if Path(save_path, file_name).exists():
+        logging.debug("Found existing predictions...")
+        logging.debug("Merging...")
+        try:
+            temp_predictions = pd.read_csv(Path(save_path, file_name))
+            predictions = pd.concat([temp_predictions, predictions], ignore_index=True)
+        except BaseException as ex:
+            # continue without doing anything
+            logger.error("Error occurred saving scores")
+            logger.error(ex)
+
+    predictions.to_csv(Path(save_folder, file_name), index=False)
 
 
 def save_scores(save_folder: Path, file_name: str, scores: List):
@@ -98,7 +114,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', "--biopsy", type=str, required=True,
                         help="The biopsy. For an ip mode that is the train biopsy, for exp mode that is the test biopsy due to ludwigs setup")
-    parser.add_argument('-sp', '--spatial', type=int, required=False, default=None, help="The radius",
+    parser.add_argument('-sp', '--spatial', type=int, required=False, default=0, help="The radius",
                         choices=[23, 46, 92, 138, 184])
     parser.add_argument('--mode', type=str, choices=['ip', 'exp'], help="The mode", default='ip')
     parser.add_argument('--hyper', action="store_true", help="Use hyperopt", default=False)
@@ -128,7 +144,7 @@ if __name__ == '__main__':
         logger.debug(biopsy)
         logger.debug(test_biopsy_name)
         assert test_biopsy_name[-1] != biopsy[-1], "The bx should not be the same"
-        if spatial_radius is None:
+        if spatial_radius == 0:
             test_dataset: pd.DataFrame = pd.read_csv(
                 Path("data", "tumor_mesmer", "preprocessed", f"{test_biopsy_name}_preprocessed_dataset.tsv"), sep='\t')
             if not hyper:
@@ -148,7 +164,7 @@ if __name__ == '__main__':
         assert test_biopsy_name == biopsy, "The bx should be the same"
         logger.debug(test_biopsy_name)
 
-        if spatial_radius is None:
+        if spatial_radius == 0:
             test_dataset: pd.DataFrame = pd.read_csv(
                 Path("data", "tumor_mesmer", "preprocessed", f"{test_biopsy_name}_preprocessed_dataset.tsv"), sep='\t')
             if not hyper:
@@ -163,11 +179,13 @@ if __name__ == '__main__':
 
     logger.debug(f"Base path: {base_path}")
     scores = []
-
+    predictions = []
     save_path = create_scores_dir(mode=mode, radius=spatial_radius, hyper=hyper)
-    file_name = f"{test_biopsy_name}_scores.csv"
+    score_file_name = f"{test_biopsy_name}_scores.csv"
+    predictions_file_name = f"{test_biopsy_name}_predictions.csv"
     logger.debug(f"Save path:  {str(save_path)}")
-    logger.debug(f"File name: {file_name}")
+    logger.debug(f"Score file name: {score_file_name}")
+    logger.debug(f"Predictions file name: {predictions_file_name}")
     try:
         for marker in SHARED_MARKERS:
             results_path = Path(base_path, marker, "results")
@@ -193,6 +211,7 @@ if __name__ == '__main__':
                             test_data_sample.reset_index(drop=True, inplace=True)
                             try:
                                 eval_stats, _, _ = model.evaluate(dataset=test_data_sample)
+
                             except KeyboardInterrupt as ex:
                                 logger.debug("Keyboard interrupt")
                                 sys.exit(0)
@@ -204,6 +223,28 @@ if __name__ == '__main__':
                                 logger.error("Continuing to next experiment")
                                 continue
 
+                            if i == 0:
+                                try:
+                                    sample_predictions = model.predict(dataset=test_data_sample)[0]
+                                    sample_predictions["Biopsy"] = test_biopsy_name
+                                    sample_predictions["Mode"] = mode
+                                    sample_predictions["FE"] = spatial_radius
+                                    sample_predictions["Network"] = "Ludwig"
+                                    sample_predictions["Hyper"] = int(hyper)
+                                    sample_predictions["Noise"] = 0
+                                    predictions.append(sample_predictions)
+                                except KeyboardInterrupt as ex:
+                                    logger.debug("Keyboard interrupt")
+                                    sys.exit(0)
+
+                                except BaseException as ex:
+                                    logger.error(f"Error occurred for experiment: {experiment}")
+                                    logger.error(
+                                        f"Model loaded using path: {str(Path(results_path, experiment, 'model'))}")
+                                    logger.error(ex)
+                                    logger.error("Continuing to next experiment")
+                                    continue
+
                             scores.append(
                                 {
                                     "Marker": marker,
@@ -212,7 +253,7 @@ if __name__ == '__main__':
                                     "RMSE": eval_stats[marker]['root_mean_squared_error'],
                                     "Biopsy": test_biopsy_name,
                                     "Mode": mode,
-                                    "FE": spatial_radius if spatial_radius is not None else 0,
+                                    "FE": spatial_radius,
                                     "Network": "Ludwig",
                                     "Hyper": int(hyper),
                                     "Load Path": str(Path(results_path, experiment, 'model')),
@@ -222,20 +263,31 @@ if __name__ == '__main__':
 
                             if i % 20 == 0:
                                 logger.debug("Temp saving scores...")
-                                save_scores(scores=scores, save_folder=save_path, file_name=file_name)
+                                save_scores(scores=scores, save_folder=save_path, file_name=score_file_name)
+                                save_predictions(predictions=predictions, save_folder=save_path,
+                                                 file_name=predictions_file_name)
                                 scores = []
+                                predictions = []
 
                         if len(scores) > 0:
                             # Save scores after each experiment
                             logger.debug("Temp saving scores...")
-                            save_scores(scores=scores, save_folder=save_path, file_name=file_name)
+                            save_scores(scores=scores, save_folder=save_path, file_name=score_file_name)
+                            save_predictions(predictions=predictions, save_folder=save_path,
+                                             file_name=predictions_file_name)
+                            predictions = []
                             scores = []
 
         if len(scores) > 0:
             logger.debug("Saving scores...")
-            save_scores(scores=scores, save_folder=save_path, file_name=file_name)
+            save_scores(scores=scores, save_folder=save_path, file_name=score_file_name)
+            save_predictions(predictions=predictions, save_folder=save_path, file_name=predictions_file_name)
     except KeyboardInterrupt as ex:
         logger.debug("Detected Keyboard interrupt...")
         logger.debug("Saving scores....")
         if len(scores) > 0:
-            save_scores(scores=scores, save_folder=save_path, file_name=file_name)
+            save_scores(scores=scores, save_folder=save_path, file_name=score_file_name)
+
+        logger.debug("Saving predictions....")
+        if len(predictions) > 0:
+            save_predictions(predictions=predictions, save_folder=save_path, file_name=predictions_file_name)
