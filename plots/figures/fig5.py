@@ -22,7 +22,7 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, ylim: List, microns: List
 
     hue = "FE"
     hue_order = microns
-    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue=hue, palette=color_palette)
+    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue=hue, palette=color_palette, showfliers=False)
 
     plt.ylabel("")
     plt.xlabel("")
@@ -51,11 +51,10 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, ylim: List, microns: List
 
     try:
         order = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21',
-                 'Vimentin',
-                 'pERK', 'EGFR', 'ER']
+                 'Vimentin', 'pERK', 'EGFR', 'ER']
         annotator = Annotator(ax, pairs, data=data, x="Marker", y=metric, order=order, hue=hue, hue_order=hue_order,
                               hide_non_significant=True)
-        annotator.configure(test='Mann-Whitney', text_format='star', loc='outside')
+        annotator.configure(test='Mann-Whitney', text_format='star', loc='outside', verbose=2, line_height=0.01)
         annotator.apply_and_annotate()
 
     except:
@@ -116,10 +115,6 @@ if __name__ == '__main__':
 
     gnn_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "gnn", "scores.csv"))
 
-    print(len(gnn_scores["Marker"].unique()))
-    input()
-
-
     # sort by markers
     gnn_scores.sort_values(by=["Marker"], inplace=True)
     # select only the scores for the 0 µm, 23 µm, 92 µm, 184 µm
@@ -129,35 +124,21 @@ if __name__ == '__main__':
     # select exp scores
     gnn_scores = gnn_scores[gnn_scores["Mode"] == "EXP"]
     # select no noise
-    #gnn_scores = gnn_scores[gnn_scores["Noise"] == 0]
+    # gnn_scores = gnn_scores[gnn_scores["Noise"] == 0]
     # select no hp
-    #gnn_scores = gnn_scores[gnn_scores["HP"] == 0]
-
-    print(gnn_scores)
-    # print unique biopsy value
-    print(gnn_scores["Biopsy"].unique())
-    print(gnn_scores["Marker"].unique())
-
-    # calculate amount of markers per biopsy per experiemtn
-    print(gnn_scores.groupby(["Biopsy", "FE"]).count()["Marker"])
+    # gnn_scores = gnn_scores[gnn_scores["HP"] == 0]
 
     # select same amount of markers per biopsy per FE
-
-
-
 
     # Add µm to the FE column
     gnn_scores["FE"] = gnn_scores["FE"].astype(str) + " µm"
     gnn_scores["FE"] = pd.Categorical(gnn_scores['FE'], ["23 µm", "46 µm", "92 µm", "184 µm"])
     gnn_scores.sort_values(by=["Marker", "FE"], inplace=True)
 
-
-
     dpi = 300
-    cm = 1 / 2.54  # centimeters in inches
     # Create new figure
-    fig = plt.figure(figsize=(22 * cm, 18 * cm), dpi=dpi)
-    gspec = fig.add_gridspec(3, 3)
+    fig = plt.figure(figsize=(10,7), dpi=dpi)
+    gspec = fig.add_gridspec(2, 3)
 
     ax1 = fig.add_subplot(gspec[0, :])
     ax1.set_title('AE 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.1, y=0, fontsize=7)
@@ -167,30 +148,29 @@ if __name__ == '__main__':
     plt.box(False)
 
     # ax3 = ax3.imshow(lgbm_results)
-    ax1 = create_boxen_plot(data=ae_scores, metric="MAE", ylim=[0, 0.5],
+    ax1 = create_boxen_plot(data=ae_scores, metric="MAE", ylim=[0, 0.8],
                             microns=["0 µm", "23 µm", "92 µm", "184 µm"], model="AE")
 
     ax2 = fig.add_subplot(gspec[1, :])
-    ax2.set_title('AE M 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.1, y=0, fontsize=7)
+    ax2.set_title('AE Multi 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.1, y=0, fontsize=7)
     ax2.text(-0.05, 1.1, "B", transform=ax2.transAxes,
              fontsize=7, fontweight='bold', va='top', ha='right')
     # remove box from ax4
     plt.box(False)
     # ax4.imshow(ae_results)
-    ax2 = create_boxen_plot(data=ae_m_scores, metric="MAE", ylim=[0, 0.5],
+    ax2 = create_boxen_plot(data=ae_m_scores, metric="MAE", ylim=[0, 0.8],
                             microns=["0 µm", "23 µm", "92 µm", "184 µm"], model="AE M")
 
-    ax3 = fig.add_subplot(gspec[2, :])
-    ax3.set_title('GNN 15µm vs. 46µm, 60 µm and 120 µm', rotation='vertical', x=-0.1, y=0, fontsize=7)
-    ax3.text(-0.05, 1.1, "C", transform=ax3.transAxes,
-             fontsize=7, fontweight='bold', va='top', ha='right')
+    # ax3 = fig.add_subplot(gspec[2, :])
+    # ax3.set_title('GNN 15µm vs. 46µm, 60 µm and 120 µm', rotation='vertical', x=-0.1, y=0, fontsize=7)
+    # ax3.text(-0.05, 1.1, "C", transform=ax3.transAxes,
+    #         fontsize=7, fontweight='bold', va='top', ha='right')
     # remove box from ax4
-    plt.box(False)
+    # plt.box(False)
     # ax4.imshow(ae_results)
 
-
-    ax3 = create_boxen_plot(data=gnn_scores, metric="MAE", ylim=[0, 0.5],
-                            microns=["23 µm", "46 µm", "92 µm", "184 µm"], model="GNN")
+    # ax3 = create_boxen_plot(data=gnn_scores, metric="MAE", ylim=[0, 0.5],
+    #                       microns=["23 µm", "46 µm", "92 µm", "184 µm"], model="GNN")
 
     plt.tight_layout()
     plt.savefig(Path(save_path, "fig5.png"), dpi=300, bbox_inches='tight')
