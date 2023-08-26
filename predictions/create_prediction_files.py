@@ -13,6 +13,11 @@ biopsies = ["9_2_1", "9_2_2", "9_3_1", "9_3_2", "9_14_1", "9_14_2", "9_15_1", "9
 LGBM_PATHS = [
     Path("mesmer", "tumor_in_patient"),
     Path("mesmer", "tumor_exp_patient"),
+    Path("mesmer", "tumor_exp_patient_sp_23"),
+    Path("mesmer", "tumor_exp_patient_sp_46"),
+    Path("mesmer", "tumor_exp_patient_sp_92"),
+    Path("mesmer", "tumor_exp_patient_sp_138"),
+    Path("mesmer", "tumor_exp_patient_sp_184"),
 ]
 
 AE_PATHS = [
