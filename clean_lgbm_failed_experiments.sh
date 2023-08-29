@@ -11,6 +11,5 @@
 #SBATCH --mail-type=FAIL,END
 #SBATCH --mail-user=kirchgae@ohsu.edu
 
-network=$1
 
-python3 clean_lgbm_failed_experiments.py
+python3 clean_lgbm_failed_experiment.py
