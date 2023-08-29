@@ -28,7 +28,7 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, ylim: List, microns: List
 
     plt.box(False)
     # remove legend from fig
-    plt.legend().set_visible(False)
+    plt.legend(bbox_to_anchor=[0.5, 0.9], loc='center', fontsize=7, ncol=4)
 
     # reduce font size of x and y ticks
     ax.tick_params(axis='both', which='major', labelsize=8)
