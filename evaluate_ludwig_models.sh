@@ -22,11 +22,11 @@ echo "Biopsy: ${biopsy}" "Mode: ${mode}" "Spatial: ${spatial}" "Hyper: ${hyper}"
 source venv/bin/activate
 
 if [ "$spatial" != "" ]; then
-  python3 evaluate_ludwig_models.py -b $1 --mode $2 --spatial $3
+  python3 evaluate_ludwig_models.py -b $1 --mode $2 --spatial $3 -s 50
 else
   if [ "$hyper" == "" ]; then
-    python3 evaluate_ludwig_models.py -b $1 --mode $2
+    python3 evaluate_ludwig_models.py -b $1 --mode $2 -s 50
   else
-    python3 evaluate_ludwig_models.py -b $1 --mode $2 --hyper
+    python3 evaluate_ludwig_models.py -b $1 --mode $2 --hyper -s 50
   fi
 fi
