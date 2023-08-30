@@ -202,7 +202,7 @@ if __name__ == '__main__':
         plt.ylabel("Cell Count")
         plt.xlabel(f"{protein} Expression")
         plt.legend()
-        plt.savefig(Path(save_path, f"{protein}.png"), dpi=300)
+        plt.savefig(Path(save_path, f"{protein}.png"), dpi=300, bbox_inches='tight')
         plt.close('all')
 
     # convert variance scores to df

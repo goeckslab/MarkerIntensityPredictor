@@ -37,8 +37,10 @@ if __name__ == '__main__':
     predictions["FE"] = predictions["FE"].astype(int)
     # convert HP to int
     predictions["HP"] = predictions["HP"].astype(int)
-    # convert Noise to int
-    predictions["Noise"] = predictions["Noise"].astype(int)
+
+    if "Noise" in predictions.columns:
+        # convert Noise to int
+        predictions["Noise"] = predictions["Noise"].astype(int)
 
     # select only predictions for the given mode and biopsy from the predictions file and spatial
     predictions = predictions.loc[
