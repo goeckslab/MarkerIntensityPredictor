@@ -82,7 +82,7 @@ if __name__ == '__main__':
     lgbm_scores.sort_values(by=["Marker", "FE"], inplace=True)
 
     # load image from images fig3 folder
-    spatial_information_image = plt.imread(Path("images", "fig4", "Panel_A.png"))
+    spatial_information_image = plt.imread(Path("images", "fig4", "panel_a.png"))
 
     dpi = 300
     cm = 1 / 2.54  # centimeters in inches

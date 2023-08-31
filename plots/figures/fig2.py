@@ -115,11 +115,15 @@ if __name__ == '__main__':
     lgbm_scores = lgbm_scores[lgbm_scores["HP"] == 0]
     # rename lgbm scores EXP TO AP
     lgbm_scores["Mode"] = lgbm_scores["Mode"].replace({"EXP": "AP"})
+    # sort by marker
+    lgbm_scores.sort_values(by=["Marker"], inplace=True)
 
     en_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "en", "scores.csv"))
     en_scores = en_scores[en_scores["FE"] == 0]
     # rename EXP to AP
     en_scores["Mode"] = en_scores["Mode"].replace({"EXP": "AP"})
+    # sort by marker
+    en_scores.sort_values(by=["Marker"], inplace=True)
 
     ae_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "ae", "scores.csv"))
     # Select ae scores where fe  == 0, replace value == mean and noise  == 0
@@ -131,9 +135,10 @@ if __name__ == '__main__':
 
     ae_scores["Mode"] = ae_scores["Mode"].replace({"EXP": "AP"})
 
+
     # load image from images fig2 folder
-    train_test_split = plt.imread(Path("images", "fig2", "train_test_split_2.png"))
-    ae_workflow = plt.imread(Path("images", "fig2", "ae_workflow_2.png"))
+    train_test_split = plt.imread(Path("images", "fig2", "train_test_split.png"))
+    ae_workflow = plt.imread(Path("images", "fig2", "ae_workflow.png"))
 
     fig = plt.figure(figsize=(10, 11), dpi=300)
     gspec = fig.add_gridspec(8, 4)

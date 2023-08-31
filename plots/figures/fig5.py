@@ -75,7 +75,7 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, ylim: List, microns: List
     plt.xlabel("")
 
     plt.box(False)
-    plt.legend(bbox_to_anchor=legend_position, loc='center', fontsize=7, ncol=4)
+    plt.legend(bbox_to_anchor=legend_position, loc='center', fontsize=7, ncol=2)
 
     # reduce font size of x and y ticks
     ax.tick_params(axis='both', which='major', labelsize=8)
@@ -189,33 +189,36 @@ if __name__ == '__main__':
     gspec = fig.add_gridspec(3, 3)
 
     ax1 = fig.add_subplot(gspec[0, :])
-    ax1.set_title('AE S 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.1, y=0, fontsize=7)
-    ax1.text(-0.05, 1.1, "A", transform=ax1.transAxes,
+    ax1.set_title('AE S 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.05, y=0, fontsize=7)
+    ax1.text(0, 1.15, "A", transform=ax1.transAxes,
              fontsize=7, fontweight='bold', va='top', ha='right')
     # remove box from ax3
     plt.box(False)
 
     # ax3 = ax3.imshow(lgbm_results)
     ax1 = create_boxen_plot(data=ae_scores, metric="MAE", ylim=[0, 0.6],
-                            microns=["0 µm", "23 µm", "92 µm", "184 µm"], model="AE", legend_position=[0.2, 0.5])
+                            microns=["0 µm", "23 µm", "92 µm", "184 µm"], model="AE", legend_position=[0.1, 0.8])
 
     ax2 = fig.add_subplot(gspec[1, :])
-    ax2.set_title('AE M 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.1, y=0, fontsize=7)
-    ax2.text(-0.05, 1.1, "B", transform=ax2.transAxes,
+    ax2.set_title('AE M 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.05, y=0, fontsize=7)
+    ax2.text(0, 1.15, "B", transform=ax2.transAxes,
              fontsize=7, fontweight='bold', va='top', ha='right')
     # remove box from ax4
     plt.box(False)
     # ax4.imshow(ae_results)
     ax2 = create_boxen_plot(data=ae_m_scores, metric="MAE", ylim=[0, 0.6],
-                            microns=["0 µm", "23 µm", "92 µm", "184 µm"], model="AE M", legend_position=[0.2, 0.5])
+                            microns=["0 µm", "23 µm", "92 µm", "184 µm"], model="AE M", legend_position=[0.1, 0.8])
 
     ax3 = fig.add_subplot(gspec[2, :])
-    ax3.text(-0.15, 1.15, "D", transform=ax3.transAxes,
+    ax3.text(0, 1.15, "C", transform=ax3.transAxes,
              fontsize=7, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    ax3.set_title('Performance', rotation='vertical', x=-0.15, y=0.1, fontsize=7)
+    ax3.set_title('Performance', rotation='vertical', x=-0.05, y=0, fontsize=7)
     ax3 = create_boxen_plot_by_mode_only(data=all_scores, metric="MAE", ylim=[0.0, 0.8])
 
     plt.tight_layout()
     plt.savefig(Path(save_path, "fig5.png"), dpi=300, bbox_inches='tight')
     plt.savefig(Path(save_path, "fig5.eps"), dpi=300, bbox_inches='tight', format='eps')
+
+    print("Mean and std of MAE scores per network")
+    print(all_scores.groupby(["Network"])["MAE"].agg(["mean", "std"]))

@@ -144,6 +144,8 @@ if __name__ == '__main__':
     # merge all scores together
     all_scores = pd.concat([lgbm_scores, en_scores, ae_scores, ae_m_scores], axis=0)
 
+
+
     # remove column hyper, experiment, Noise, Replace Value
     all_scores.drop(columns=["HP", "Experiment", "Noise", "Replace Value", "Hyper"], inplace=True)
     # rename MOde AP to AP
@@ -184,4 +186,7 @@ if __name__ == '__main__':
     # save figure
     fig.savefig(Path("images", "fig3", "fig3.png"), dpi=300, bbox_inches='tight')
     fig.savefig(Path("images", "fig3", "fig3.eps"), dpi=300, bbox_inches='tight', format='eps')
+    # print mean and std of all scores per network of MAE scores
+    print("Mean and std of MAE scores per network")
+    print(all_scores.groupby(["Network"])["MAE"].agg(["mean", "std"]))
     sys.exit()
