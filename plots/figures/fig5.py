@@ -221,4 +221,5 @@ if __name__ == '__main__':
     plt.savefig(Path(save_path, "fig5.eps"), dpi=300, bbox_inches='tight', format='eps')
 
     print("Mean and std of MAE scores per network")
-    print(all_scores.groupby(["Network"])["MAE"].agg(["mean", "std"]))
+
+    print(all_scores.groupby(["Network", "FE"])["MAE"].agg(["mean", "std"]))
