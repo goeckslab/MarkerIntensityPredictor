@@ -7,7 +7,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', "-m", type=str, required=True, help="The model to evaluate",
-                        choices=["ae", "gnn", "ae_m", "vae", "vae_all", "ae_all", "ae_m"])
+                        choices=["ae", "gnn", "ae_m", "vae", "vae_all", "ae_all", "ae_m", "ae_tma"])
     args = parser.parse_args()
 
     model = args.model
@@ -17,6 +17,8 @@ if __name__ == '__main__':
         load_path = Path("ae_imputation_m")
     elif model == "ae_all":
         load_path = Path("ae_imputation_all")
+    elif model == "ae_tma":
+        load_path = Path("ae_imputation_tma")
     elif model == "ae_m":
         load_path = Path("ae_imputation_m")
     elif model == "gnn":
@@ -70,6 +72,8 @@ if __name__ == '__main__':
         save_path = Path("data/scores/ae_all")
     elif model == 'ae_m':
         save_path = Path("data/scores/ae_m")
+    elif model == 'ae_tma':
+        save_path = Path("data/scores/ae_tma")
     elif model == 'vae':
         save_path = Path("data/scores/vae")
     elif model == 'vae_all':

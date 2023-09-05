@@ -122,6 +122,10 @@ def prepare_ae_scores(save_path: Path, imputation: str = None):
         scores = pd.read_csv(Path("data", "scores", "ae_m", "scores.csv"))
         network = "AE M"
         ae_path = Path(save_path, "ae_m")
+    elif imputation == "tma":
+        scores = pd.read_csv(Path("data", "scores", "ae_tma", "scores.csv"))
+        network = "AE TMA"
+        ae_path = Path(save_path, "ae_tma")
     else:
         scores = pd.read_csv(Path("data", "scores", "ae_all", "scores.csv"))
         network = "AE ALL"
@@ -246,7 +250,7 @@ def prepare_gnn_scores(save_path: Path):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--model", action="store", type=str, required=True,
-                        choices=["lgbm", "ae", "gnn", "ae_all", "ae_m"])
+                        choices=["lgbm", "ae", "gnn", "ae_all", "ae_m", "ae_tma"])
     args = parser.parse_args()
 
     # create new scores folder
@@ -287,3 +291,9 @@ if __name__ == '__main__':
             prepare_ae_scores(save_path=save_path, imputation="multi")
         except:
             print("Could not prepare ae multi scores")
+
+    elif model == "ae_tma":
+        try:
+            prepare_ae_scores(save_path=save_path, imputation="tma")
+        except:
+            print("Could not prepare ae tma scores")
