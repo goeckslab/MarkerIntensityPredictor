@@ -28,6 +28,8 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
                         logging.StreamHandler()
                     ])
 
+test_data_save_folder: Path = Path("data", "cleaned_data", "tma", "scaled_biopsies")
+
 
 def setup_log_file(save_path: Path):
     save_file = Path(save_path, "debug.log")
@@ -87,7 +89,7 @@ def save_scores(save_folder: str, file_name: str, new_scores: pd.DataFrame):
     new_scores.to_csv(f"{save_folder}/{file_name}", index=False)
 
 
-def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
+def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict, biopsy_name: str,
                    mode: str, spatial_radius: int, experiment_id: int, save_folder: str, file_name: str,
                    replace_value: str, iterations: int, store_predictions: bool, subset: int):
     try:
@@ -119,7 +121,7 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
 
                 scores.append({
                     "Marker": marker,
-                    "Biopsy": test_biopsy_name,
+                    "Biopsy": biopsy_name,
                     "MAE": mean_absolute_error(marker_prediction[marker], test_data[marker]),
                     "RMSE": mean_squared_error(marker_prediction[marker], test_data[marker], squared=False),
                     "HP": 0,
@@ -165,12 +167,12 @@ def impute_markers(scores: List, test_data: pd.DataFrame, all_predictions: Dict,
         raise
 
 
-def create_results_folder(spatial_radius: str) -> [Path, int]:
-    save_folder = Path(f"ae_imputation", patient_type)
+def create_results_folder(biopsy_name: str, spatial_radius: str) -> [Path, int]:
+    save_folder = Path(f"ae_imputation_tma", "exp")
 
     save_folder = Path(save_folder, replace_value)
 
-    save_folder = Path(save_folder, test_biopsy_name)
+    save_folder = Path(save_folder, biopsy_name)
     save_folder = Path(save_folder, spatial_radius)
 
     experiment_id = 0
@@ -195,10 +197,12 @@ def create_results_folder(spatial_radius: str) -> [Path, int]:
 
 
 if __name__ == '__main__':
+    if not test_data_save_folder.exists():
+        test_data_save_folder.mkdir(parents=True)
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", "--biopsy", type=str, required=True,
-                        help="Provide the biopsy name in the following format: 9_2_1. No suffix etc")
-    parser.add_argument("-m", "--mode", required=True, choices=["ip", "exp"], default="ip")
+                        help="Provide the biopsy folder path")
     parser.add_argument("-sp", "--spatial", required=False, default="0", choices=["0", "23", "46", "92", "138", "184"],
                         type=str)
     parser.add_argument("-o", "--override", action='store_true', default=False, help="Override existing hyperopt")
@@ -207,97 +211,54 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--subsets", action="store", default=1, type=int, help="Number of subsets to use")
     args = parser.parse_args()
 
-    patient_type = args.mode
     iterations: int = args.iterations
     replace_value: str = args.replace_mode
     spatial: str = args.spatial
     subsets: int = args.subsets
 
-    print("Replace value: ", replace_value)
-
     # Load test data
-    test_biopsy_name = args.biopsy
+    test_biopsy_name: str = args.biopsy
     patient: str = "_".join(Path(test_biopsy_name).stem.split("_")[:2])
-    scores_file_name = "scores.csv"
-    print(scores_file_name)
 
-    save_folder, experiment_id = create_results_folder(spatial_radius=spatial)
+    scores_file_name = "scores.csv"
+
+    save_folder, experiment_id = create_results_folder(biopsy_name=test_biopsy_name, spatial_radius=spatial)
 
     setup_log_file(save_path=save_folder)
+    logging.debug("Replace value: ", replace_value)
+    logging.debug(scores_file_name)
 
-    # Load train data
-    if patient_type == "ip":
-        # Extract biopsy name
-        test_biopsy_name_split = test_biopsy_name.split("_")
-        if int(test_biopsy_name_split[2]) == 2:
-            train_biopsy_name = "_".join(test_biopsy_name_split[:2]) + "_1"
-        else:
-            train_biopsy_name = "_".join(test_biopsy_name_split[:2]) + "_2"
+    # Load noisy train data
+    train_data = []
+    base_path = Path("data", "cleaned_data", "tma", "biopsies")
+    for file in os.listdir(base_path):
+        file_name = Path(file).stem
+        if file.endswith(".tsv") and patient not in file_name:
+            logging.debug("Loading train file: " + file)
+            data = pd.read_csv(Path(base_path, file), sep="\t")
+            data = clean_column_names(data)
+            train_data.append(data)
 
-        print(f"Mode: {patient_type}")
-        print(f"Test biopsy being loaded: {test_biopsy_name}")
-        print(f"Train biopsy being loaded: {train_biopsy_name}")
+    train_data = pd.concat(train_data)
 
-        base_path = "data/tumor_mesmer" if spatial == "0" else f"data/tumor_mesmer_sp_{spatial}"
-        # Load train data
-        train_data = pd.read_csv(f'{base_path}/{train_biopsy_name}.csv')
-        train_data = clean_column_names(train_data)
-
-        if spatial != "0":
-            print("Selecting marker and spatial information")
-            train_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
-        else:
-            print("Selecting marker")
-            train_data = train_data[SHARED_MARKERS].copy()
-
-        test_data = pd.read_csv(f'{base_path}/{test_biopsy_name}.csv')
-        test_data = clean_column_names(test_data)
-
-        if spatial != "0":
-            test_data = test_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
-            assert test_data.shape[1] == 32, "Test data not complete"
-        else:
-            test_data = test_data[SHARED_MARKERS].copy()
-            assert test_data.shape[1] == 16, "Test data not complete"
-
-    elif patient_type == "exp":
-        # Load noisy train data
-        train_data = []
-        base_path = "data/tumor_mesmer" if spatial == "0" else f"data/tumor_mesmer_sp_{spatial}"
-        for file in os.listdir(base_path):
-            file_name = Path(file).stem
-            if file.endswith(".csv") and patient not in file_name:
-                print("Loading train file: " + file)
-                data = pd.read_csv(Path(base_path, file))
-                data = clean_column_names(data)
-                train_data.append(data)
-
-        assert len(train_data) == 6, f"There should be 6 train datasets, loaded {len(train_data)}"
-        train_data = pd.concat(train_data)
-
-        if spatial != "0":
-            print("Selecting marker and spatial information")
-            # select shared markers as well as spatial shared features from the train data
-            train_data = train_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
-        else:
-            print("Selecting marker")
-            train_data = train_data[SHARED_MARKERS].copy()
-
-        # Load test data
-        test_data = pd.read_csv(Path(f'{base_path}/{test_biopsy_name}.csv'))
-        test_data = clean_column_names(test_data)
-
-        if spatial != "0":
-            test_data = test_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
-            assert test_data.shape[1] == 32, "Test data not complete"
-        else:
-            test_data = test_data[SHARED_MARKERS].copy()
-            assert test_data.shape[1] == 16, "Test data not complete"
-
-
-
+    if spatial != "0":
+        logging.debug("Selecting marker and spatial information")
+        # select shared markers as well as spatial shared features from the train data
+        train_data = train_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
     else:
-        raise ValueError(f"Unknown patient type: {patient_type}")
+        logging.debug("Selecting marker")
+        train_data = train_data[SHARED_MARKERS].copy()
+
+    # Load test data
+    test_data = pd.read_csv(Path(base_path, f"{test_biopsy_name}.tsv"), sep="\t")
+    test_data = clean_column_names(test_data)
+
+    if spatial != "0":
+        test_data = test_data[SHARED_MARKERS + SHARED_SPATIAL_FEATURES].copy()
+        assert test_data.shape[1] == 32, "Test data not complete"
+    else:
+        test_data = test_data[SHARED_MARKERS].copy()
+        assert test_data.shape[1] == 16, "Test data not complete"
 
     # Scale data
     min_max_scaler = MinMaxScaler(feature_range=(0, 1))
@@ -305,6 +266,9 @@ if __name__ == '__main__':
                               columns=train_data.columns)
     test_data = pd.DataFrame(min_max_scaler.fit_transform(np.log10(test_data + 1)),
                              columns=test_data.columns)
+
+    # save preprocessed test data
+    test_data.to_csv(Path(test_data_save_folder, f"{test_biopsy_name}.tsv"), sep="\t", index=False)
 
     # Split noisy train data into train and validation
     train_data, val_data = train_test_split(train_data, test_size=0.2, random_state=42)
@@ -326,18 +290,18 @@ if __name__ == '__main__':
         test_data_sample = test_data.sample(frac=0.7, random_state=random.randint(0, 100000), replace=True)
 
         # Predict
-        impute_markers(scores=scores, all_predictions=predictions, mode=patient_type, spatial_radius=int(spatial),
+        impute_markers(scores=scores, all_predictions=predictions, mode="exp", spatial_radius=int(spatial),
                        experiment_id=experiment_id, replace_value=replace_value,
                        iterations=iterations,
                        store_predictions=False, test_data=test_data_sample, subset=i, file_name=scores_file_name,
-                       save_folder=save_folder)
+                       save_folder=save_folder, biopsy_name=test_biopsy_name)
 
-    predictions = impute_markers(scores=scores, all_predictions=predictions, mode=patient_type,
+    predictions = impute_markers(scores=scores, all_predictions=predictions, mode="exp",
                                  spatial_radius=int(spatial),
                                  experiment_id=experiment_id, replace_value=replace_value,
                                  iterations=iterations,
                                  store_predictions=True, test_data=test_data, subset=0, file_name=scores_file_name,
-                                 save_folder=save_folder)
+                                 save_folder=save_folder, biopsy_name=test_biopsy_name)
 
     # Save results
     for key, value in predictions.items():
