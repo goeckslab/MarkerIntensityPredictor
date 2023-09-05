@@ -16,8 +16,8 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 
 
 def create_boxen_plot(data: pd.DataFrame, metric: str, ylim: List, microns: List):
-    color_palette = {"0 µm": "grey", "23 µm": "magenta", "46 µm": "purple", "92 µm": "green", "138 µm": "yellow",
-                     "184 µm": "blue"}
+    color_palette = {"0 µm": "grey", "15 µm": "magenta", "30 µm": "purple", "60 µm": "green", "90 µm": "yellow",
+                     "120 µm": "blue"}
 
     hue = "FE"
     hue_order = microns
@@ -78,6 +78,9 @@ if __name__ == '__main__':
     lgbm_scores["FE"] = lgbm_scores["FE"].astype(str) + " µm"
     lgbm_scores["FE"] = pd.Categorical(lgbm_scores['FE'], ["0 µm", "23 µm", "92 µm", "184 µm"])
 
+    # update 23 to 15, 92 to 60 and 184 to 120
+    lgbm_scores["FE"] = lgbm_scores["FE"].cat.rename_categories(["0 µm", "15 µm", "60 µm", "120 µm"])
+
     # sort by marker and FE
     lgbm_scores.sort_values(by=["Marker", "FE"], inplace=True)
 
@@ -108,7 +111,7 @@ if __name__ == '__main__':
     # remove box from ax3
     plt.box(False)
     ax2 = create_boxen_plot(data=lgbm_scores, metric="MAE", ylim=[0, 0.5],
-                            microns=["0 µm", "23 µm", "92 µm", "184 µm"])
+                            microns=["0 µm", "15 µm", "60 µm", "120 µm"])
 
     plt.tight_layout()
     plt.savefig(Path(save_path, "fig4.png"), dpi=300, bbox_inches='tight')

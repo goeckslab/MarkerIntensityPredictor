@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 def create_boxen_plot_by_mode_only(data: pd.DataFrame, metric: str, ylim: List) -> plt.Figure:
     hue = "Network"
     x = "FE"
-    order = ["0 µm", "23 µm", "92 µm", "184 µm"]
+    order = ["0 µm", "15 µm", "60 µm", "120 µm"]
     hue_order = ["LGBM", "AE", "AE M"]
     ax = sns.boxenplot(data=data, x=x, y=metric, hue=hue, order=order,
                        palette={"EN": "purple", "LGBM": "green", "AE": "grey", "AE M": "darkgrey"})
@@ -44,15 +44,15 @@ def create_boxen_plot_by_mode_only(data: pd.DataFrame, metric: str, ylim: List) 
         (("0 µm", "LGBM"), ("0 µm", "AE")),
         (("0 µm", "LGBM"), ("0 µm", "AE M")),
         (("0 µm", "AE"), ("0 µm", "AE M")),
-        (("23 µm", "LGBM"), ("23 µm", "AE")),
-        (("23 µm", "LGBM"), ("23 µm", "AE M")),
-        (("23 µm", "AE"), ("23 µm", "AE M")),
-        (("92 µm", "LGBM"), ("92 µm", "AE")),
-        (("92 µm", "LGBM"), ("92 µm", "AE M")),
-        (("92 µm", "AE"), ("92 µm", "AE M")),
-        (("184 µm", "LGBM"), ("184 µm", "AE")),
-        (("184 µm", "LGBM"), ("184 µm", "AE M")),
-        (("184 µm", "AE"), ("184 µm", "AE M")),
+        (("15 µm", "LGBM"), ("15 µm", "AE")),
+        (("15 µm", "LGBM"), ("15 µm", "AE M")),
+        (("15 µm", "AE"), ("15 µm", "AE M")),
+        (("60 µm", "LGBM"), ("60 µm", "AE")),
+        (("60 µm", "LGBM"), ("60 µm", "AE M")),
+        (("60 µm", "AE"), ("60 µm", "AE M")),
+        (("120 µm", "LGBM"), ("120 µm", "AE")),
+        (("120 µm", "LGBM"), ("120 µm", "AE M")),
+        (("120 µm", "AE"), ("120 µm", "AE M")),
     ]
 
     annotator = Annotator(ax, pairs, data=data, x=x, y=metric, order=order, hue=hue, hue_order=hue_order,
@@ -64,8 +64,8 @@ def create_boxen_plot_by_mode_only(data: pd.DataFrame, metric: str, ylim: List) 
 
 
 def create_boxen_plot(data: pd.DataFrame, metric: str, ylim: List, microns: List, model: str, legend_position: List):
-    color_palette = {"0 µm": "grey", "23 µm": "magenta", "46 µm": "purple", "92 µm": "green", "138 µm": "yellow",
-                     "184 µm": "blue"}
+    color_palette = {"0 µm": "grey", "15 µm": "magenta", "30 µm": "purple", "60 µm": "green", "90 µm": "yellow",
+                     "120 µm": "blue"}
 
     hue = "FE"
     hue_order = microns
@@ -86,12 +86,12 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, ylim: List, microns: List
         if micron == "0 µm":
             continue
 
-        if micron == "23 µm" and model == "GNN":
+        if micron == "15 µm" and model == "GNN":
             continue
         # Create pairs of (micron, 0 µm) for each marker
         for marker in data["Marker"].unique():
             if model == "GNN":
-                pairs.append(((marker, micron), (marker, "23 µm")))
+                pairs.append(((marker, micron), (marker, "15 µm")))
             else:
                 pairs.append(((marker, micron), (marker, "0 µm")))
 
@@ -134,6 +134,9 @@ if __name__ == '__main__':
     # Add µm to the FE column
     ae_scores["FE"] = ae_scores["FE"].astype(str) + " µm"
     ae_scores["FE"] = pd.Categorical(ae_scores['FE'], ["0 µm", "23 µm", "92 µm", "184 µm"])
+
+    # rename 23 to 15, 92 to 60 and 184 to 120
+    ae_scores["FE"] = ae_scores["FE"].cat.rename_categories(["0 µm", "15 µm", "60 µm", "120 µm"])
     # sort by marker and FE
     ae_scores.sort_values(by=["Marker", "FE"], inplace=True)
 
@@ -152,6 +155,8 @@ if __name__ == '__main__':
     # Add µm to the FE column
     ae_m_scores["FE"] = ae_m_scores["FE"].astype(str) + " µm"
     ae_m_scores["FE"] = pd.Categorical(ae_m_scores['FE'], ["0 µm", "23 µm", "92 µm", "184 µm"])
+    # rename 23 to 15, 92 to 60 and 184 to 120
+    ae_m_scores["FE"] = ae_m_scores["FE"].cat.rename_categories(["0 µm", "15 µm", "60 µm", "120 µm"])
     # sort by marker and FE
     ae_m_scores.sort_values(by=["Marker", "FE"], inplace=True)
 
@@ -171,6 +176,9 @@ if __name__ == '__main__':
     # Add µm to the FE column
     lgbm_scores["FE"] = lgbm_scores["FE"].astype(str) + " µm"
     lgbm_scores["FE"] = pd.Categorical(lgbm_scores['FE'], ["0 µm", "23 µm", "92 µm", "184 µm"])
+
+    # rename 23 to 15, 92 to 60 and 184 to 120
+    lgbm_scores["FE"] = lgbm_scores["FE"].cat.rename_categories(["0 µm", "15 µm", "60 µm", "120 µm"])
 
     # sort by marker and FE
     lgbm_scores.sort_values(by=["Marker", "FE"], inplace=True)
@@ -197,7 +205,7 @@ if __name__ == '__main__':
 
     # ax3 = ax3.imshow(lgbm_results)
     ax1 = create_boxen_plot(data=ae_scores, metric="MAE", ylim=[0, 0.6],
-                            microns=["0 µm", "23 µm", "92 µm", "184 µm"], model="AE", legend_position=[0.1, 0.8])
+                            microns=["0 µm", "15 µm", "60 µm", "120 µm"], model="AE", legend_position=[0.1, 0.8])
 
     ax2 = fig.add_subplot(gspec[1, :])
     ax2.set_title('AE M 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.05, y=0, fontsize=7)
@@ -207,7 +215,7 @@ if __name__ == '__main__':
     plt.box(False)
     # ax4.imshow(ae_results)
     ax2 = create_boxen_plot(data=ae_m_scores, metric="MAE", ylim=[0, 0.6],
-                            microns=["0 µm", "23 µm", "92 µm", "184 µm"], model="AE M", legend_position=[0.1, 0.8])
+                            microns=["0 µm", "15 µm", "60 µm", "120 µm"], model="AE M", legend_position=[0.1, 0.8])
 
     ax3 = fig.add_subplot(gspec[2, :])
     ax3.text(0, 1.15, "C", transform=ax3.transAxes,
@@ -223,3 +231,5 @@ if __name__ == '__main__':
     print("Mean and std of MAE scores per network")
 
     print(all_scores.groupby(["Network", "FE"])["MAE"].agg(["mean", "std"]))
+    # print count of scores per network and fe
+    print(all_scores.groupby(["Network", "FE"])["MAE"].count())
