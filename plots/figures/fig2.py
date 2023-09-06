@@ -155,7 +155,7 @@ if __name__ == '__main__':
     # add image to figure
     ax1.imshow(train_test_split, aspect='auto')
 
-    ax2 = fig.add_subplot(gspec[2:4, :3])
+    ax2 = fig.add_subplot(gspec[2:4, :4])
     # remove box from ax1
     plt.box(False)
     # remove ticks from ax1
