@@ -225,7 +225,7 @@ if __name__ == '__main__':
     save_folder, experiment_id = create_results_folder(biopsy_name=test_biopsy_name, spatial_radius=spatial)
 
     setup_log_file(save_path=save_folder)
-    logging.debug("Replace value: ", replace_value)
+    logging.debug("Replace value: " + replace_value)
     logging.debug(scores_file_name)
 
     # Load noisy train data
