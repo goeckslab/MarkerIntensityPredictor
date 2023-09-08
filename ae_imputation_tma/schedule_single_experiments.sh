@@ -11,6 +11,6 @@ for biopsy in "${biopsies[@]}"; do
   for i in $(seq 1 $experiments)
   do
       echo biopsy="${biopsy}" mode="exp" replace_value="${replace_value}" spatial="0"
-      ./ae_imputation_tma/single_ae_experiment.sh "${biopsy}" "${mode}" "${replace_value}" "0"
+      sbatch ./ae_imputation_tma/single_ae_experiment.sh "${biopsy}" "${mode}" "${replace_value}" "0"
   done
 done
