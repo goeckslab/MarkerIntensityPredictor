@@ -12,21 +12,20 @@
 #SBATCH --mail-user=kirchgae@ohsu.edu
 
 biopsy=$1
-mode=$2
-replace_value=$3
-spatial=$4
+replace_value=$2
+spatial=$3
 
 source venv/bin/activate
 
 
   if [ "$spatial" != "" ]; then
       echo "spatial is set to ${spatial}"
-      python3 ./ae_imputation_tma/ae.py -m "${mode}" -b "${biopsy}" -i 10 -sp "${spatial}" -rm "${replace_value}"
+      python3 ./ae_imputation_tma/ae.py  -b "${biopsy}" -i 10 -sp "${spatial}" -rm "${replace_value}"
 
 
   else
     echo "spatial is not set"
-    python3 ./ae_imputation_tma/ae.py -m "${mode}" -b "${biopsy}" -i 10 -rm "${replace_value}"
+    python3 ./ae_imputation_tma/ae.py -b "${biopsy}" -i 10 -rm "${replace_value}"
 
   fi
 
