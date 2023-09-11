@@ -91,7 +91,9 @@ def prepare_lbgm_scores(save_path: Path):
         scores["Biopsy"] = scores["Biopsy"].apply(lambda x: x.replace("_", " "))
 
         # convert Hyper False to 0
-        scores["Hyper"] = scores["Hyper"].apply(lambda x: 0 if x == "False" else 1)
+        # check if hyper column is type int
+        if scores["Hyper"].dtype != "int64":
+            scores["Hyper"] = scores["Hyper"].apply(lambda x: 0 if x == "False" else 1)
         # convert Hyper column to int
         scores["Hyper"] = scores["Hyper"].apply(lambda x: int(x))
 
