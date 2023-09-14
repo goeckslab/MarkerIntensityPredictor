@@ -99,14 +99,14 @@ if __name__ == '__main__':
     # remove ticks from ax1
     ax1.set_xticks([])
     ax1.set_yticks([])
-    ax1.text(-0.1, 1.1, "A", transform=ax1.transAxes,
+    ax1.text(-0.05, 1.1, "a", transform=ax1.transAxes,
              fontsize=7, fontweight='bold', va='top', ha='right')
     # show spatial information image
     ax1.imshow(spatial_information_image, aspect='auto')
 
     ax2 = fig.add_subplot(gspec[1, :])
-    ax2.set_title('LGBM 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.1, y=-0.2, fontsize=7)
-    ax2.text(-0.05, 1.1, "B", transform=ax2.transAxes,
+    ax2.set_title('LGBM 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.07, y=-0.2, fontsize=7)
+    ax2.text(-0.05, 1.2, "b", transform=ax2.transAxes,
              fontsize=7, fontweight='bold', va='top', ha='right')
     # remove box from ax3
     plt.box(False)

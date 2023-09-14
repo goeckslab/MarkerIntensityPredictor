@@ -34,9 +34,8 @@ def create_boxen_plot_ip_vs_exp_quartile(data: pd.DataFrame, metric: str) -> plt
 
 
 def create_boxen_plot(data: pd.DataFrame, metric: str, ylim: List, show_legend: bool = False) -> plt.Figure:
-    # rename AP to AP in data
-
-    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Mode", hue_order=["IP", "AP"],  palette={"IP": "lightblue", "AP": "orange"})
+    ax = sns.boxenplot(data=data, x="Marker", y=metric, hue="Mode", hue_order=["IP", "AP"],
+                       palette={"IP": "lightblue", "AP": "orange"})
 
     # plt.title(title)
     # remove y axis label
@@ -72,9 +71,10 @@ def create_boxen_plot(data: pd.DataFrame, metric: str, ylim: List, show_legend: 
         (("pERK", "IP"), ("pERK", "AP")),
         (("EGFR", "IP"), ("EGFR", "AP")),
         (("ER", "IP"), ("ER", "AP")),
+        (("Mean", "IP"), ("Mean", "AP")),
     ]
     order = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', 'HER2', 'AR', 'CK17', 'p21', 'Vimentin',
-             'pERK', 'EGFR', 'ER']
+             'pERK', 'EGFR', 'ER', "Mean"]
     annotator = Annotator(ax, pairs, data=data, x="Marker", y=metric, order=order, hue=hue, hue_order=hue_order,
                           verbose=1)
     annotator.configure(test='Mann-Whitney', text_format='star', loc='outside')
@@ -118,12 +118,35 @@ if __name__ == '__main__':
     # sort by marker
     lgbm_scores.sort_values(by=["Marker"], inplace=True)
 
+    # calculate mean performance for each marker and mode
+    mean = lgbm_scores.groupby(["Marker", "Mode", "Biopsy"]).mean().reset_index()
+    # calculate the mean of the mean for each mode
+    mean = mean.groupby(["Mode", "Biopsy"]).mean().reset_index()
+    mean["Marker"] = "Mean"
+    mean["FE"] = 0
+    mean["HP"] = 1
+    mean["Network"] = "LGBM"
+
+    # add a new row to lgbm scores, adding the mean scores
+    lgbm_scores = lgbm_scores.append(mean, ignore_index=True)
+
     en_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "en", "scores.csv"))
     en_scores = en_scores[en_scores["FE"] == 0]
     # rename EXP to AP
     en_scores["Mode"] = en_scores["Mode"].replace({"EXP": "AP"})
     # sort by marker
     en_scores.sort_values(by=["Marker"], inplace=True)
+
+    # calculate mean performance for each marker and mode
+    mean = en_scores.groupby(["Marker", "Mode", "Biopsy"]).mean().reset_index()
+    # calculate the mean of the mean for each mode
+    mean = mean.groupby(["Mode", "Biopsy"]).mean().reset_index()
+    mean["Marker"] = "Mean"
+    mean["FE"] = 0
+    mean["HP"] = 1
+    mean["Network"] = "EN"
+
+    en_scores = en_scores.append(mean, ignore_index=True)
 
     ae_scores = pd.read_csv(Path("data", "cleaned_data", "scores", "ae", "scores.csv"))
     # Select ae scores where fe  == 0, replace value == mean and noise  == 0
@@ -135,13 +158,11 @@ if __name__ == '__main__':
 
     ae_scores["Mode"] = ae_scores["Mode"].replace({"EXP": "AP"})
 
-
     # load image from images fig2 folder
     train_test_split = plt.imread(Path("images", "fig2", "train_test_split.png"))
-    ae_workflow = plt.imread(Path("images", "fig2", "ae_workflow.png"))
 
-    fig = plt.figure(figsize=(10, 11), dpi=300)
-    gspec = fig.add_gridspec(8, 4)
+    fig = plt.figure(figsize=(10, 8), dpi=300)
+    gspec = fig.add_gridspec(6, 4)
 
     ax1 = fig.add_subplot(gspec[:2, :2])
     # remove box from ax1
@@ -149,37 +170,25 @@ if __name__ == '__main__':
     # remove ticks from ax1
     ax1.set_xticks([])
     ax1.set_yticks([])
-    ax1.text(-0.2, 1, "A", transform=ax1.transAxes,
-             fontsize=7, fontweight='bold', va='top', ha='right')
+    ax1.text(-0.2, 1, "a", transform=ax1.transAxes,
+             fontsize=12, fontweight='bold', va='top', ha='right')
 
     # add image to figure
     ax1.imshow(train_test_split, aspect='auto')
 
-    ax2 = fig.add_subplot(gspec[2:4, :4])
-    # remove box from ax1
+    ax2 = fig.add_subplot(gspec[2:4, :])
+    ax2.text(-0.1, 1.15, "b", transform=ax2.transAxes,
+             fontsize=12, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    # remove ticks from ax1
-    ax2.set_xticks([])
-    ax2.set_yticks([])
-    ax2.text(-0.1, 1.15, "B", transform=ax2.transAxes,
-             fontsize=7, fontweight='bold', va='top', ha='right')
-
-    # add image to figure
-    ax2.imshow(ae_workflow, aspect='auto')
+    ax2.set_title('Elastic Net', rotation='vertical', x=-0.1, y=0, fontsize=12)
+    ax2 = create_boxen_plot(data=en_scores, metric="MAE", ylim=[0.0, 0.4])
 
     ax3 = fig.add_subplot(gspec[4:6, :])
-    ax3.text(-0.1, 1.15, "C", transform=ax3.transAxes,
-             fontsize=7, fontweight='bold', va='top', ha='right')
+    ax3.text(-0.1, 1.15, "c", transform=ax3.transAxes,
+             fontsize=12, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    ax3.set_title('Elastic Net', rotation='vertical', x=-0.1, y=0, fontsize=7)
-    ax3 = create_boxen_plot(data=en_scores, metric="MAE", ylim=[0.0, 0.4])
-
-    ax4 = fig.add_subplot(gspec[6:8, :])
-    ax4.text(-0.1, 1.15, "D", transform=ax4.transAxes,
-             fontsize=7, fontweight='bold', va='top', ha='right')
-    plt.box(False)
-    ax4.set_title('LBGM', rotation='vertical', x=-0.1, y=0, fontsize=7)
-    ax4 = create_boxen_plot(data=lgbm_scores, metric="MAE", ylim=[0.0, 0.4], show_legend=True)
+    ax3.set_title('LBGM', rotation='vertical', x=-0.1, y=0, fontsize=12)
+    ax3 = create_boxen_plot(data=lgbm_scores, metric="MAE", ylim=[0.0, 0.4], show_legend=True)
 
     plt.tight_layout()
 

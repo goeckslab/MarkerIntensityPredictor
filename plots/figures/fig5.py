@@ -197,9 +197,9 @@ if __name__ == '__main__':
     gspec = fig.add_gridspec(3, 3)
 
     ax1 = fig.add_subplot(gspec[0, :])
-    ax1.set_title('AE S 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.05, y=0, fontsize=7)
-    ax1.text(0, 1.15, "A", transform=ax1.transAxes,
-             fontsize=7, fontweight='bold', va='top', ha='right')
+    ax1.set_title('AE S 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.05, y=0, fontsize=8)
+    ax1.text(-0.01, 1.3, "a", transform=ax1.transAxes,
+             fontsize=12, fontweight='bold', va='top', ha='right')
     # remove box from ax3
     plt.box(False)
 
@@ -208,9 +208,9 @@ if __name__ == '__main__':
                             microns=["0 µm", "15 µm", "60 µm", "120 µm"], model="AE", legend_position=[0.1, 0.8])
 
     ax2 = fig.add_subplot(gspec[1, :])
-    ax2.set_title('AE M 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.05, y=0, fontsize=7)
-    ax2.text(0, 1.15, "B", transform=ax2.transAxes,
-             fontsize=7, fontweight='bold', va='top', ha='right')
+    ax2.set_title('AE M 0 vs. 15 µm, 60 µm and 120 µm', rotation='vertical', x=-0.05, y=0, fontsize=8)
+    ax2.text(x=-0.01, y=1.3, s="b", transform=ax2.transAxes,
+             fontsize=12, fontweight='bold', va='top', ha='right')
     # remove box from ax4
     plt.box(False)
     # ax4.imshow(ae_results)
@@ -218,10 +218,10 @@ if __name__ == '__main__':
                             microns=["0 µm", "15 µm", "60 µm", "120 µm"], model="AE M", legend_position=[0.1, 0.8])
 
     ax3 = fig.add_subplot(gspec[2, :])
-    ax3.text(0, 1.15, "C", transform=ax3.transAxes,
-             fontsize=7, fontweight='bold', va='top', ha='right')
+    ax3.text(x=-0.01, y=1.3, s="c", transform=ax3.transAxes,
+             fontsize=12, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    ax3.set_title('Performance', rotation='vertical', x=-0.05, y=0, fontsize=7)
+    ax3.set_title('Performance', rotation='vertical', x=-0.05, y=0, fontsize=8)
     ax3 = create_boxen_plot_by_mode_only(data=all_scores, metric="MAE", ylim=[0.0, 0.8])
 
     plt.tight_layout()

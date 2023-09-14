@@ -158,24 +158,24 @@ if __name__ == '__main__':
     gspec = fig.add_gridspec(6, 3)
 
     ax1 = fig.add_subplot(gspec[:2, :])
-    ax1.text(-0.1, 1.15, "A", transform=ax1.transAxes,
-             fontsize=7, fontweight='bold', va='top', ha='right')
+    ax1.text(-0.05, 1.15, "a", transform=ax1.transAxes,
+             fontsize=12, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    ax1.set_title("AE (Single Protein)", rotation='vertical', x=-0.1, y=-0, fontsize=7)
+    ax1.set_title("AE (Single Protein)", rotation='vertical', x=-0.05, y=0, fontsize=12)
     ax1 = create_boxen_plot(data=ae_scores, metric="MAE", ylim=[0.0, 0.8])
 
     ax2 = fig.add_subplot(gspec[2:4, :])
-    ax2.text(-0.1, 1.15, "B", transform=ax2.transAxes,
-             fontsize=7, fontweight='bold', va='top', ha='right')
+    ax2.text(-0.05, 1.1, "b", transform=ax2.transAxes,
+             fontsize=12, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    ax2.set_title('AE (Multi Protein)', rotation='vertical', x=-0.1, y=0, fontsize=7)
+    ax2.set_title('AE (Multi Protein)', rotation='vertical', x=-0.05, y=0, fontsize=12)
     ax2 = create_boxen_plot(data=ae_m_scores, metric="MAE", ylim=[0.0, 0.8], show_legend=True)
 
     ax3 = fig.add_subplot(gspec[4:6, :2])
-    ax3.text(-0.15, 1.15, "C", transform=ax3.transAxes,
-             fontsize=7, fontweight='bold', va='top', ha='right')
+    ax3.text(-0.08, 1.1, "c", transform=ax3.transAxes,
+             fontsize=12, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    ax3.set_title('Performance', rotation='vertical', x=-0.15, y=0.1, fontsize=7)
+    ax3.set_title('Performance', rotation='vertical', x=-0.08, y=0, fontsize=12)
     ax3 = create_boxen_plot_by_mode_only(data=all_scores, metric="MAE", ylim=[0.0, 0.8])
 
 
