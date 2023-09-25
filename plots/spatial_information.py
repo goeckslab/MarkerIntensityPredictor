@@ -1,5 +1,5 @@
 import pandas as pd
-import logging
+import logging, sys
 import seaborn as sns
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -10,7 +10,7 @@ SHARED_MARKERS = ['pRB', 'CD45', 'CK19', 'Ki67', 'aSMA', 'Ecad', 'PR', 'CK14', '
 logging.root.handlers = []
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[
-                        logging.FileHandler("shap/debug.log"),
+                        logging.FileHandler("plots/debug.log"),
                         logging.StreamHandler()
                     ])
 
@@ -55,6 +55,12 @@ if __name__ == '__main__':
     # save merged information
     merged_information.to_csv(Path(save_path, "clustering_and_performance.csv"), index=False)
 
+
+
+    # create scatterplot using marker, biopsy, I and MAE
+    sns.scatterplot(data=merged_information, x="I", y="MAE", hue="Marker")
+    plt.show()
+    sys.exit()
 
     print(merged_information.head(20))
     # select only MAE for marker CK19

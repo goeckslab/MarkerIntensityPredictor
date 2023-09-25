@@ -47,13 +47,3 @@ if __name__ == '__main__':
     print(rounds)
     # save to save path
     rounds.to_csv(Path(save_folder, "rounds.csv"), index=False)
-
-    # sns.barplot(x="Biopsy", y="Score", hue="Round", data=rounds)
-    # plt.show()
-
-    # sns.catplot(
-    #    data=rounds, x="Biopsy", y="Score", col="marker_name",
-    #    kind="bar", height=4, aspect=.6,
-    # )
-    # plt.show()
-    # calculate difference between round 5 and 7 for ck19
