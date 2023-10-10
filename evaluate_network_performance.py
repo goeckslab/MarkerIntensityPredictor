@@ -83,10 +83,5 @@ if __name__ == '__main__':
     else:
         raise ValueError("Model not supported")
 
-    if save_path.exists():
-        shutil.rmtree(save_path)
-
-    save_path.mkdir(parents=True, exist_ok=True)
-
     all_scores.to_csv(Path(save_path, "scores.csv"), index=False)
     print(f"Loaded {loaded_files} files.")

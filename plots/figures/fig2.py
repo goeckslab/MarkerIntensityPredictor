@@ -161,34 +161,97 @@ if __name__ == '__main__':
     # load image from images fig2 folder
     train_test_split = plt.imread(Path("images", "fig2", "train_test_split.png"))
 
+    biopsies = {}
+    for data in Path("data", "tumor_mesmer").iterdir():
+        if "h5ad" in str(data):
+            continue
+
+        bx = Path(data).stem.split('.')[0]
+
+        if "9_" not in bx:
+            continue
+
+        loaded_data = pd.read_csv(Path(data))
+        loaded_data["Biopsy"] = bx
+        loaded_data["Patient"] = " ".join(bx.split('_')[0:2])
+        biopsies[bx] = loaded_data
+
+    # assert that 8 unique biopsies are loaded
+    assert len(biopsies.keys()) == 8
+
+    # combine all biopsies into one dataframe
+    bx_data = pd.DataFrame()
+    for bx in biopsies:
+        bx_data = pd.concat([bx_data, biopsies[bx]])
+
     fig = plt.figure(figsize=(10, 8), dpi=300)
     gspec = fig.add_gridspec(6, 4)
 
-    ax1 = fig.add_subplot(gspec[:2, :2])
+    ax11 = fig.add_subplot(gspec[:2, :1])
     # remove box from ax1
     plt.box(False)
     # remove ticks from ax1
-    ax1.set_xticks([])
-    ax1.set_yticks([])
-    ax1.text(-0.2, 1, "a", transform=ax1.transAxes,
-             fontsize=12, fontweight='bold', va='top', ha='right')
+    ax11.set_xticks([])
+    # set y ticks range
+    ax11.set_ylim([-0.2, 4.5])
+    ax11.text(-0.2, 1, "a", transform=ax11.transAxes,
+              fontsize=12, fontweight='bold', va='top', ha='right')
+    ax11 = sns.violinplot(data=bx_data, x="Patient", y="CK19")
+    # rotate x ticks of ax11
+    ax11.set_xticklabels(ax11.get_xticklabels(), rotation=90)
 
-    # add image to figure
-    ax1.imshow(train_test_split, aspect='auto')
+    ax12 = fig.add_subplot(gspec[:2, 1:2])
+    # remove box from ax1
+    plt.box(False)
+    # remove ticks from ax1
+    ax12.set_xticks([])
+    ax12.set_ylim([-0.2, 4.5])
+    ax12.text(-0.2, 1, "b", transform=ax12.transAxes,
+              fontsize=12, fontweight='bold', va='top', ha='right')
 
-    ax2 = fig.add_subplot(gspec[2:4, :])
-    ax2.text(-0.1, 1.15, "b", transform=ax2.transAxes,
+    ax12 = sns.violinplot(data=bx_data, x="Patient", y="ER")
+    # rotate x ticks of ax11
+    ax12.set_xticklabels(ax12.get_xticklabels(), rotation=90)
+
+    ax13 = fig.add_subplot(gspec[:2, 2:3])
+    # remove box from ax1
+    plt.box(False)
+    # remove ticks from ax1
+    ax13.set_xticks([])
+    ax13.set_ylim([-0.2, 4.5])
+    ax13.text(-0.2, 1, "b", transform=ax13.transAxes,
+              fontsize=12, fontweight='bold', va='top', ha='right')
+
+    ax14 = sns.violinplot(data=bx_data, x="Patient", y="pRB")
+    # rotate x ticks of ax11
+    ax14.set_xticklabels(ax13.get_xticklabels(), rotation=90)
+
+    ax14 = fig.add_subplot(gspec[:2, 3:4])
+    # remove box from ax1
+    plt.box(False)
+    # remove ticks from ax1
+    ax14.set_xticks([])
+    ax14.set_ylim([-0.2, 4.5])
+    ax14.text(-0.2, 1, "b", transform=ax14.transAxes,
+              fontsize=12, fontweight='bold', va='top', ha='right')
+
+    ax14 = sns.violinplot(data=bx_data, x="Patient", y="CK17")
+    # rotate x ticks of ax11
+    ax14.set_xticklabels(ax14.get_xticklabels(), rotation=90)
+
+    ax1 = fig.add_subplot(gspec[2:4, :])
+    ax1.text(-0.1, 1.15, "a", transform=ax1.transAxes,
              fontsize=12, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    ax2.set_title('Elastic Net', rotation='vertical', x=-0.1, y=0, fontsize=12)
-    ax2 = create_boxen_plot(data=en_scores, metric="MAE", ylim=[0.0, 0.4])
+    ax1.set_title('Elastic Net', rotation='vertical', x=-0.1, y=0, fontsize=12)
+    ax1 = create_boxen_plot(data=en_scores, metric="MAE", ylim=[0.0, 0.4])
 
-    ax3 = fig.add_subplot(gspec[4:6, :])
-    ax3.text(-0.1, 1.15, "c", transform=ax3.transAxes,
+    ax2 = fig.add_subplot(gspec[4:6, :])
+    ax2.text(-0.1, 1.15, "c", transform=ax2.transAxes,
              fontsize=12, fontweight='bold', va='top', ha='right')
     plt.box(False)
-    ax3.set_title('LBGM', rotation='vertical', x=-0.1, y=0, fontsize=12)
-    ax3 = create_boxen_plot(data=lgbm_scores, metric="MAE", ylim=[0.0, 0.4], show_legend=True)
+    ax2.set_title('LBGM', rotation='vertical', x=-0.1, y=0, fontsize=12)
+    ax2 = create_boxen_plot(data=lgbm_scores, metric="MAE", ylim=[0.0, 0.4], show_legend=True)
 
     plt.tight_layout()
 

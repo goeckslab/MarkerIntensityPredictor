@@ -15,18 +15,17 @@
 biopsy=$1
 mode=$2
 spatial=$3
-hyper=$4
 
-echo "Biopsy: ${biopsy}" "Mode: ${mode}" "Spatial: ${spatial}" "Hyper: ${hyper}"
+echo "Biopsy: ${biopsy}" "Mode: ${mode}" "Spatial: ${spatial}"
 
 source venv/bin/activate
 
 if [ "$spatial" != "" ]; then
-  python3 evaluate_ludwig_models.py -b $1 --mode $2 --spatial $3 -s 50
+  python3 evaluate_ludwig_models.py -b $1 --mode $2 --spatial $3 -s 10
 else
   if [ "$hyper" == "" ]; then
-    python3 evaluate_ludwig_models.py -b $1 --mode $2 -s 50
+    python3 evaluate_ludwig_models.py -b $1 --mode $2 -s 10
   else
-    python3 evaluate_ludwig_models.py -b $1 --mode $2 --hyper -s 50
+    python3 evaluate_ludwig_models.py -b $1 --mode $2 --hyper -s 10
   fi
 fi

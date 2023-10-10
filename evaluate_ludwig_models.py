@@ -97,7 +97,7 @@ if __name__ == '__main__':
     parser.add_argument('-b', "--biopsy", type=str, required=True,
                         help="The biopsy. For an ip mode that is the train biopsy, for exp mode that is the test biopsy due to ludwigs setup")
     parser.add_argument('-sp', '--spatial', type=int, required=False, default=0, help="The radius",
-                        choices=[23, 46, 92, 138, 184])
+                        choices=[0, 23, 46, 92, 138, 184])
     parser.add_argument('--mode', type=str, choices=['ip', 'exp'], help="The mode", default='ip')
     parser.add_argument('--hyper', action="store_true", help="Use hyperopt", default=False)
     parser.add_argument("--subsets", "-s", type=int, default=101, help="The number of subsets")
