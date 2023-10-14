@@ -168,6 +168,7 @@ if __name__ == '__main__':
     try:
         for marker in SHARED_MARKERS:
             results_path = Path(base_path, marker, "results")
+            print(results_path)
             for root, marker_sub_directories, files in os.walk(str(results_path)):
                 if "experiment_run" in marker_sub_directories:
                     print(marker_sub_directories)
