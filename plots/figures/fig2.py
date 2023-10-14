@@ -219,7 +219,7 @@ if __name__ == '__main__':
     # remove ticks from ax1
     ax13.set_xticks([])
     ax13.set_ylim([-0.2, 4.5])
-    ax13.text(-0.2, 1, "b", transform=ax13.transAxes,
+    ax13.text(-0.2, 1, "c", transform=ax13.transAxes,
               fontsize=12, fontweight='bold', va='top', ha='right')
 
     ax14 = sns.violinplot(data=bx_data, x="Patient", y="pRB")
@@ -232,7 +232,7 @@ if __name__ == '__main__':
     # remove ticks from ax1
     ax14.set_xticks([])
     ax14.set_ylim([-0.2, 4.5])
-    ax14.text(-0.2, 1, "b", transform=ax14.transAxes,
+    ax14.text(-0.2, 1, "d", transform=ax14.transAxes,
               fontsize=12, fontweight='bold', va='top', ha='right')
 
     ax14 = sns.violinplot(data=bx_data, x="Patient", y="CK17")
@@ -240,14 +240,14 @@ if __name__ == '__main__':
     ax14.set_xticklabels(ax14.get_xticklabels(), rotation=90)
 
     ax1 = fig.add_subplot(gspec[2:4, :])
-    ax1.text(-0.1, 1.15, "a", transform=ax1.transAxes,
+    ax1.text(-0.1, 1.15, "e", transform=ax1.transAxes,
              fontsize=12, fontweight='bold', va='top', ha='right')
     plt.box(False)
     ax1.set_title('Elastic Net', rotation='vertical', x=-0.1, y=0, fontsize=12)
     ax1 = create_boxen_plot(data=en_scores, metric="MAE", ylim=[0.0, 0.4])
 
     ax2 = fig.add_subplot(gspec[4:6, :])
-    ax2.text(-0.1, 1.15, "c", transform=ax2.transAxes,
+    ax2.text(-0.1, 1.15, "f", transform=ax2.transAxes,
              fontsize=12, fontweight='bold', va='top', ha='right')
     plt.box(False)
     ax2.set_title('LBGM', rotation='vertical', x=-0.1, y=0, fontsize=12)

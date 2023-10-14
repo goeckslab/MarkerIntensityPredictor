@@ -39,7 +39,6 @@ if __name__ == '__main__':
     # merge all scores together
     all_scores = pd.concat([lgbm_scores, en_scores, ae_scores, ae_m_scores], axis=0)
 
-
     print("Mean and std of MAE scores per network")
     exp_scores = all_scores[all_scores["Mode"] == "AP"]
     ip_scores = all_scores[all_scores["Mode"] == "IP"]
@@ -48,5 +47,3 @@ if __name__ == '__main__':
 
     print("IP scores")
     print(ip_scores.groupby(["Network"])["MAE"].agg(["mean", "std"]))
-
-

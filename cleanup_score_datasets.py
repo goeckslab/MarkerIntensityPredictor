@@ -105,6 +105,7 @@ def prepare_lbgm_scores(save_path: Path):
             # rename hyper column to hp
             scores = scores.rename(columns={"Hyper": "HP"})
 
+        print(f"Save path: {lgbm_path}")
         scores.to_csv(Path(lgbm_path, "scores.csv"), index=False)
 
     except BaseException as ex:
