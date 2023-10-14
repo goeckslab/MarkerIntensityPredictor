@@ -173,6 +173,7 @@ if __name__ == '__main__':
                     for experiment in marker_sub_directories:
                         models = None
                         try:
+                            print(f"Loading model: {str(Path(results_path, experiment, 'model'))}")
                             model = LudwigModel.load(str(Path(results_path, experiment, 'model')))
                         except KeyboardInterrupt as ex:
                             logger.debug("Keyboard interrupt")
@@ -236,3 +237,6 @@ if __name__ == '__main__':
         logger.debug("Saving scores....")
         if len(scores) > 0:
             save_scores(scores=scores, save_folder=save_path, file_name=score_file_name)
+
+    except BaseException as ex:
+        logger.error(ex)
