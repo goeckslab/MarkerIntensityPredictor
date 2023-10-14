@@ -172,9 +172,9 @@ if __name__ == '__main__':
             for root, marker_sub_directories, files in os.walk(str(results_path)):
                 for folder in marker_sub_directories:
 
-                    if "experiment_run" in marker_sub_directories:
-                        print(marker_sub_directories)
-                        for experiment in marker_sub_directories:
+                    if "experiment_run" in folder:
+                        print(folder)
+                        for experiment in folder:
                             models = None
                             try:
                                 print(f"Loading model: {str(Path(results_path, experiment, 'model'))}")
