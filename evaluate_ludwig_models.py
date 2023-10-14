@@ -170,66 +170,68 @@ if __name__ == '__main__':
             results_path = Path(base_path, marker, "results")
             print(results_path)
             for root, marker_sub_directories, files in os.walk(str(results_path)):
-                if "experiment_run" in marker_sub_directories:
-                    print(marker_sub_directories)
-                    for experiment in marker_sub_directories:
-                        models = None
-                        try:
-                            print(f"Loading model: {str(Path(results_path, experiment, 'model'))}")
-                            model = LudwigModel.load(str(Path(results_path, experiment, 'model')))
-                        except KeyboardInterrupt as ex:
-                            logger.debug("Keyboard interrupt")
-                            sys.exit(0)
-                        except BaseException as ex:
-                            logger.error(ex)
-                            continue
+                for folder in marker_sub_directories:
 
-                        for i in tqdm(range(1, subsets)):
-                            random_seed = random.randint(0, 100000)
-                            # sample new dataset from test_data
-                            test_data_sample = test_dataset.sample(frac=0.7, random_state=random_seed,
-                                                                   replace=True)
-
-                            test_data_sample.reset_index(drop=True, inplace=True)
+                    if "experiment_run" in marker_sub_directories:
+                        print(marker_sub_directories)
+                        for experiment in marker_sub_directories:
+                            models = None
                             try:
-                                eval_stats, _, _ = model.evaluate(dataset=test_data_sample)
+                                print(f"Loading model: {str(Path(results_path, experiment, 'model'))}")
+                                model = LudwigModel.load(str(Path(results_path, experiment, 'model')))
                             except KeyboardInterrupt as ex:
                                 logger.debug("Keyboard interrupt")
                                 sys.exit(0)
                             except BaseException as ex:
-                                logger.error(f"Error occurred for experiment: {experiment}")
-                                logger.error(
-                                    f"Model loaded using path: {str(Path(results_path, experiment, 'model'))}")
                                 logger.error(ex)
-                                logger.error("Continuing to next experiment")
                                 continue
 
-                            scores.append(
-                                {
-                                    "Marker": marker,
-                                    "MAE": eval_stats[marker]['mean_absolute_error'],
-                                    "MSE": eval_stats[marker]['mean_squared_error'],
-                                    "RMSE": eval_stats[marker]['root_mean_squared_error'],
-                                    "Biopsy": test_biopsy_name,
-                                    "Mode": mode,
-                                    "FE": spatial_radius,
-                                    "Network": "Ludwig",
-                                    "Hyper": int(hyper),
-                                    "Load Path": str(Path(results_path, experiment, 'model')),
-                                    "Random Seed": int(random_seed),
-                                }
-                            )
+                            for i in tqdm(range(1, subsets)):
+                                random_seed = random.randint(0, 100000)
+                                # sample new dataset from test_data
+                                test_data_sample = test_dataset.sample(frac=0.7, random_state=random_seed,
+                                                                       replace=True)
 
-                            if i % 20 == 0:
+                                test_data_sample.reset_index(drop=True, inplace=True)
+                                try:
+                                    eval_stats, _, _ = model.evaluate(dataset=test_data_sample)
+                                except KeyboardInterrupt as ex:
+                                    logger.debug("Keyboard interrupt")
+                                    sys.exit(0)
+                                except BaseException as ex:
+                                    logger.error(f"Error occurred for experiment: {experiment}")
+                                    logger.error(
+                                        f"Model loaded using path: {str(Path(results_path, experiment, 'model'))}")
+                                    logger.error(ex)
+                                    logger.error("Continuing to next experiment")
+                                    continue
+
+                                scores.append(
+                                    {
+                                        "Marker": marker,
+                                        "MAE": eval_stats[marker]['mean_absolute_error'],
+                                        "MSE": eval_stats[marker]['mean_squared_error'],
+                                        "RMSE": eval_stats[marker]['root_mean_squared_error'],
+                                        "Biopsy": test_biopsy_name,
+                                        "Mode": mode,
+                                        "FE": spatial_radius,
+                                        "Network": "Ludwig",
+                                        "Hyper": int(hyper),
+                                        "Load Path": str(Path(results_path, experiment, 'model')),
+                                        "Random Seed": int(random_seed),
+                                    }
+                                )
+
+                                if i % 20 == 0:
+                                    logger.debug("Temp saving scores...")
+                                    save_scores(scores=scores, save_folder=save_path, file_name=score_file_name)
+                                    scores = []
+
+                            if len(scores) > 0:
+                                # Save scores after each experiment
                                 logger.debug("Temp saving scores...")
                                 save_scores(scores=scores, save_folder=save_path, file_name=score_file_name)
                                 scores = []
-
-                        if len(scores) > 0:
-                            # Save scores after each experiment
-                            logger.debug("Temp saving scores...")
-                            save_scores(scores=scores, save_folder=save_path, file_name=score_file_name)
-                            scores = []
 
         if len(scores) > 0:
             logger.debug("Saving scores...")
