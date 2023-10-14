@@ -198,9 +198,9 @@ if __name__ == '__main__':
                                 logger.debug("Keyboard interrupt")
                                 sys.exit(0)
                             except BaseException as ex:
-                                logger.error(f"Error occurred for experiment: {experiment}")
+                                logger.error(f"Error occurred for experiment: {folder}")
                                 logger.error(
-                                    f"Model loaded using path: {str(Path(results_path, experiment, 'model'))}")
+                                    f"Model loaded using path: {str(Path(results_path, folder, 'model'))}")
                                 logger.error(ex)
                                 logger.error("Continuing to next experiment")
                                 continue
@@ -216,7 +216,7 @@ if __name__ == '__main__':
                                     "FE": spatial_radius,
                                     "Network": "Ludwig",
                                     "Hyper": int(hyper),
-                                    "Load Path": str(Path(results_path, experiment, 'model')),
+                                    "Load Path": str(Path(results_path, folder, 'model')),
                                     "Random Seed": int(random_seed),
                                 }
                             )
